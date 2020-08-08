@@ -1,8 +1,5 @@
 library flutter_command;
 
-import 'dart:ffi';
-import 'dart:js_util';
-
 import 'package:flutter/foundation.dart';
 import 'package:functional_listener/functional_listener.dart';
 import 'package:quiver_hashcode/hashcode.dart';
@@ -19,16 +16,13 @@ typedef AsyncAction1<TParam> = Future Function(TParam param);
 typedef AsyncFunc<TResult> = Future<TResult> Function();
 typedef AsyncFunc1<TParam, TResult> = Future<TResult> Function(TParam param);
 
-typedef StreamProvider<TParam, TResult> = Stream<TResult> Function(
-    TParam param);
-
-/// Combined execution state of an `RxCommand`
+/// Combined execution state of an `Command`
 /// Will be issued for any state change of any of the fields
-/// During normal command execution you will get this items listening at the command's [.results] observable.
-/// 1. If the command was just newly created you will get `null, null, false` (data, error, isExecuting)
-/// 2. When calling execute: `null, null, true`
-/// 3. When execution finishes: `the result, null, false`
-
+/// During normal command execution you will get this items listening at the command's [.results] ValueListenable.
+/// 1. If the command was just newly created you will get `param data,null, null, false` (data, error, isExecuting)
+/// 2. When calling execute: `param data, null, null, true`
+/// 3. When execution finishes: `param data, the result, null, false`
+/// `param data` is the data that you pass as parameter when calling the command
 class CommandResult<TParam, TResult> {
   final TParam paramData;
   final TResult data;
@@ -70,6 +64,10 @@ class CommandResult<TParam, TResult> {
   }
 }
 
+/// [CommandError] wrapps an occuring error together with the argument that was
+/// passed when the command was called.
+/// This sort of objects are emitted on the `.thrownExceptions` ValueListenable
+/// of the Command
 class CommandError<TParam> {
   final Object error;
   final TParam paramData;
@@ -78,251 +76,238 @@ class CommandError<TParam> {
     this.paramData,
     this.error,
   );
+
+  @override
+  String toString() {
+    return '$error - for param: $paramData';
+  }
 }
 
-/// dummy type that is used as return type of Commands that wrap a `void Function`
-/// to be able to listen for the completion of such commands
-class EmptyReturn {}
-
 /// [Command] capsules a given handler function that can then be executed by its [execute] method.
-/// The result of this method is then published through its Observable (Observable wrap Dart Streams)
-/// Additionally it offers Observables for it's current execution state, if the command can be executed and for
-/// all possibly thrown exceptions during command execution.
+/// The result of this method is then published through its `ValueListenable` interface
+/// Additionally it offers other `ValueListenables` for it's current execution state,
+/// if the command can be executed and for all possibly thrown exceptions during command execution.
 ///
-/// [Command] implements the `Observable` interface so you can listen directly to the [Command] which emits the
-/// results of the wrapped function. If this function has a [void] return type
-/// it will still output one `void` item so that you can listen for the end of the execution.
+/// [Command] implements the `ValueListenable` interface so you can register notification handlers
+///  directly to the [Command] which emits the results of the wrapped function.
+/// If this function has a [void] return type registered handler will still be called
+///  so that you can listen for the end of the execution.
 ///
-/// The [results] Observable emits [CommandResult<TRESULT>] which is often easier in combination with Flutter `StreamBuilder`
-/// because you have all state information at one place.
+/// The [results] `ValueListenable` emits [CommandResult<TRESULT>] which is often easier in combination
+/// with Flutter `ValueListenableBuilder`  because you have all state information at one place.
 ///
-/// An [Command] is a generic class of type [RxCommand<TParam, TRESULT>]
+/// An [Command] is a generic class of type [Command<TParam, TRESULT>]
 /// where [TParam] is the type of data that is passed when calling [execute] and
 /// [TResult] denotes the return type of the handler function. To signal that
 /// a handler doesn't take a parameter or returns no value use the type `void`
 abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
-  /// Creates  a RxCommand for a synchronous handler function with no parameter and no return type
+  ///
+  /// Creates  a Command for a synchronous handler function with no parameter and no return type
   /// [action]: handler function
-  /// [canExecute] : observable that can be used to enable/disable the command based on some other state change
-  /// if omitted the command can be executed always except it's already executing
-  /// [isExecuting] will issue a `bool` value on each state change. Even if you
-  /// subscribe to a newly created command it will issue `false`
-  /// For the `Observable<CommandResult>` that [Command] publishes in [results] this normally doesn't make sense
-  /// if you want to get an initial Result with `data==null, error==null, isExecuting==false` pass
-  /// [emitInitialCommandResult=true].
-  /// By default the [results] Observable and the [Command] itself behave like a PublishSubject. If you want that it acts like
-  /// a BehaviourSubject, meaning every listener gets the last received value, you can set [emitsLastValueToNewSubscriptions = true].
-  static Command<void, void> createSyncNoParamNoResult(Action action,
-      {Stream<bool> canExecute,
-      bool emitsLastValueToNewSubscriptions = false}) {
+  /// [canExecute] : `ValueListenable<bool>` that can be used to enable/disable
+  /// the command based on some other state change. If omitted the command can
+  /// be executed always except it's already executing
+  /// As synchronous function doesn't give any the UI any chance to react on on a change of
+  /// `.isExecuting`,isExecuting isn't supported for synchronous commands ans will throw an
+  /// assert if you try to use it.
+  /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value, but you can
+  /// register a handler to wait for the completion of the wrapped function.
+  static Command<void, void> createSyncNoParamNoResult(
+    Action action, {
+    ValueListenable<bool> canExecute,
+  }) {
     return CommandSync<void, void>((_) {
       action();
       return null;
-    }, canExecute, false, null, true);
+    }, null, canExecute, false, true);
   }
 
-  /// Creates  a RxCommand for a synchronous handler function with one parameter and no return type
-  /// `action`: handler function  /// `canExecute` : observable that can be used to enable/disable the command based on some other state change
-  /// if omitted the command can be executed always except it's already executing
-  /// [isExecuting] will issue a `bool` value on each state change. Even if you
-  /// subscribe to a newly created command it will issue `false`
-  /// For the `Observable<CommandResult>` that [Command] publishes in [results]  this normally doesn't make sense
-  /// if you want to get an initial Result with `data==null, error==null, isExecuting==false` pass
-  /// [emitInitialCommandResult=true].
-  /// By default the [results] Observable and the [Command] itself behave like a PublishSubject. If you want that it acts like
-  /// a BehaviourSubject, meaning every listener gets the last received value, you can set [emitsLastValueToNewSubscriptions = true].
+  /// Creates  a Command for a synchronous handler function with one parameter and no return type
+  /// [action]: handler function
+  /// [canExecute] : `ValueListenable<bool>` that can be used to enable/disable
+  /// the command based on some other state change. If omitted the command can
+  /// be executed always except it's already executing
+  /// As synchronous function doesn't give the UI any chance to react on on a change of
+  /// `.isExecuting`,isExecuting isn't supported for synchronous commands and will throw an
+  /// assert if you try to use it.
+  /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value, but you can
+  /// register a handler to wait for the completion of the wrapped function.
   static Command<TParam, void> createSyncNoResult<TParam>(
-      Action1<TParam> action,
-      {Stream<bool> canExecute,
-      bool emitInitialCommandResult = false,
-      bool emitsLastValueToNewSubscriptions = false}) {
+    Action1<TParam> action, {
+    ValueListenable<bool> canExecute,
+  }) {
     return CommandSync<TParam, void>((x) {
       action(x);
       return null;
-    }, canExecute, false, null, true);
+    }, null, canExecute, false, true);
   }
 
-  /// Creates  a RxCommand for a synchronous handler function with no parameter that returns a value
-  /// `func`: handler function
-  /// `canExecute` : observable that can be used to enable/disable the command based on some other state change
-  /// if omitted the command can be executed always except it's already executing
-  /// [isExecuting] will issue a `bool` value on each state change. Even if you
-  /// subscribe to a newly created command it will issue `false`
-  /// [includeLastResultInCommandResults] will include the value of the last successful execution in all [CommandResult] events unless there is no result.
-  /// For the `Observable<CommandResult>` that [Command] publishes in [results]  this normally doesn't make sense
-  /// if you want to get an initial Result with `data==null, error==null, isExecuting==false` pass
-  /// [emitInitialCommandResult=true].
-  /// By default the [results] Observable and the [Command] itself behave like a PublishSubject. If you want that it acts like
-  /// a BehaviourSubject, meaning every listener gets the last received value, you can set [emitsLastValueToNewSubscriptions = true].
-  /// [initialValue] sets the value of the [initialValue] property before the first item was received. This is helpful if you use
-  /// [initialValue] as `initialData` of a `StreamBuilder`
-  static Command<void, TResult> createSyncNoParam<TResult>(Func<TResult> func,
-      {Stream<bool> canExecute,
-      bool includeLastResultInCommandResults = false,
-      TResult initialValue}) {
-    return CommandSync<void, TResult>((_) => func(), canExecute,
-        includeLastResultInCommandResults, initialValue, false);
+  /// Creates  a Command for a synchronous handler function with no parameter that returns a value
+  /// [func]: handler function
+  /// [initialValue] sets the `.value` of the Command.
+  /// [canExecute] : `ValueListenable<bool>` that can be used to enable/disable the command based on
+  ///  some other state change. If omitted the command can be executed always except it's already executing
+  /// [includeLastResultInCommandResults] will include the value of the last successful execution in
+  /// all `CommandResult` values unless there is no result. This can be handy if you always want to be able
+  /// to display something even when you got an error.
+  /// As synchronous function doesn't give any the UI any chance to react on on a change of
+  /// `.isExecuting`,isExecuting isn't supported for synchronous commands and will throw an
+  /// assert if you try to use it.
+  static Command<void, TResult> createSyncNoParam<TResult>(
+    Func<TResult> func,
+    TResult initialValue, {
+    ValueListenable<bool> canExecute,
+    bool includeLastResultInCommandResults = false,
+  }) {
+    return CommandSync<void, TResult>((_) => func(), initialValue, canExecute,
+        includeLastResultInCommandResults, false);
   }
 
-  /// Creates  a RxCommand for a synchronous handler function with parameter that returns a value
-  /// `func`: handler function
-  /// `canExecute` : observable that can be used to enable/disable the command based on some other state change
-  /// if omitted the command can be executed always except it's already executing
-  /// [isExecuting] will issue a `bool` value on each state change. Even if you
-  /// subscribe to a newly created command it will issue `false`
-  /// For the `Observable<CommandResult>` that [Command] implement this normally doesn't make sense
-  /// if you want to get an initial Result with `data==null, error==null, isExecuting==false` pass
-  /// [emitInitialCommandResult=true].
-  /// [includeLastResultInCommandResults] will include the value of the last successful execution in all [CommandResult] events unless there is no result.
-  /// By default the [results] Observable and the [Command] itself behave like a PublishSubject. If you want that it acts like
-  /// a BehaviourSubject, meaning every listener gets the last received value, you can set [emitsLastValueToNewSubscriptions = true].
-  /// [initialValue] sets the value of the [initialValue] property before the first item was received. This is helpful if you use
-  /// [initialValue] as `initialData` of a `StreamBuilder`
+  /// Creates  a Command for a synchronous handler function with parameter that returns a value
+  /// [func]: handler function
+  /// [initialValue] sets the `.value` of the Command.
+  /// [canExecute] : `ValueListenable<bool>` that can be used to enable/disable the command based on
+  ///  some other state change. If omitted the command can be executed always except it's already executing
+  /// [includeLastResultInCommandResults] will include the value of the last successful execution in
+  /// all `CommandResult` values unless there is no result. This can be handy if you always want to be able
+  /// to display something even when you got an error.
+  /// As synchronous function doesn't give the UI any chance to react on on a change of
+  /// `.isExecuting`,isExecuting isn't supported for synchronous commands and will throw an
+  /// assert if you try to use it.
   static Command<TParam, TResult> createSync<TParam, TResult>(
-      Func1<TParam, TResult> func,
-      {Stream<bool> canExecute,
-      bool includeLastResultInCommandResults = false,
-      TResult initialValue}) {
-    return CommandSync<TParam, TResult>((x) => func(x), canExecute,
-        includeLastResultInCommandResults, initialValue, false);
+    Func1<TParam, TResult> func,
+    TResult initialValue, {
+    ValueListenable<bool> canExecute,
+    bool includeLastResultInCommandResults = false,
+  }) {
+    return CommandSync<TParam, TResult>((x) => func(x), initialValue,
+        canExecute, includeLastResultInCommandResults, false);
   }
 
   // Asynchronous
 
-  /// Creates  a RxCommand for an asynchronous handler function with no parameter and no return type
-  /// `action`: handler function
-  /// `canExecute` : observable that can be used to enable/disable the command based on some other state change
-  /// if omitted the command can be executed always except it's already executing
-  /// [isExecuting] will issue a `bool` value on each state change. Even if you
-  /// subscribe to a newly created command it will issue `false`
-  /// For the `Observable<CommandResult>` that [Command] implement this normally doesn't make sense
-  /// if you want to get an initial Result with `data==null, error==null, isExecuting==false` pass
-  /// [emitInitialCommandResult=true].
-  /// By default the [results] Observable and the [Command] itself behave like a PublishSubject. If you want that it acts like
-  /// a BehaviourSubject, meaning every listener gets the last received value, you can set [emitsLastValueToNewSubscriptions = true].
+  /// Creates  a Command for an asynchronous handler function with no parameter and no return type
+  /// [action]: handler function
+  /// [canExecute] : `ValueListenable<bool>` that can be used to enable/disable
+  /// the command based on some other state change. If omitted the command can
+  /// be executed always except it's already executing
+  /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value, but you can
+  /// register a handler to wait for the completion of the wrapped function.
   static Command<void, void> createAsyncNoParamNoResult(AsyncAction action,
-      {Stream<bool> canExecute,
+      {ValueListenable<bool> canExecute,
       bool emitsLastValueToNewSubscriptions = false}) {
     return CommandAsync<void, void>((_) async {
       await action();
       return null;
-    }, canExecute, false, null, true);
+    }, null, canExecute, false, true);
   }
 
-  /// Creates  a RxCommand for an asynchronous handler function with one parameter and no return type
-  /// `action`: handler function
-  /// `canExecute` : observable that can be used to enable/disable the command based on some other state change
-  /// if omitted the command can be executed always except it's already executing
-  /// [isExecuting] will issue a `bool` value on each state change. Even if you
-  /// subscribe to a newly created command it will issue `false`
-  /// For the `Observable<CommandResult>` that [Command] implement this normally doesn't make sense
-  /// if you want to get an initial Result with `data==null, error==null, isExecuting==false` pass
-  /// [emitInitialCommandResult=true].
-  /// By default the [results] Observable and the [Command] itself behave like a PublishSubject. If you want that it acts like
-  /// a BehaviourSubject, meaning every listener gets the last received value, you can set [emitsLastValueToNewSubscriptions = true].
+  /// Creates  a Command for an asynchronous handler function with one parameter and no return type
+  /// [action]: handler function
+  /// [canExecute] : `ValueListenable<bool>` that can be used to enable/disable
+  /// the command based on some other state change. If omitted the command can
+  /// be executed always except it's already executing
+  /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value but you can
+  /// register a handler to wait for the completion of the wrapped function.
   static Command<TParam, void> createAsyncNoResult<TParam>(
     AsyncAction1<TParam> action, {
-    Stream<bool> canExecute,
+    ValueListenable<bool> canExecute,
   }) {
     return CommandAsync<TParam, void>((x) async {
       await action(x);
       return null;
-    }, canExecute, false, null, false);
+    }, null, canExecute, false, false);
   }
 
-  /// Creates  a RxCommand for an asynchronous handler function with no parameter that returns a value
-  /// `func`: handler function
-  /// `canExecute` : observable that can be used to enable/disable the command based on some other state change
-  /// if omitted the command can be executed always except it's already executing
-  /// [isExecuting] will issue a `bool` value on each state change. Even if you
-  /// subscribe to a newly created command it will issue `false`
-  /// for the `Observable<CommandResult>` that [Command] publishes in [results] this normally doesn't make sense
-  /// if you want to get an initial Result with `data==null, error==null, isExecuting==false` pass
-  /// [emitInitialCommandResult=true].
-  /// [includeLastResultInCommandResults] will include the value of the last successful execution in all [CommandResult] events unless there is no result.
-  /// By default the [results] Observable and the [Command] itself behave like a PublishSubject. If you want that it acts like
-  /// a BehaviourSubject, meaning every listener gets the last received value, you can set [emitsLastValueToNewSubscriptions = true].
-  /// [initialValue] sets the value of the [initialValue] property before the first item was received. This is helpful if you use
-  /// [initialValue] as `initialData` of a `StreamBuilder`
+  /// Creates  a Command for an asynchronous handler function with no parameter that returns a value
+  /// [func]: handler function
+  /// [initialValue] sets the `.value` of the Command.
+  /// [canExecute] : `ValueListenable<bool>` that can be used to enable/disable the command based on
+  ///  some other state change. If omitted the command can be executed always except it's already executing
+  /// [includeLastResultInCommandResults] will include the value of the last successful execution in
+  /// all `CommandResult` values unless there is no result. This can be handy if you always want to be able
+  /// to display something even when you got an error or while the command is still running.
   static Command<void, TResult> createAsyncNoParam<TResult>(
-      AsyncFunc<TResult> func,
-      {Stream<bool> canExecute,
-      bool includeLastResultInCommandResults = false,
-      TResult initialValue}) {
-    return CommandAsync<void, TResult>((_) async => func(), canExecute,
-        includeLastResultInCommandResults, initialValue, false);
+    AsyncFunc<TResult> func,
+    TResult initialValue, {
+    ValueListenable<bool> canExecute,
+    bool includeLastResultInCommandResults = false,
+  }) {
+    return CommandAsync<void, TResult>((_) async => func(), initialValue,
+        canExecute, includeLastResultInCommandResults, false);
   }
 
-  /// Creates  a RxCommand for an asynchronous handler function with parameter that returns a value
-  /// `func`: handler function
-  /// `canExecute` : observable that can be used to enable/disable the command based on some other state change
-  /// if omitted the command can be executed always except it's already executing
-  /// [isExecuting] will issue a `bool` value on each state change. Even if you
-  /// subscribe to a newly created command it will issue `false`
-  /// For the `Observable<CommandResult>` that [Command] publishes in [results] this normally doesn't make sense
-  /// if you want to get an initial Result with `data==null, error==null, isExecuting==false` pass
-  /// [emitInitialCommandResult=true].
-  /// [includeLastResultInCommandResults] will include the value of the last successful execution in all [CommandResult] events unless there is no result.
-  /// By default the [results] Observable and the [Command] itself behave like a PublishSubject. If you want that it acts like
-  /// a BehaviourSubject, meaning every listener gets the last received value, you can set [emitsLastValueToNewSubscriptions = true].
-  /// [initialValue] sets the value of the [initialValue] property before the first item was received. This is helpful if you use
-  /// [initialValue] as `initialData` of a `StreamBuilder`
+  /// Creates  a Command for an asynchronous handler function with parameter that returns a value
+  /// [func]: handler function
+  /// [initialValue] sets the `.value` of the Command.
+  /// [canExecute] : `ValueListenable<bool>` that can be used to enable/disable the command based on
+  ///  some other state change. If omitted the command can be executed always except it's already executing
+  /// [includeLastResultInCommandResults] will include the value of the last successful execution in
+  /// all `CommandResult` values unless there is no result. This can be handy if you always want to be able
+  /// to display something even when you got an error or while the command is still running.
   static Command<TParam, TResult> createAsync<TParam, TResult>(
-      AsyncFunc1<TParam, TResult> func,
-      {Stream<bool> canExecute,
-      bool includeLastResultInCommandResults = false,
-      TResult initialValue}) {
-    return CommandAsync<TParam, TResult>((x) async => func(x), canExecute,
-        includeLastResultInCommandResults, initialValue, false);
+    AsyncFunc1<TParam, TResult> func,
+    TResult initialValue, {
+    ValueListenable<bool> canExecute,
+    bool includeLastResultInCommandResults = false,
+  }) {
+    return CommandAsync<TParam, TResult>((x) async => func(x), initialValue,
+        canExecute, includeLastResultInCommandResults, false);
   }
 
-  /// Calls the wrapped handler function with an option input parameter
+  /// Calls the wrapped handler function with an optional input parameter
   void execute([TParam param]);
 
-  /// This makes RxCommand a callable class, so instead of `myCommand.execute()` you can write `myCommand()`
+  /// This makes Command a callable class, so instead of `myCommand.execute()`
+  /// you can write `myCommand()`
   void call([TParam param]) => execute(param);
 
-  /// The result of the last successful call to execute. This is especially handy to use as `initialData` of Flutter `StreamBuilder`
-  TResult initialValue;
-
-  /// emits [CommandResult<TRESULT>] the combined state of the command, which is often easier in combination with Flutter `StreamBuilder`
+  /// emits [CommandResult<TRESULT>] the combined state of the command, which is
+  /// often easier in combination with Flutter's `ValueListenableBuilder`
   /// because you have all state information at one place.
   ValueListenable<CommandResult<TParam, TResult>> get results => _commandResult;
 
-  /// Observable stream that issues a bool on any execution state change of the command
+  /// `ValueListenable`  that changes its value on any change of the execution
+  /// state change of the command
   ValueListenable<bool> get isExecuting => _isExecuting;
 
-  /// Observable stream that issues a bool on any change of the current executable state of the command.
-  /// Meaning if the command cann be executed or not. This will issue `false` while the command executes
-  /// but also if the command receives a false from the canExecute Observable that you can pass when creating the Command
-  ValueListenable<bool> get canExecute => _canExecuteSubject;
+  /// `ValueListenable<bool>`  that changes its value on any change of the current
+  /// executability state of the command. Meaning if the command can be executed or not.
+  /// This will issue `false` while the command executes, but also if the command
+  /// receives a false from the canExecute `ValueListenable` that you can pass when
+  /// creating the Command.
+  /// its value is `canExecuteInput.value && !isExecuting.value`
+  ValueListenable<bool> get canExecute => _canExecute;
 
-  /// When subribing to `thrownExceptions`you will every excetpion that was thrown in your handler function as an event on this Observable.
-  /// If no subscription exists the Exception will be rethrown
-  ValueListenable<dynamic> get thrownExceptions => _thrownExceptions;
+  /// `ValueListenable<CommandError>` that reflects the Error State of the command
+  /// it value is reset to `null` at the beginning of every command execution
+  /// if the wrapped function throws an error, its value is set to the error is
+  /// wrapped in an `CommandError`
+  ///
+  ValueListenable<CommandError> get thrownExceptions => _thrownExceptions;
 
-  // /// This property is a utility which allows us to chain RxCommands together.
-  // Future<TResult> get next =>
-  //     Rx.merge([this, this.thrownExceptions.cast<TResult>()]).take(1).last;
-
+  /// as we don't want that anyone changes the values of these ValueNotifiers
+  /// properties we make them private and only publish their `ValueListenable`
+  /// interface via getters.
   ValueNotifier<CommandResult<TParam, TResult>> _commandResult;
   final ValueNotifier<bool> _isExecuting = ValueNotifier<bool>(false);
-  final ValueNotifier<bool> _canExecuteSubject = ValueNotifier<bool>(true);
+  ValueNotifier<bool> _canExecute;
   final ValueNotifier<CommandError<TParam>> _thrownExceptions =
       ValueNotifier<CommandError<TParam>>(null);
 
   /// If you don't need a command any longer it is a good practise to
-  /// dispose it to make sure all stream subscriptions are cancelled to prevent memory leaks
+  /// dispose it to make sure all registered notificarion handlers are remove to
+  /// prevent memory leaks
   void dispose() {
     _commandResult.dispose();
     _isExecuting.dispose();
-    _canExecuteSubject.dispose();
+    _canExecute.dispose();
     _thrownExceptions.dispose();
     super.dispose();
   }
 
-  final _canExecute = ValueNotifier<bool>(true);
-  bool _executionLocked = false;
+  /// Flag that we always should include the las succesful value in `CommandResult`
+  /// for isExecuting or error states
   bool _includeLastResultInCommandResults;
 
   ///Flag to signal the wrapped command has no return value which means
@@ -330,31 +315,29 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   final bool _noReturnValue;
 
   Command(
-      // todo
-      // Stream<bool> canExecuteRestriction,
-      this._includeLastResultInCommandResults,
-      this.initialValue,
-      noReturnValue)
-      : _noReturnValue = noReturnValue,
+    TResult initialValue,
+    ValueListenable<bool> canExecuteRestriction,
+    bool includeLastResultInCommandResults,
+    noReturnValue,
+  )   : _noReturnValue = noReturnValue,
+        _includeLastResultInCommandResults = includeLastResultInCommandResults,
         super(initialValue) {
-    _commandResult.listen(
+    _commandResult = ValueNotifier<CommandResult<TParam, TResult>>(
+        CommandResult.data(null, initialValue));
+
+    /// forward error states to the `thrownExceptions` Listenable
+    _commandResult.where((x) => x.hasError).listen(
         (x, _) => _thrownExceptions.value = CommandError(x.paramData, x.error));
 
+    /// forward busy states to the `isExecuting` Listenable
     _commandResult.listen((x, _) => _isExecuting.value = x.isExecuting);
 
-    // final _canExecuteParam = canExecuteRestriction == null
-    //     ? Stream<bool>.value(true)
-    //     : canExecuteRestriction.handleError((error) {
-    //         if (error is Exception) {
-    //           _thrownExceptions.value=error);
-    //         }
-    //       }).distinct();
-
-    // _canExecuteParam.listen((canExecute) {
-    //   _canExecute = canExecute && (!_isExecuting);
-    //   _executionLocked = !canExecute;
-    //   _canExecuteSubject.value=_canExecute);
-    // });
+    /// Merge the external excecution restricting with the internal
+    /// isExecuting which also blocks execution if true
+    _canExecute = canExecuteRestriction == null
+        ? ValueNotifier<bool>(true)
+        : canExecuteRestriction.combineLatest(_isExecuting,
+            (restriction, isExcuting) => restriction && !isExcuting);
   }
 }
 
@@ -369,23 +352,20 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
 
   CommandSync(
       Func1<TParam, TResult> func,
-      Stream<bool> canExecute,
-      bool includeLastResultInCommandResults,
       TResult initialValue,
+      ValueListenable<bool> canExecute,
+      bool includeLastResultInCommandResults,
       bool noReturnValue)
       : _func = func,
-        super(
-            // canExecute,
-            includeLastResultInCommandResults,
-            initialValue,
+        super(initialValue, canExecute, includeLastResultInCommandResults,
             noReturnValue);
 
   @override
   void execute([TParam param]) {
-    //todo   if (!_canExecute) {
-    //   return;
-    // }
-
+    if (!_canExecute.value) {
+      return;
+    }
+    _thrownExceptions.value = null;
     try {
       final result = _func(param);
       _commandResult.value =
@@ -398,9 +378,6 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
     } catch (error) {
       _commandResult.value = CommandResult<TParam, TResult>(param,
           _includeLastResultInCommandResults ? value : null, error, false);
-    } finally {
-      _canExecute.value = !_executionLocked;
-      _canExecuteSubject.value = !_executionLocked;
     }
   }
 }
@@ -410,29 +387,27 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
 
   CommandAsync(
       AsyncFunc1<TParam, TResult> func,
-      Stream<bool> canExecute,
-      bool includeLastResultInCommandResults,
       TResult initialValue,
+      ValueListenable<bool> canExecute,
+      bool includeLastResultInCommandResults,
       bool noResult)
       : _func = func,
-        super(
-            // canExecute,
-            includeLastResultInCommandResults,
-            initialValue,
+        super(initialValue, canExecute, includeLastResultInCommandResults,
             noResult);
 
   @override
   void execute([TParam param]) async {
-    //todo   if (!_canExecute) {
-    //   return;
-    // }
+    if (!_canExecute.value) {
+      return;
+    }
 
     if (_isExecuting.value) {
       return;
     } else {
       _isExecuting.value = true;
-//todo      _canExecuteSubject.value = false;
     }
+
+    _thrownExceptions.value = null;
 
     _commandResult.value = CommandResult<TParam, TResult>(
         param, _includeLastResultInCommandResults ? value : null, null, true);
@@ -451,8 +426,6 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
           _includeLastResultInCommandResults ? value : null, error, false);
     } finally {
       _isExecuting.value = false;
-      _canExecute.value = !_executionLocked;
-      _canExecuteSubject.value = !_executionLocked;
     }
   }
 }
@@ -468,15 +441,16 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult> {
   /// Number of times execute or the command directly was called
   int executionCount = 0;
 
-  /// constructor that can take an optional observable to control if the command can be executet
+  /// constructor that can take an optional `ValueListenable` to control if the command can be executet
   /// if the wrapped function has `void` as return type [noResult] has to be `true`
   MockCommand(
-      // Stream<bool> canExecute,
+      TResult initialValue,
+      ValueListenable<bool> canExecute,
       bool includeLastResultInCommandResults,
       bool emitInitialCommandResult,
-      TResult initialValue,
       bool noResult)
-      : super(includeLastResultInCommandResults, initialValue, noResult) {
+      : super(initialValue, canExecute, includeLastResultInCommandResults,
+            noResult) {
     _commandResult
         .where((result) => result.hasData)
         .listen((result, _) => value = result.data);
@@ -493,7 +467,11 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult> {
   /// [isExecuting], [canExecute] and [results] will work as with a real command.
   @override
   execute([TParam param]) {
-    _canExecute.value = false;
+    if (!_canExecute.value) {
+      return;
+    }
+
+    _isExecuting.value = true;
     executionCount++;
     lastPassedValueToExecute = param;
     print("Called Execute");
@@ -513,7 +491,7 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult> {
     } else {
       print("No values for execution queued");
     }
-    _canExecute.value = true;
+    _isExecuting.value = false;
   }
 
   /// For a more fine grained control to simulate the different states of an [Command]
@@ -526,7 +504,7 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult> {
     lastPassedValueToExecute = param;
     _commandResult.value = CommandResult<TParam, TResult>(
         param, _includeLastResultInCommandResults ? value : null, null, true);
-    _canExecuteSubject.value = false;
+    _isExecuting.value = true;
   }
 
   /// `endExecutionWithData` will issue a [CommandResult] with
@@ -537,7 +515,7 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult> {
     value = data;
     _commandResult.value = CommandResult<TParam, TResult>(
         lastPassedValueToExecute, data, null, false);
-    _canExecuteSubject.value = true;
+    _isExecuting.value = false;
   }
 
   /// `endExecutionWithData` will issue a [CommandResult] with
@@ -550,7 +528,7 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult> {
         _includeLastResultInCommandResults ? value : null,
         Exception(message),
         false);
-    _canExecuteSubject.value = true;
+    _isExecuting.value = false;
   }
 
   /// `endExecutionNoData` will issue a [CommandResult] with
@@ -563,6 +541,6 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult> {
         _includeLastResultInCommandResults ? value : null,
         null,
         false);
-    _canExecuteSubject.value = true;
+    _isExecuting.value = false;
   }
 }

@@ -1,238 +1,160 @@
-import 'package:flutter_test/flutter_test.dart';
-
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_command/flutter_command.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:functional_listener/functional_listener.dart';
 
 void main() {
   test('Execute simple sync action', () {
-    var command = Command.createSyncNoParamNoResult(() => print("action"));
+    int notificationCount = 0;
+    var command = Command.createSyncNoParamNoResult(() => notificationCount++);
 
     expect(command.canExecute.value, true);
 
-    expect(command.results.value, CommandResult(null, null, false, true));
+    expect(command.results.value,
+        CommandResult<void, void>(null, null, null, false));
 
     command.execute();
 
     expect(command.canExecute.value, true);
+    expect(notificationCount, 1);
   });
 
-  // test('Execute simple sync action with emitInitialCommandResult: true', () {
-  //   final command = Command.createSyncNoParamNoResult(() => print("action"),
-  //       emitInitialCommandResult: true);
+  test('Execute simple sync action with canExceute restriction', () async {
+    final restriction = ValueNotifier<bool>(true);
 
-  //   command.results.listen((result) => print(result.toString());
+    var executionCount = 0;
 
-  //   expect(command.canExecute.value ,true);
-  //   expect(command.isExecuting.value ,false);
+    final command = Command.createSyncNoParamNoResult(() => executionCount++,
+        canExecute: restriction);
 
-  //   expect(command.value ,null);
-  //   expect(
-  //       command.results,
-  //       emitsInOrder([
-  //         crm(null, false, false),
-  //         crm(null, false, true),
-  //         crm(null, false, false)
-  //       ]);
+    expect(command.canExecute.value, true);
 
-  //   command.execute();
+    command.execute();
 
-  //   expect(command.canExecute.value ,true);
-  //   expect(command.isExecuting.value ,false);
-  // });
+    expect(executionCount, 1);
 
-  // test('Execute simple sync action with canExceute restriction', () async {
-  //   final restriction = BehaviorSubject<bool>()..add(true);
+    expect(command.canExecute.value, true);
 
-  //   restriction.listen((b) => print("Restriction issued: $b"));
+    restriction.value = false;
 
-  //   var executionCount = 0;
+    expect(command.canExecute.value, false);
 
-  //   final command = Command.createSyncNoParamNoResult(() => executionCount++,
-  //       canExecute: restriction);
+    command.execute();
 
-  //   expect(command.canExecute.value ,true);
-  //   expect(command.isExecuting.value ,false);
+    expect(executionCount, 1);
+  });
 
-  //   expect(command.value ,null);
-  //   expect(command.results,
-  //       emitsInOrder([crm(null, false, true), crm(null, false, false)]);
+  test('Execute simple sync action with exception', () {
+    final command = Command.createSyncNoParamNoResult(
+        () => throw ArgumentError("Intentional"));
 
-  //   command.execute();
+    expect(command.canExecute.value, true);
+    expect(command.thrownExceptions.value, null);
 
-  //   expect(executionCount, 1);
+    command.execute();
+    expect(command.results.value.error, isInstanceOf<ArgumentError>());
+    expect(command.thrownExceptions.value.error, isInstanceOf<ArgumentError>());
 
-  //   expect(command.canExecute.value ,true);
-  //   expect(command.isExecuting.value ,false);
+    expect(command.canExecute.value, true);
+  });
 
-  //   restriction.add(false);
+  test('Execute simple sync action with parameter', () {
+    int notificationCount = 0;
+    final command = Command.createSyncNoResult<String>((x) {
+      print("action: " + x.toString());
+      notificationCount++;
+      return null;
+    });
 
-  //   // yield execution so the restriction emits before the command.canExecute is checked.
-  //   await Future.delayed(Duration.zero);
+    expect(command.canExecute.value, true);
 
-  //   expect(command.canExecute.value ,true);
-  //   expect(command.isExecuting.value ,false);
+    command.execute("Parameter");
+    expect(command.results.value,
+        CommandResult<String, void>('Parameter', null, null, false));
+    expect(command.thrownExceptions.value, null);
+    expect(notificationCount, 1);
 
-  //   command.execute();
+    expect(command.canExecute.value, true);
+  });
 
-  //   expect(executionCount, 1);
+  test('Execute simple sync function without parameter', () {
+    int notificationCount = 0;
+    final command = Command.createSyncNoParam<String>(() {
+      print("action: ");
+      notificationCount++;
+      return "4711";
+    }, '');
 
-  //   await restriction.close();
-  // });
+    expect(command.canExecute.value, true);
 
-  // test('Execute simple sync action with exception  throwExceptions==true', () {
-  //   final command = Command.createSyncNoParamNoResult(
-  //       () => throw Exception("Intentional"))
-  //     ..throwExceptions = true;
+    command.execute();
 
-  //   expect(command.canExecute.value ,true);
-  //   expect(command.isExecuting.value ,false);
+    expect(command.value, "4711");
+    expect(command.results.value,
+        CommandResult<void, String>(null, '4711', null, false));
+    expect(command.thrownExceptions.value, null);
+    expect(notificationCount, 1);
 
-  //   expect(command, emitsError(isException);
+    expect(command.canExecute.value, true);
+  });
 
-  //   command.execute();
+  test('Execute simple sync function with parameter', () {
+    int notificationCount = 0;
+    final command = Command.createSync<String, String>((s) {
+      print("action: " + s);
+      notificationCount++;
+      return s + s;
+    }, '');
 
-  //   expect(command.canExecute.value ,true);
-  //   expect(command.isExecuting.value ,false);
-  // });
+    expect(command.canExecute.value, true);
 
-  // test('Execute simple sync action with exception and throwExceptions==false',
-  //     () {
-  //   final command = Command.createSyncNoParamNoResult(
-  //       () => throw Exception("Intentional"));
+    command.execute("4711");
+    expect(command.value, "47114711");
 
-  //   expect(command.canExecute.value ,true);
-  //   expect(command.isExecuting.value ,false);
-  //   expect(command.results,
-  //       emitsInOrder([crm(null, false, true), crm(null, true, false)]);
+    expect(command.results.value,
+        CommandResult<String, String>('4711', '47114711', null, false));
+    expect(command.thrownExceptions.value, null);
+    expect(notificationCount, 1);
 
-  //   command.execute();
+    expect(command.canExecute.value, true);
+  });
 
-  //   expect(command.canExecute.value ,true);
-  //   expect(command.isExecuting.value ,false);
-  // });
+  Future<String> slowAsyncFunction(String s) async {
+    print("___Start____Action__________");
 
-  // test('Execute simple sync action with parameter', () {
-  //   final command = Command.createSyncNoResult<String>((x) {
-  //     print("action: " + x.toString();
-  //     return null;
-  //   });
+    await Future.delayed(const Duration(milliseconds: 10));
+    print("___End____Action__________");
+    return s;
+  }
 
-  //   expect(command.canExecute.value ,true);
-  //   expect(command.isExecuting.value ,false);
+  test('Execute simple async function with parameter', () async {
+    var executionCount = 0;
 
-  //   expect(command.results,
-  //       emitsInOrder([crm(null, false, true), crm(null, false, false)]);
+    final command = Command.createAsyncNoResult<String>((s) async {
+      executionCount++;
+      await slowAsyncFunction(s);
+    });
 
-  //   command.execute("Parameter"));
+    command.canExecute.listen((b, _) {
+      print("Can execute:" + b.toString());
+    });
+    command.isExecuting.listen((b, _) {
+      print("Is executing:" + b.toString());
+    });
 
-  //   expect(command.canExecute.value ,true);
-  //   expect(command.isExecuting.value ,false);
-  // });
+    expect(command.canExecute, emitsInOrder([true, false, true]),
+        reason: "Canexecute before false");
+    expect(command.isExecuting.value, false, reason: "IsExecuting before true");
 
-  // test('Execute simple sync function without parameter', () {
-  //   final command = Command.createSyncNoParam<String>(() {
-  //     print("action: "));
-  //     return "4711";
-  //   });
+    // expect(command.results,
+    //     emitsInOrder([crm(null, false, true), crm(null, false, false)]);
 
-  //   expect(command.canExecute.value ,true);
-  //   expect(command.isExecuting.value ,false);
+    command.execute("Done");
+    await Future.delayed(Duration.zero);
 
-  //   expect(command.value ,"4711"));
-
-  //   expect(command.results,
-  //       emitsInOrder([crm(null, false, true), crm("4711", false, false)]);
-
-  //   command.execute();
-
-  //   expect(command.canExecute.value ,true);
-  //   expect(command.isExecuting.value ,false);
-  // });
-
-  // test('Execute simple sync function without parameter with lastResult=true',
-  //     () {
-  //   final command = Command.createSyncNoParam<String>(() {
-  //     print("action: "));
-  //     return "4711";
-  //   }, emitLastResult: true);
-
-  //   expect(command.canExecute.value ,true);
-  //   expect(command.isExecuting.value ,false);
-
-  //   expect(command, emitsInOrder(["4711", "4711"]);
-
-  //   expect(
-  //       command.results,
-  //       emitsInOrder([
-  //         crm(null, false, true),
-  //         crm("4711", false, false),
-  //         crm("4711", false, true),
-  //         crm("4711", false, false)
-  //       ]);
-
-  //   command.execute();
-  //   command.execute();
-
-  //   expect(command.canExecute.value ,true);
-  //   expect(command.isExecuting.value ,false);
-  // });
-
-  // test('Execute simple sync function with parameter', () {
-  //   final command = Command.createSync<String, String>((s) {
-  //     print("action: " + s);
-  //     return s + s;
-  //   });
-
-  //   expect(command.canExecute.value ,true);
-  //   expect(command.isExecuting.value ,false);
-
-  //   expect(command.value ,"47114711"));
-
-  //   expect(command.results,
-  //       emitsInOrder([crm(null, false, true), crm("47114711", false, false)]);
-
-  //   command.execute("4711"));
-
-  //   expect(command.canExecute.value ,true);
-  //   expect(command.isExecuting.value ,false);
-  // });
-
-  // Future<String> slowAsyncFunction(String s) async {
-  //   print("___Start____Action__________"));
-
-  //   await Future.delayed(const Duration(milliseconds: 10);
-  //   print("___End____Action__________"));
-  //   return s;
-  // }
-
-  // test('Execute simple async function with parameter', () async {
-  //   var executionCount = 0;
-
-  //   final command = Command.createAsyncNoResult<String>((s) async {
-  //     executionCount++;
-  //     await slowAsyncFunction(s);
-  //   });
-
-  //   command.canExecute.listen((b) {
-  //     print("Can execute:" + b.toString();
-  //   });
-  //   command.isExecuting.listen((b) {
-  //     print("Is executing:" + b.toString();
-  //   });
-
-  //   expect(command.canExecute, emitsInOrder([true, false, true]),
-  //       reason: "Canexecute before false"));
-  //   expect(command.isExecuting.value ,false),
-  //       reason: "IsExecuting before true"));
-
-  //   expect(command.results,
-  //       emitsInOrder([crm(null, false, true), crm(null, false, false)]);
-
-  //   command.execute("Done"));
-  //   await Future.delayed(Duration.zero);
-
-  //   expect(command.isExecuting.value ,false);
-  //   expect(executionCount, 1);
-  // });
+    expect(command.isExecuting.value, false);
+    expect(executionCount, 1);
+  });
 
   // test('Execute simple async function with parameter and return value',
   //     () async {
