@@ -18,8 +18,8 @@ class WeatherViewModel {
 
     // We pass the result of switchChangedCommand as canExecut to the upDateWeatherCommand
     updateWeatherCommand = Command.createAsync<String, List<WeatherEntry>>(
-      update,
-      [],
+      update, // Wrapped function
+      [], // Initial value
       canExecute: setExecutionStateCommand,
     );
 

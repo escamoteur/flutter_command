@@ -53,14 +53,12 @@ class HomePage extends StatelessWidget {
               children: <Widget>[
                 Expanded(
                   child: ValueListenableBuilder<bool>(
-                    // Streambuilder rebuilds its subtree on every item the stream issues
                     valueListenable: TheViewModel.of(context)
                         .updateWeatherCommand
-                        .canExecute, //We access our ViewModel through the inherited Widget
+                        .canExecute,
                     builder: (BuildContext context, bool canExecute, _) {
-                      VoidCallback handler;
-                      // Depending on teh Value we get from the stream we set or clear the Handler
-                      handler = canExecute
+                      // Depending on the value of canEcecute we set or clear the Handler
+                      final handler = canExecute
                           ? TheViewModel.of(context).updateWeatherCommand
                           : null;
                       return RaisedButton(

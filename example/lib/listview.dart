@@ -7,9 +7,7 @@ class WeatherListView extends StatelessWidget {
   WeatherListView();
   @override
   Widget build(BuildContext context) {
-    // Streambuilder rebuilds its subtree on every item the stream issues
     return ValueListenableBuilder<List<WeatherEntry>>(
-      //We access our ViewModel through the inherited Widget
       valueListenable: TheViewModel.of(context).updateWeatherCommand,
       builder: (BuildContext context, List<WeatherEntry> data, _) {
         // only if we get data
