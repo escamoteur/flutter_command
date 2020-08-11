@@ -2,13 +2,13 @@
 
 flutter_command is a way to manage your state based on `ValueListenable` and the `Command` design pattern. Sounds scary uh? Ok lets try it a different way. A `Command` is an object that wraps a function that can be executed by calling the command, therefore decoupling your UI from the wrapped function.
 
-It's not that easy to define what exactly state management is (see https://medium.com/super-declarative/understanding-state-management-and-why-you-never-will-dd84b624d0e). For me it's how the UI triggers processes in the model/business layer of your app and how to get back the results of theses processes to display them. For both aspects offers `flutter_command` solution plus some nice extras. So in a way it offers the same that BLoC does but in a more logical way.
+It's not that easy to define what exactly state management is (see https://medium.com/super-declarative/understanding-state-management-and-why-you-never-will-dd84b624d0e). For me it's how the UI triggers processes in the model/business layer of your app and how to get back the results of these processes to display them. For both aspects `flutter_command` offers solution plus some nice extras. So in a way it offers the same that BLoC does but in a more logical way.
 
 ## Why Commands
 When I started Flutter the most often recommended way to manage your state was `BLoC`. What never appealed to me was that in order to execute a process in your model layer you had to push an object into a `StreamController` which just didn't feel right. For me triggering a process should feel like calling a function.
-Coming from the .Net world I was used to use Commands for this, which had an additional nice feature that the Button that triggered the command would automatically disable for the time the command was running and by this, preventing a double execution at the same time. I also learned to love a special breed of .Net commands called `ReactiveCommands` which emitted the result of the called function on their own Stream interface (the ReactiveUI community might oversee that I don't talk of Observables here.) As I wanted to have something similar I ported `ReactiveCommands` to Dart with my [rx_command](https://pub.dev/packages/rx_command). But somehow they did not get much attention because 1. I didn't call them state management and 2. they had to do with `Streams` and even had that scary `rx` in the name and probably the readme wasn't as good to start as I thought.
+Coming from the .Net world I was used to use Commands for this, which had an additional nice feature that the Button that triggered the command would automatically disable for the duration, the command was running and by this, preventing a double execution at the same time. I also learned to love a special breed of .Net commands called `ReactiveCommands` which emitted the result of the called function on their own Stream interface (the ReactiveUI community might oversee that I don't talk of Observables here.) As I wanted to have something similar I ported `ReactiveCommands` to Dart with my [rx_command](https://pub.dev/packages/rx_command). But somehow they did not get much attention because 1. I didn't call them state management and 2. they had to do with `Streams` and even had that scary `rx` in the name and probably the readme wasn't as good to start as I thought.
 
-Remi Rousselet talked to me about that `ValueNotifier` and how much easier they are than using Streams. So what you have here is my second attempt to warm the hearts of the Flutter community for the Command metaphor absolutely free of `Streams`
+Remi Rousselet talked to me about that `ValueNotifier` and how much easier they are than using Streams. So what you have here is my second attempt to warm the hearts of the Flutter community for the `Command` metaphor absolutely free of `Streams`
 
 ## A first careful encounter
 
@@ -17,12 +17,12 @@ Let's start with the (in)famous counter example but by using a `Command`. As sai
 ```Dart
 Command<TParam,TResult>
 ```
-at which `TParam` is the type the wrapped function expects as argument and `TResult` is the type of the result of it, which means the `Command` behaves like a `ValueNotifier<TResult>`. In the included project `counter_example` the command is defined as:
+at which `TParam` is the type of the parameter which the wrapped function expects as argument and `TResult` is the type of the result of it, which means the `Command` behaves like a `ValueNotifier<TResult>`. In the included project `counter_example` the command is defined as:
 
 ```Dart
 class _MyHomePageState extends State<MyHomePage> {
   int counter = 0;
-  /// This command does not expect any argumants when called therefore TParam 
+  /// This command does not expect any parameters when called therefore TParam 
   /// is void and publishes its results as String
   Command<void, String> _incrementCounterCommand;
 
@@ -34,7 +34,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 ```
 
-To create a `Command` the `Command` class offers different static functions depending on the signature of the wrapped function. In this case we want to use an synchronous function without any parameters.
+To create a `Command` the `Command` class offers different static functions depending on the signature of the wrapped function. In this case we want to use a synchronous function without any parameters.
 
 Our widget tree now looks like this:
 
@@ -66,12 +66,12 @@ Our widget tree now looks like this:
 );
 ```
 
-As `Command` is a callable class we can pass it directly to the `onPressed` handler of the `FloatingActionButton` and it will execute the wrapped function. The result of the function will get assigned to the `Command.value` so that the `ValueListenableBuilder` updates automatically.
+As `Command` is a [callable class](https://dart.dev/guides/language/language-tour#callable-classes), so we can pass it directly to the `onPressed` handler of the `FloatingActionButton` and it will execute the wrapped function. The result of the function will get assigned to the `Command.value` so that the `ValueListenableBuilder` updates automatically.
 
 ## Commands in full power mode
-So far the command did not more than you could do with BLoC besides that you could call it like a function and didn't need a Streams. But `Command` can more than that, it allows us to:
+So far the command did not do more than what you could do with BLoC, besides that you could call it like a function and didn't need a Stream. But `Command` can do more than that. It allows us to:
 
-* Update the UI based on if the `Command` is executed
+* Update the UI based on if the `Command` is executed 
 * React on Exceptions in the wrapped functions
 * Control when a `Command` can be executed
 
@@ -79,12 +79,12 @@ Let's explore this features by examining the included `example` app which querie
 
 <img src="https://github.com/escamoteur/flutter_command/blob/master/screen_shot_example.png" alt="Screenshot" width="200" >
 
-The app uses a `WeatherViewModel` which contains the `Command` to update the `ListView` by making an REST call:
+The app uses a `WeatherViewModel` which contains the `Command` to update the `ListView` by making a REST call:
 
 ```Dart
 Command<String, List<WeatherEntry>> updateWeatherCommand;
 ```
-It expects a search term and will return a list of `WeatherEntry`.
+The `updateWeatherCommand` expects a search term and will return a list of `WeatherEntry`.
 The `Command` gets initialized in the constructor of the `WeatherViewModel`:
 
 
@@ -96,7 +96,7 @@ updateWeatherCommand = Command.createAsync<String, List<WeatherEntry>>(
 )   
 ```
 
-`update` is the asynchronous function that queries the weather service, therefor we create an async verion of `Command` using `createAsynv`.
+`update` is the asynchronous function that queries the weather service, therefore we create an async verion of `Command` using the `createAsync` constructor.
 
 ### Updating the ListView
 In `listview.dart`:
@@ -146,7 +146,7 @@ child: ValueListenableBuilder<bool>(
 ```
 
 ### Update the UI on change of the search field
-As we don't want to send a new HTTP request on every keypress in the search field we don't directly wire the `onChanged` event to he `updateWeatherCommand`. Instead we use a second `Command` to convert the `onChanged` event to a `ValueListenable` so that we can use the `debounce` and `listen` function of my extension function package `functional_listener`:
+As we don't want to send a new HTTP request on every keypress in the search field we don't directly wire the `onChanged` event to the `updateWeatherCommand`. Instead we use a second `Command` to convert the `onChanged` event to a `ValueListenable` so that we can use the `debounce` and `listen` function of my extension function package `functional_listener`:
 
 For this a synchronous `Command` is sufficient:
 
@@ -162,7 +162,7 @@ textChangedCommand = Command.createSync((s) => s, '');
 // make sure we start processing only if the user make a short pause typing
 textChangedCommand.debounce(Duration(milliseconds: 500)).listen(
     (filterText, _) {
-    // I could omit he execute because Command is a callable
+    // I could omit the execute because Command is a callable
     // class  but here it makes the intention clearer
     updateWeatherCommand.execute(filterText);
     },
@@ -178,14 +178,14 @@ child: TextField(
 
 ### Restricting command execution
 Sometimes it is desirable to make the execution of a `Command` depending on some other state. For this you can pass a `ValueListenable<bool>` as `canExecute` parameter, when you create a command. If you do so the command will only be executed if the value of the passed listenable is `true`.
-In the example app we can restrict the execution by changing the state of a `Switch`. To handle changes of the `Switch` we use, you guess it, another command in the `WeatherViewModel`:
+In the example app we can restrict the execution by changing the state of a `Switch`. To handle changes of the `Switch` we use..., you guessed it, another command in the `WeatherViewModel`:
 
 ```Dart
 WeatherViewModel() {
     // Command expects a bool value when executed and sets it as its own value
     setExecutionStateCommand = Command.createSync<bool, bool>((b) => b, true);
 
-    // We pass the result of switchChangedCommand as canExecute to the upDateWeatherCommand
+    // We pass the result of switchChangedCommand as canExecute to the updateWeatherCommand
     updateWeatherCommand = Command.createAsync<String, List<WeatherEntry>>(
     update, // Wrapped function
     [], // Initial value
@@ -207,9 +207,9 @@ ValueListenableBuilder<bool>(
     })
 ```
 
-### Disabling the update button while an updating
-The update button should not be active while an update is running or when
-`Switch` deactivates it. The first could we achieve by using again the `isExecuting` property of `Command` but we would have to somehow combine it with the value of `setExecutionStateCommand` which is cumbersome. Luckily `Command` has another property `canExecute` which reflects a combined value of `!isExecuting && theInputCanExecute`.
+### Disabling the update button while another update is in progress
+The update button should not be active while an update is running or when the
+`Switch` deactivates it. We could achieve this, again by using the `isExecuting` property of `Command` but we would have to somehow combine it with the value of `setExecutionStateCommand` which is cumbersome. Luckily `Command` has another property `canExecute` which reflects a combined value of `!isExecuting && theInputCanExecute`.
 
 So we can easily solve this requirement with another....wait for it...`ValueListenableBuilder`
 
@@ -219,7 +219,7 @@ child: ValueListenableBuilder<bool>(
       .updateWeatherCommand
       .canExecute,
   builder: (BuildContext context, bool canExecute, _) {
-    // Depending on the value of canEcecute we set or clear the Handler
+    // Depending on the value of canExecute we set or clear the handler
     final handler = canExecute
         ? TheViewModel.of(context).updateWeatherCommand
         : null;
