@@ -48,7 +48,8 @@ class WeatherViewModel {
     const url =
         "http://api.openweathermap.org/data/2.5/box/city?bbox=12,32,15,37,10&appid=27ac337102cc4931c24ba0b50aca6bbd";
 
-    var httpStream = http.get(url).asStream();
+    var httpStream =
+        http.get(url).timeout(const Duration(seconds: 5)).asStream();
 
     return httpStream
         .where(

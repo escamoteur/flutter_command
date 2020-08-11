@@ -14,18 +14,19 @@ class MyApp extends StatefulWidget {
 }
 
 class MyAppState extends State<MyApp> {
-  WeatherViewModel viewModelData;
+  WeatherViewModel viewModel;
 
   @override
   void initState() {
-    viewModelData = WeatherViewModel();
+    viewModel = WeatherViewModel();
+
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
     return TheViewModel(
-      theModel: viewModelData,
+      theModel: viewModel,
       child: MaterialApp(title: 'Flutter Demo', home: HomePage()),
     );
   }

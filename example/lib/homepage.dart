@@ -1,9 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:functional_listener/functional_listener.dart';
 
 import 'listview.dart';
 import 'main.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
+  @override
+  _HomePageState createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  ListenableSubscription errorSubscription;
+
+  @override
+  void didChangeDependencies() {
+    errorSubscription ??= TheViewModel.of(context)
+        .updateWeatherCommand
+        .thrownExceptions
+        .where((x) => x != null) // filter out the error value reset
+        .listen((error, _) {
+      showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+                title: const Text('An error has occured!'),
+                content: Text(error.toString()),
+              ));
+    });
+    super.didChangeDependencies();
+  }
+
+  @override
+  void dispose() {
+    errorSubscription.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

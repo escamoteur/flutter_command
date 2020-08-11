@@ -233,3 +233,27 @@ child: ValueListenableBuilder<bool>(
 ),
 ```
 ### Error Handling
+If the wrapped function inside a `Command` throws an `Exception` the `Command` catches it so your App won't crash.
+Instead it will wrap the caught error together with the value that was passed when the command was executed in an `CommandError` object and assign it to the `Command's` `thrownExeceptions` property which is a `ValueListenable<CommandError>`.
+So to react on occurring error you can register your handler with `addListener` or use my `listen` extension function from `functional_listener` as it is done in the example:
+
+```Dart
+/// in HomePage.dart
+@override
+void didChangeDependencies() {
+  errorSubscription ??= TheViewModel.of(context)
+      .updateWeatherCommand
+      .thrownExceptions
+      .where((x) => x != null) // filter out the error value reset
+      .listen((error, _) {
+    showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+              title: const Text('An error has occured!'),
+              content: Text(error.toString()),
+            ));
+  });
+  super.didChangeDependencies();
+}
+```
+Unfortunately its not possible to reset the value of a `ValueNotifier` without triggering its listeners. So if you have registered a listener you will get it called at every start of a `Command` execution with a value of `null` clear previous errors. If you use `functional_listener` you can do it easily by using the `where` extension.
