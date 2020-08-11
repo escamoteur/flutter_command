@@ -75,7 +75,9 @@ So far the command did not more than you could do with BLoC besides that you cou
 * React on Exceptions in the wrapped functions
 * Control when a `Command` can be executed
 
-Let's explore this features by examining the included `example` app which queries an open weather service and displays a list of cities with the current weather. The app uses a `WeatherViewModel` which contains the `Command` to update the `ListView` by making an REST call:
+Let's explore this features by examining the included `example` app which queries an open weather service and displays a list of cities with the current weather. 
+![](./screen_shot_example.png =250)
+The app uses a `WeatherViewModel` which contains the `Command` to update the `ListView` by making an REST call:
 
 ```Dart
 Command<String, List<WeatherEntry>> updateWeatherCommand;
@@ -137,7 +139,7 @@ child: ValueListenableBuilder<bool>(
     } else {
         return WeatherListView();
     }
-    },
+  },
 ),
 ```
 
@@ -173,7 +175,59 @@ child: TextField(
 ```
 
 ### Restricting command execution
-Sometimes it is desirable to make the execution of a `Command` depending on some other state. For this you can pass a `ValueListenable<bool>` when you create a command. In the example app we can restrict the execution by changing the state of a `Switch`
+Sometimes it is desirable to make the execution of a `Command` depending on some other state. For this you can pass a `ValueListenable<bool>` as `canExecute` parameter, when you create a command. If you do so the command will only be executed if the value of the passed listenable is `true`.
+In the example app we can restrict the execution by changing the state of a `Switch`. To handle changes of the `Switch` we use, you guess it, another command in the `WeatherViewModel`:
+
+```Dart
+WeatherViewModel() {
+    // Command expects a bool value when executed and sets it as its own value
+    setExecutionStateCommand = Command.createSync<bool, bool>((b) => b, true);
+
+    // We pass the result of switchChangedCommand as canExecute to the upDateWeatherCommand
+    updateWeatherCommand = Command.createAsync<String, List<WeatherEntry>>(
+    update, // Wrapped function
+    [], // Initial value
+    canExecute: setExecutionStateCommand,
+  );
+...
+```
+To update the `Switch` we use again a `ValueListenableBuilder`:
+```Dart
+ValueListenableBuilder<bool>(
+    valueListenable:
+        TheViewModel.of(context).setExecutionStateCommand,
+    builder: (context, value, _) {
+        return Switch(
+        value: value,
+        onChanged:
+            TheViewModel.of(context).setExecutionStateCommand,
+        );
+    })
+```
 
 ### Disabling the update button while an updating
+The update button should not be active while an update is running or when
+`Switch` deactivates it. The first could we achieve by using again the `isExecuting` property of `Command` but we would have to somehow combine it with the value of `setExecutionStateCommand` which is cumbersome. Luckily `Command` has another property `canExecute` which reflects a combined value of `!isExecuting && theInputCanExecute`.
 
+So we can easily solve this requirement with another....wait for it...`ValueListenableBuilder`
+
+```Dart
+child: ValueListenableBuilder<bool>(
+  valueListenable: TheViewModel.of(context)
+      .updateWeatherCommand
+      .canExecute,
+  builder: (BuildContext context, bool canExecute, _) {
+    // Depending on the value of canEcecute we set or clear the Handler
+    final handler = canExecute
+        ? TheViewModel.of(context).updateWeatherCommand
+        : null;
+    return RaisedButton(
+      child: Text("Update"),
+      color: Color.fromARGB(255, 33, 150, 243),
+      textColor: Color.fromARGB(255, 255, 255, 255),
+      onPressed: handler,
+    );
+  },
+),
+```
+### Error Handling

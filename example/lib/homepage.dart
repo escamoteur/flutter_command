@@ -31,7 +31,7 @@ class HomePage extends StatelessWidget {
               valueListenable:
                   TheViewModel.of(context).updateWeatherCommand.isExecuting,
               builder: (BuildContext context, bool isRunning, _) {
-                // if true we show a buys Spinner otherwise the ListView
+                // if true we show a busy Spinner otherwise the ListView
                 if (isRunning == true) {
                   return Center(
                     child: Container(
@@ -48,7 +48,7 @@ class HomePage extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.all(8.0),
-            // We use a stream builder to toggle the enabled state of the button
+            // We use a ValueListenableBuilder to toggle the enabled state of the button
             child: Row(
               children: <Widget>[
                 Expanded(
@@ -70,47 +70,21 @@ class HomePage extends StatelessWidget {
                     },
                   ),
                 ),
-                StateFullSwitch(
-                  state: true,
-                  onChanged: TheViewModel.of(context).setExecutionStateCommand,
-                )
+                ValueListenableBuilder<bool>(
+                    valueListenable:
+                        TheViewModel.of(context).setExecutionStateCommand,
+                    builder: (context, value, _) {
+                      return Switch(
+                        value: value,
+                        onChanged:
+                            TheViewModel.of(context).setExecutionStateCommand,
+                      );
+                    })
               ],
             ),
           ),
         ],
       ),
-    );
-  }
-}
-
-/// As the normal switch does not even remeber and display its current state
-///  we us this one
-class StateFullSwitch extends StatefulWidget {
-  final bool state;
-  final ValueChanged<bool> onChanged;
-
-  StateFullSwitch({this.state, this.onChanged});
-
-  @override
-  StateFullSwitchState createState() {
-    return StateFullSwitchState(state, onChanged);
-  }
-}
-
-class StateFullSwitchState extends State<StateFullSwitch> {
-  bool state;
-  ValueChanged<bool> handler;
-
-  StateFullSwitchState(this.state, this.handler);
-
-  @override
-  Widget build(BuildContext context) {
-    return Switch(
-      value: state,
-      onChanged: (b) {
-        setState(() => state = b);
-        handler(b);
-      },
     );
   }
 }

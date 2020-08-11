@@ -10,7 +10,6 @@ class WeatherListView extends StatelessWidget {
     return ValueListenableBuilder<List<WeatherEntry>>(
       valueListenable: TheViewModel.of(context).updateWeatherCommand,
       builder: (BuildContext context, List<WeatherEntry> data, _) {
-        // only if we get data
         return ListView.builder(
           itemCount: data.length,
           itemBuilder: (BuildContext context, int index) => ListTile(

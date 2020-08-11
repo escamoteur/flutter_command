@@ -13,7 +13,7 @@ class WeatherViewModel {
   Command<String, String> textChangedCommand;
 
   WeatherViewModel() {
-    // Command expects a bool value when executed and issues the value on it's result Stream (stream)
+    // Command expects a bool value when executed and sets it as its own value
     setExecutionStateCommand = Command.createSync<bool, bool>((b) => b, true);
 
     // We pass the result of switchChangedCommand as canExecut to the upDateWeatherCommand
@@ -88,7 +88,7 @@ class WeatherEntry {
         : null;
     this.description =
         city.weather != null ? city.weather[0].description : null;
-    this.wind = city.wind.speed;
+    this.wind = city.wind.speed.toDouble();
     this.rain = rain;
     this.temperature = city.main.temp;
   }
