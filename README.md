@@ -71,7 +71,7 @@ As `Command` is a [callable class](https://dart.dev/guides/language/language-tou
 ## Commands in full power mode
 So far the command did not do more than what you could do with BLoC, besides that you could call it like a function and didn't need a Stream. But `Command` can do more than that. It allows us to:
 
-* Update the UI based on if the `Command` is executed 
+* Update the UI based on if the `Command` is executing 
 * React on Exceptions in the wrapped functions
 * Control when a `Command` can be executed
 
@@ -96,7 +96,7 @@ updateWeatherCommand = Command.createAsync<String, List<WeatherEntry>>(
 )   
 ```
 
-`update` is the asynchronous function that queries the weather service, therefore we create an async verion of `Command` using the `createAsync` constructor.
+`update` is the asynchronous function that queries the weather service, therefore we create an async version of `Command` using the `createAsync` constructor.
 
 ### Updating the ListView
 In `listview.dart`:
@@ -257,3 +257,14 @@ void didChangeDependencies() {
 }
 ```
 Unfortunately its not possible to reset the value of a `ValueNotifier` without triggering its listeners. So if you have registered a listener you will get it called at every start of a `Command` execution with a value of `null` clear previous errors. If you use `functional_listener` you can do it easily by using the `where` extension.
+
+### Error handling the fine print
+You can tweak the behaviour of the error handling by passing a `catchAlway` parameter to the factory functions. If you pass `false` Exceptions will only be caught if there is a listener on `thrownExceptions` or on `results` (see next chapter). You can also change the default behaviour by changing the value of the `catchAlwaysDefault` property. During development its a good idea to set it to `false` to find any non handled exception. In production, setting it to `true` might be the better decision to prevent hard crashes.
+
+`Command` also offers a static global Exception handler:
+
+```Dart
+static void Function(CommandError<Object>) globalExeptionHandler;
+```
+If you assign a handler function to it, it will be called for all Exceptions thrown by any `Command` in your app independent of the value of `catchAlways` if the `Command` has no listeners on `thrownExceptions` or on `results`. 
+

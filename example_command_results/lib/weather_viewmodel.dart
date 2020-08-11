@@ -44,13 +44,14 @@ class WeatherViewModel {
   }
 
   // Async function that queries the REST API and converts the result into the form our ListViewBuilder can consume
-  Future<List<WeatherEntry>> update(String filtertext) {
+  Future<List<WeatherEntry>> update(String filtertext) async {
     const url =
         "http://api.openweathermap.org/data/2.5/box/city?bbox=12,32,15,37,10&appid=27ac337102cc4931c24ba0b50aca6bbd";
 
     var httpStream =
         http.get(url).timeout(const Duration(seconds: 5)).asStream();
-
+    await Future.delayed(const Duration(
+        seconds: 1)); // otherwise its too fast to see the spinner
     return httpStream
         .where(
             (data) => data.statusCode == 200) // only continue if valid response

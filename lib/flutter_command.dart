@@ -26,7 +26,7 @@ typedef AsyncFunc1<TParam, TResult> = Future<TResult> Function(TParam param);
 class CommandResult<TParam, TResult> {
   final TParam paramData;
   final TResult data;
-  final dynamic error;
+  final Object error;
   final bool isExecuting;
 
   // ignore: avoid_positional_boolean_parameters
@@ -112,14 +112,18 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// assert if you try to use it.
   /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value, but you can
   /// register a handler to wait for the completion of the wrapped function.
+  /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
+  /// If `false`, Exceptions thrown by the wraped function won't be caught but rethrown
+  /// unless there is a listener on [thrownExceptions] or [results].
   static Command<void, void> createSyncNoParamNoResult(
     Action action, {
     ValueListenable<bool> canExecute,
+    bool catchAlways,
   }) {
     return CommandSync<void, void>((_) {
       action();
       return null;
-    }, null, canExecute, false, true);
+    }, null, canExecute, false, true, catchAlways);
   }
 
   /// Creates  a Command for a synchronous handler function with one parameter and no return type
@@ -132,14 +136,18 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// assert if you try to use it.
   /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value, but you can
   /// register a handler to wait for the completion of the wrapped function.
+  /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
+  /// If `false`, Exceptions thrown by the wraped function won't be caught but rethrown
+  /// unless there is a listener on [thrownExceptions] or [results].
   static Command<TParam, void> createSyncNoResult<TParam>(
     Action1<TParam> action, {
     ValueListenable<bool> canExecute,
+    bool catchAlways,
   }) {
     return CommandSync<TParam, void>((x) {
       action(x);
       return null;
-    }, null, canExecute, false, true);
+    }, null, canExecute, false, true, catchAlways);
   }
 
   /// Creates  a Command for a synchronous handler function with no parameter that returns a value
@@ -153,14 +161,18 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// As synchronous function doesn't give any the UI any chance to react on on a change of
   /// `.isExecuting`,isExecuting isn't supported for synchronous commands and will throw an
   /// assert if you try to use it.
+  /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
+  /// If `false`, Exceptions thrown by the wraped function won't be caught but rethrown
+  /// unless there is a listener on [thrownExceptions] or [results].
   static Command<void, TResult> createSyncNoParam<TResult>(
     Func<TResult> func,
     TResult initialValue, {
     ValueListenable<bool> canExecute,
     bool includeLastResultInCommandResults = false,
+    bool catchAlways,
   }) {
     return CommandSync<void, TResult>((_) => func(), initialValue, canExecute,
-        includeLastResultInCommandResults, false);
+        includeLastResultInCommandResults, false, catchAlways);
   }
 
   /// Creates  a Command for a synchronous handler function with parameter that returns a value
@@ -174,14 +186,18 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// As synchronous function doesn't give the UI any chance to react on on a change of
   /// `.isExecuting`,isExecuting isn't supported for synchronous commands and will throw an
   /// assert if you try to use it.
+  /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
+  /// If `false`, Exceptions thrown by the wraped function won't be caught but rethrown
+  /// unless there is a listener on [thrownExceptions] or [results].
   static Command<TParam, TResult> createSync<TParam, TResult>(
     Func1<TParam, TResult> func,
     TResult initialValue, {
     ValueListenable<bool> canExecute,
     bool includeLastResultInCommandResults = false,
+    bool catchAlways,
   }) {
     return CommandSync<TParam, TResult>((x) => func(x), initialValue,
-        canExecute, includeLastResultInCommandResults, false);
+        canExecute, includeLastResultInCommandResults, false, catchAlways);
   }
 
   // Asynchronous
@@ -193,13 +209,19 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// be executed always except it's already executing
   /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value, but you can
   /// register a handler to wait for the completion of the wrapped function.
-  static Command<void, void> createAsyncNoParamNoResult(AsyncAction action,
-      {ValueListenable<bool> canExecute,
-      bool emitsLastValueToNewSubscriptions = false}) {
+  /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
+  /// If `false`, Exceptions thrown by the wraped function won't be caught but rethrown
+  /// unless there is a listener on [thrownExceptions] or [results].
+  static Command<void, void> createAsyncNoParamNoResult(
+    AsyncAction action, {
+    ValueListenable<bool> canExecute,
+    bool emitsLastValueToNewSubscriptions = false,
+    bool catchAlways,
+  }) {
     return CommandAsync<void, void>((_) async {
       await action();
       return null;
-    }, null, canExecute, false, true);
+    }, null, canExecute, false, true, catchAlways);
   }
 
   /// Creates  a Command for an asynchronous handler function with one parameter and no return type
@@ -209,14 +231,18 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// be executed always except it's already executing
   /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value but you can
   /// register a handler to wait for the completion of the wrapped function.
+  /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
+  /// If `false`, Exceptions thrown by the wraped function won't be caught but rethrown
+  /// unless there is a listener on [thrownExceptions] or [results].
   static Command<TParam, void> createAsyncNoResult<TParam>(
     AsyncAction1<TParam> action, {
     ValueListenable<bool> canExecute,
+    bool catchAlways,
   }) {
     return CommandAsync<TParam, void>((x) async {
       await action(x);
       return null;
-    }, null, canExecute, false, false);
+    }, null, canExecute, false, false, catchAlways);
   }
 
   /// Creates  a Command for an asynchronous handler function with no parameter that returns a value
@@ -227,14 +253,18 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// [includeLastResultInCommandResults] will include the value of the last successful execution in
   /// all `CommandResult` values unless there is no result. This can be handy if you always want to be able
   /// to display something even when you got an error or while the command is still running.
+  /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
+  /// If `false`, Exceptions thrown by the wraped function won't be caught but rethrown
+  /// unless there is a listener on [thrownExceptions] or [results].
   static Command<void, TResult> createAsyncNoParam<TResult>(
     AsyncFunc<TResult> func,
     TResult initialValue, {
     ValueListenable<bool> canExecute,
     bool includeLastResultInCommandResults = false,
+    bool catchAlways,
   }) {
     return CommandAsync<void, TResult>((_) async => func(), initialValue,
-        canExecute, includeLastResultInCommandResults, false);
+        canExecute, includeLastResultInCommandResults, false, catchAlways);
   }
 
   /// Creates  a Command for an asynchronous handler function with parameter that returns a value
@@ -245,14 +275,18 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// [includeLastResultInCommandResults] will include the value of the last successful execution in
   /// all `CommandResult` values unless there is no result. This can be handy if you always want to be able
   /// to display something even when you got an error or while the command is still running.
+  /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
+  /// If `false`, Exceptions thrown by the wraped function won't be caught but rethrown
+  /// unless there is a listener on [thrownExceptions] or [results].
   static Command<TParam, TResult> createAsync<TParam, TResult>(
     AsyncFunc1<TParam, TResult> func,
     TResult initialValue, {
     ValueListenable<bool> canExecute,
     bool includeLastResultInCommandResults = false,
+    bool catchAlways,
   }) {
     return CommandAsync<TParam, TResult>((x) async => func(x), initialValue,
-        canExecute, includeLastResultInCommandResults, false);
+        canExecute, includeLastResultInCommandResults, false, catchAlways);
   }
 
   /// Calls the wrapped handler function with an optional input parameter
@@ -286,10 +320,24 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   ///
   ValueListenable<CommandError> get thrownExceptions => _thrownExceptions;
 
+  /// optional hander that will get call on any exception that happens inside
+  /// any Command of the app. Ideal for logging
+  static void Function(CommandError<Object>) globalExeptionHandler;
+
+  /// if no individual value for `catchAlways` is passed to the factory methods,
+  /// this variable defines the default.
+  /// `true` : independent if there are listeners at [thrownExceptions] or [results]
+  ///          the Command will catch all Exceptions that might be thrown by the
+  ///          wrapped function. They will still get reported to the [globalExceptionHandler]
+  /// `false`: unless no one listens on [thrownExceptions] or [results], exceptions
+  ///          will be rethrown. This is can be very helpful while developing.
+  ///          Before the Exception is rethrown [globalExeptionHandler] will be called.
+  static bool catchAlwaysDefault = true;
+
   /// as we don't want that anyone changes the values of these ValueNotifiers
   /// properties we make them private and only publish their `ValueListenable`
   /// interface via getters.
-  ValueNotifier<CommandResult<TParam, TResult>> _commandResult;
+  _ListenerCountingValueNotifier<CommandResult<TParam, TResult>> _commandResult;
   final ValueNotifier<bool> _isExecuting = ValueNotifier<bool>(false);
   ValueNotifier<bool> _canExecute;
   final ValueNotifier<CommandError<TParam>> _thrownExceptions =
@@ -306,7 +354,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
     super.dispose();
   }
 
-  /// Flag that we always should include the las succesful value in `CommandResult`
+  /// Flag that we always should include the last succesful value in `CommandResult`
   /// for isExecuting or error states
   bool _includeLastResultInCommandResults;
 
@@ -314,16 +362,19 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   ///`notifyListener` has to be called directly
   final bool _noReturnValue;
 
-  Command(
-    TResult initialValue,
-    ValueListenable<bool> canExecuteRestriction,
-    bool includeLastResultInCommandResults,
-    noReturnValue,
-  )   : _noReturnValue = noReturnValue,
+  /// if true all execption will be caught even if no one is listening at [thrownExecption]
+  /// or [results]
+  final bool _catchAlways;
+
+  Command(TResult initialValue, ValueListenable<bool> canExecuteRestriction,
+      bool includeLastResultInCommandResults, noReturnValue, bool catchAlways)
+      : _noReturnValue = noReturnValue,
         _includeLastResultInCommandResults = includeLastResultInCommandResults,
+        _catchAlways = catchAlways,
         super(initialValue) {
-    _commandResult = ValueNotifier<CommandResult<TParam, TResult>>(
-        CommandResult.data(null, initialValue));
+    _commandResult =
+        _ListenerCountingValueNotifier<CommandResult<TParam, TResult>>(
+            CommandResult.data(null, initialValue));
 
     /// forward error states to the `thrownExceptions` Listenable
     _commandResult.where((x) => x.hasError).listen(
@@ -355,10 +406,11 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
       TResult initialValue,
       ValueListenable<bool> canExecute,
       bool includeLastResultInCommandResults,
-      bool noReturnValue)
+      bool noReturnValue,
+      bool catchAlways)
       : _func = func,
         super(initialValue, canExecute, includeLastResultInCommandResults,
-            noReturnValue);
+            noReturnValue, catchAlways ?? Command.catchAlwaysDefault);
 
   @override
   void execute([TParam param]) {
@@ -376,6 +428,13 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
         notifyListeners();
       }
     } catch (error) {
+      if (_commandResult.listenerCount < 3 && !_thrownExceptions.hasListeners) {
+        /// we have no external listeners on [results] or [thrownExceptions]
+        Command.globalExeptionHandler?.call(CommandError(param, error));
+        if (!_catchAlways) {
+          rethrow;
+        }
+      }
       _commandResult.value = CommandResult<TParam, TResult>(param,
           _includeLastResultInCommandResults ? value : null, error, false);
     }
@@ -390,10 +449,11 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
       TResult initialValue,
       ValueListenable<bool> canExecute,
       bool includeLastResultInCommandResults,
-      bool noResult)
+      bool noResult,
+      bool catchAlways)
       : _func = func,
         super(initialValue, canExecute, includeLastResultInCommandResults,
-            noResult);
+            noResult, catchAlways ?? Command.catchAlwaysDefault);
 
   @override
   void execute([TParam param]) async {
@@ -422,6 +482,13 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
         notifyListeners();
       }
     } catch (error) {
+      if (_commandResult.listenerCount < 3 && !_thrownExceptions.hasListeners) {
+        /// we have no external listeners on [results] or [thrownExceptions]
+        Command.globalExeptionHandler?.call(CommandError(param, error));
+        if (!_catchAlways) {
+          rethrow;
+        }
+      }
       _commandResult.value = CommandResult<TParam, TResult>(param,
           _includeLastResultInCommandResults ? value : null, error, false);
     } finally {
@@ -448,9 +515,10 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult> {
       ValueListenable<bool> canExecute,
       bool includeLastResultInCommandResults,
       bool emitInitialCommandResult,
-      bool noResult)
+      bool noResult,
+      bool catchAlways)
       : super(initialValue, canExecute, includeLastResultInCommandResults,
-            noResult) {
+            noResult, catchAlways ?? Command.catchAlwaysDefault) {
     _commandResult
         .where((result) => result.hasData)
         .listen((result, _) => value = result.data);
@@ -526,7 +594,7 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult> {
     _commandResult.value = CommandResult<TParam, TResult>(
         lastPassedValueToExecute,
         _includeLastResultInCommandResults ? value : null,
-        Exception(message),
+        CommandError(lastPassedValueToExecute, Exception(message)),
         false);
     _isExecuting.value = false;
   }
@@ -542,5 +610,29 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult> {
         null,
         false);
     _isExecuting.value = false;
+  }
+}
+
+class _ListenerCountingValueNotifier<T> extends ValueNotifier<T> {
+  int listenerCount = 0;
+
+  _ListenerCountingValueNotifier(T value) : super(value);
+
+  @override
+  void addListener(void Function() listener) {
+    super.addListener(listener);
+    listenerCount++;
+  }
+
+  @override
+  void removeListener(void Function() listener) {
+    super.removeListener(listener);
+    listenerCount--;
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    listenerCount = 0;
   }
 }

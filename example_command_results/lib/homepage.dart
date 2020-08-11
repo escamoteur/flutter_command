@@ -55,8 +55,8 @@ class _HomePageState extends State<HomePage> {
                     children: [
                       Text('An Error has occurred!'),
                       Text(result.error.toString()),
-                      Text('For search term: ${result.error.')
-                      
+                      if (result.error != null)
+                        Text('For search term: ${result.paramData}')
                     ],
                   );
                 }
