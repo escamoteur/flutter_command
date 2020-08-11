@@ -1,14 +1,14 @@
 name: flutter_command
 description: A new Flutter package project.
 version: 0.0.1
-author:
-homepage:
+author: Thomas Burkhart
+homepage: https://github.com/escamoteur/flutter_command
 
 environment:
   sdk: ">=2.7.0 <3.0.0"
 
 dependencies:
-  quiver_hashcode: 2.0.0 
+  quiver_hashcode: ^2.0.0 
   functional_listener: ^1.0.1
   flutter:
     sdk: flutter
