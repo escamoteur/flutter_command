@@ -76,7 +76,7 @@ So far the command did not more than you could do with BLoC besides that you cou
 * Control when a `Command` can be executed
 
 Let's explore this features by examining the included `example` app which queries an open weather service and displays a list of cities with the current weather. 
-![](./screen_shot_example.png =250)
+![](https://github.com/escamoteur/flutter_command/blob/master/screen_shot_example.png =250x)
 The app uses a `WeatherViewModel` which contains the `Command` to update the `ListView` by making an REST call:
 
 ```Dart
