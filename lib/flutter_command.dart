@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:functional_listener/functional_listener.dart';
 import 'package:quiver_hashcode/hashcode.dart';
 
+export 'package:flutter_command/command_builder.dart';
+
 typedef Action = void Function();
 typedef Action1<TParam> = void Function(TParam param);
 

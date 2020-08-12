@@ -334,3 +334,26 @@ Even if you use `results` the other properties are updated as before, so you can
 
 If you want to be able to always display data (while loading or in case of an error) you can pass `includeLastResultInCommandResults=true`, the last successful result will be included as `data` unless a new result is available.
 
+### CommandBuilder, reducing boilerplate
+`flutter_command` includes a `CommandBuilder` widget which makes the code above a bit nicer:
+
+```Dart
+child: CommandBuilder<String, List<WeatherEntry>>(
+  command: TheViewModel.of(context).updateWeatherCommand,
+  whileExecuting: (context, _) => Center(
+    child: SizedBox(
+      width: 50.0,
+      height: 50.0,
+      child: CircularProgressIndicator(),
+    ),
+  ),
+  onData: (context, data, _) => WeatherListView(data),
+  onError: (context, error, param) => Column(
+    children: [
+      Text('An Error has occurred!'),
+      Text(error.toString()),
+      if (error != null) Text('For search term: $param')
+    ],
+  ),
+),
+```
