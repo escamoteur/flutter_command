@@ -104,7 +104,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   ///
   /// Creates  a Command for a synchronous handler function with no parameter and no return type
   /// [action]: handler function
-  /// [canExecute] : `ValueListenable<bool>` that can be used to enable/disable
+  /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable
   /// the command based on some other state change. If omitted the command can
   /// be executed always except it's already executing
   /// As synchronous function doesn't give any the UI any chance to react on on a change of
@@ -117,18 +117,18 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<void, void> createSyncNoParamNoResult(
     Action action, {
-    ValueListenable<bool> canExecute,
+    ValueListenable<bool> restriction,
     bool catchAlways,
   }) {
     return CommandSync<void, void>((_) {
       action();
       return null;
-    }, null, canExecute, false, true, catchAlways);
+    }, null, restriction, false, true, catchAlways);
   }
 
   /// Creates  a Command for a synchronous handler function with one parameter and no return type
   /// [action]: handler function
-  /// [canExecute] : `ValueListenable<bool>` that can be used to enable/disable
+  /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable
   /// the command based on some other state change. If omitted the command can
   /// be executed always except it's already executing
   /// As synchronous function doesn't give the UI any chance to react on on a change of
@@ -141,19 +141,19 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<TParam, void> createSyncNoResult<TParam>(
     Action1<TParam> action, {
-    ValueListenable<bool> canExecute,
+    ValueListenable<bool> restriction,
     bool catchAlways,
   }) {
     return CommandSync<TParam, void>((x) {
       action(x);
       return null;
-    }, null, canExecute, false, true, catchAlways);
+    }, null, restriction, false, true, catchAlways);
   }
 
   /// Creates  a Command for a synchronous handler function with no parameter that returns a value
   /// [func]: handler function
   /// [initialValue] sets the `.value` of the Command.
-  /// [canExecute] : `ValueListenable<bool>` that can be used to enable/disable the command based on
+  /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable the command based on
   ///  some other state change. If omitted the command can be executed always except it's already executing
   /// [includeLastResultInCommandResults] will include the value of the last successful execution in
   /// all `CommandResult` values unless there is no result. This can be handy if you always want to be able
@@ -167,18 +167,18 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   static Command<void, TResult> createSyncNoParam<TResult>(
     Func<TResult> func,
     TResult initialValue, {
-    ValueListenable<bool> canExecute,
+    ValueListenable<bool> restriction,
     bool includeLastResultInCommandResults = false,
     bool catchAlways,
   }) {
-    return CommandSync<void, TResult>((_) => func(), initialValue, canExecute,
+    return CommandSync<void, TResult>((_) => func(), initialValue, restriction,
         includeLastResultInCommandResults, false, catchAlways);
   }
 
   /// Creates  a Command for a synchronous handler function with parameter that returns a value
   /// [func]: handler function
   /// [initialValue] sets the `.value` of the Command.
-  /// [canExecute] : `ValueListenable<bool>` that can be used to enable/disable the command based on
+  /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable the command based on
   ///  some other state change. If omitted the command can be executed always except it's already executing
   /// [includeLastResultInCommandResults] will include the value of the last successful execution in
   /// all `CommandResult` values unless there is no result. This can be handy if you always want to be able
@@ -192,19 +192,19 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   static Command<TParam, TResult> createSync<TParam, TResult>(
     Func1<TParam, TResult> func,
     TResult initialValue, {
-    ValueListenable<bool> canExecute,
+    ValueListenable<bool> restriction,
     bool includeLastResultInCommandResults = false,
     bool catchAlways,
   }) {
     return CommandSync<TParam, TResult>((x) => func(x), initialValue,
-        canExecute, includeLastResultInCommandResults, false, catchAlways);
+        restriction, includeLastResultInCommandResults, false, catchAlways);
   }
 
   // Asynchronous
 
   /// Creates  a Command for an asynchronous handler function with no parameter and no return type
   /// [action]: handler function
-  /// [canExecute] : `ValueListenable<bool>` that can be used to enable/disable
+  /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable
   /// the command based on some other state change. If omitted the command can
   /// be executed always except it's already executing
   /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value, but you can
@@ -214,19 +214,19 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<void, void> createAsyncNoParamNoResult(
     AsyncAction action, {
-    ValueListenable<bool> canExecute,
+    ValueListenable<bool> restriction,
     bool emitsLastValueToNewSubscriptions = false,
     bool catchAlways,
   }) {
     return CommandAsync<void, void>((_) async {
       await action();
       return null;
-    }, null, canExecute, false, true, catchAlways);
+    }, null, restriction, false, true, catchAlways);
   }
 
   /// Creates  a Command for an asynchronous handler function with one parameter and no return type
   /// [action]: handler function
-  /// [canExecute] : `ValueListenable<bool>` that can be used to enable/disable
+  /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable
   /// the command based on some other state change. If omitted the command can
   /// be executed always except it's already executing
   /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value but you can
@@ -236,19 +236,19 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<TParam, void> createAsyncNoResult<TParam>(
     AsyncAction1<TParam> action, {
-    ValueListenable<bool> canExecute,
+    ValueListenable<bool> restriction,
     bool catchAlways,
   }) {
     return CommandAsync<TParam, void>((x) async {
       await action(x);
       return null;
-    }, null, canExecute, false, false, catchAlways);
+    }, null, restriction, false, false, catchAlways);
   }
 
   /// Creates  a Command for an asynchronous handler function with no parameter that returns a value
   /// [func]: handler function
   /// [initialValue] sets the `.value` of the Command.
-  /// [canExecute] : `ValueListenable<bool>` that can be used to enable/disable the command based on
+  /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable the command based on
   ///  some other state change. If omitted the command can be executed always except it's already executing
   /// [includeLastResultInCommandResults] will include the value of the last successful execution in
   /// all `CommandResult` values unless there is no result. This can be handy if you always want to be able
@@ -259,18 +259,18 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   static Command<void, TResult> createAsyncNoParam<TResult>(
     AsyncFunc<TResult> func,
     TResult initialValue, {
-    ValueListenable<bool> canExecute,
+    ValueListenable<bool> restriction,
     bool includeLastResultInCommandResults = false,
     bool catchAlways,
   }) {
     return CommandAsync<void, TResult>((_) async => func(), initialValue,
-        canExecute, includeLastResultInCommandResults, false, catchAlways);
+        restriction, includeLastResultInCommandResults, false, catchAlways);
   }
 
   /// Creates  a Command for an asynchronous handler function with parameter that returns a value
   /// [func]: handler function
   /// [initialValue] sets the `.value` of the Command.
-  /// [canExecute] : `ValueListenable<bool>` that can be used to enable/disable the command based on
+  /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable the command based on
   ///  some other state change. If omitted the command can be executed always except it's already executing
   /// [includeLastResultInCommandResults] will include the value of the last successful execution in
   /// all `CommandResult` values unless there is no result. This can be handy if you always want to be able
@@ -281,12 +281,12 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   static Command<TParam, TResult> createAsync<TParam, TResult>(
     AsyncFunc1<TParam, TResult> func,
     TResult initialValue, {
-    ValueListenable<bool> canExecute,
+    ValueListenable<bool> restriction,
     bool includeLastResultInCommandResults = false,
     bool catchAlways,
   }) {
     return CommandAsync<TParam, TResult>((x) async => func(x), initialValue,
-        canExecute, includeLastResultInCommandResults, false, catchAlways);
+        restriction, includeLastResultInCommandResults, false, catchAlways);
   }
 
   /// Calls the wrapped handler function with an optional input parameter
@@ -310,7 +310,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// This will issue `false` while the command executes, but also if the command
   /// receives a false from the canExecute `ValueListenable` that you can pass when
   /// creating the Command.
-  /// its value is `canExecuteInput.value && !isExecuting.value`
+  /// its value is `restriction.value && !isExecuting.value`
   ValueListenable<bool> get canExecute => _canExecute;
 
   /// `ValueListenable<CommandError>` that reflects the Error State of the command
@@ -366,7 +366,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// or [results]
   final bool _catchAlways;
 
-  Command(TResult initialValue, ValueListenable<bool> canExecuteRestriction,
+  Command(TResult initialValue, ValueListenable<bool> restriction,
       bool includeLastResultInCommandResults, noReturnValue, bool catchAlways)
       : _noReturnValue = noReturnValue,
         _includeLastResultInCommandResults = includeLastResultInCommandResults,
@@ -385,9 +385,9 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
 
     /// Merge the external excecution restricting with the internal
     /// isExecuting which also blocks execution if true
-    _canExecute = canExecuteRestriction == null
+    _canExecute = restriction == null
         ? ValueNotifier<bool>(true)
-        : canExecuteRestriction.combineLatest(_isExecuting,
+        : restriction.combineLatest(_isExecuting,
             (restriction, isExcuting) => restriction && !isExcuting);
   }
 }
@@ -404,12 +404,12 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
   CommandSync(
       Func1<TParam, TResult> func,
       TResult initialValue,
-      ValueListenable<bool> canExecute,
+      ValueListenable<bool> restriction,
       bool includeLastResultInCommandResults,
       bool noReturnValue,
       bool catchAlways)
       : _func = func,
-        super(initialValue, canExecute, includeLastResultInCommandResults,
+        super(initialValue, restriction, includeLastResultInCommandResults,
             noReturnValue, catchAlways ?? Command.catchAlwaysDefault);
 
   @override
@@ -447,12 +447,12 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
   CommandAsync(
       AsyncFunc1<TParam, TResult> func,
       TResult initialValue,
-      ValueListenable<bool> canExecute,
+      ValueListenable<bool> restriction,
       bool includeLastResultInCommandResults,
       bool noResult,
       bool catchAlways)
       : _func = func,
-        super(initialValue, canExecute, includeLastResultInCommandResults,
+        super(initialValue, restriction, includeLastResultInCommandResults,
             noResult, catchAlways ?? Command.catchAlwaysDefault);
 
   @override
@@ -512,12 +512,12 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult> {
   /// if the wrapped function has `void` as return type [noResult] has to be `true`
   MockCommand(
       TResult initialValue,
-      ValueListenable<bool> canExecute,
+      ValueListenable<bool> restriction,
       bool includeLastResultInCommandResults,
       bool emitInitialCommandResult,
       bool noResult,
       bool catchAlways)
-      : super(initialValue, canExecute, includeLastResultInCommandResults,
+      : super(initialValue, restriction, includeLastResultInCommandResults,
             noResult, catchAlways ?? Command.catchAlwaysDefault) {
     _commandResult
         .where((result) => result.hasData)

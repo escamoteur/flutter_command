@@ -41,7 +41,7 @@ class _HomePageState extends State<HomePage> {
               builder: (BuildContext context, result, _) {
                 if (result.isExecuting) {
                   return Center(
-                    child: Container(
+                    child: SizedBox(
                       width: 50.0,
                       height: 50.0,
                       child: CircularProgressIndicator(),

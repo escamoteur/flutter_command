@@ -20,7 +20,7 @@ class WeatherViewModel {
     updateWeatherCommand = Command.createAsync<String, List<WeatherEntry>>(
       update, // Wrapped function
       [], // Initial value
-      canExecute: setExecutionStateCommand,
+      restriction: setExecutionStateCommand,
     );
 
     // Will be called on every change of the searchfield

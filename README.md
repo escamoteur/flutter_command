@@ -4,13 +4,15 @@ flutter_command is a way to manage your state based on `ValueListenable` and the
 
 It's not that easy to define what exactly state management is (see https://medium.com/super-declarative/understanding-state-management-and-why-you-never-will-dd84b624d0e). For me it's how the UI triggers processes in the model/business layer of your app and how to get back the results of these processes to display them. For both aspects `flutter_command` offers solution plus some nice extras. So in a way it offers the same that BLoC does but in a more logical way.
 
+>This readme might seem very long, but it will guide you easily step by step through all features of `flutter_command`.
+
 ## Why Commands
 When I started Flutter the most often recommended way to manage your state was `BLoC`. What never appealed to me was that in order to execute a process in your model layer you had to push an object into a `StreamController` which just didn't feel right. For me triggering a process should feel like calling a function.
 Coming from the .Net world I was used to use Commands for this, which had an additional nice feature that the Button that triggered the command would automatically disable for the duration, the command was running and by this, preventing a double execution at the same time. I also learned to love a special breed of .Net commands called `ReactiveCommands` which emitted the result of the called function on their own Stream interface (the ReactiveUI community might oversee that I don't talk of Observables here.) As I wanted to have something similar I ported `ReactiveCommands` to Dart with my [rx_command](https://pub.dev/packages/rx_command). But somehow they did not get much attention because 1. I didn't call them state management and 2. they had to do with `Streams` and even had that scary `rx` in the name and probably the readme wasn't as good to start as I thought.
 
 Remi Rousselet talked to me about that `ValueNotifier` and how much easier they are than using Streams. So what you have here is my second attempt to warm the hearts of the Flutter community for the `Command` metaphor absolutely free of `Streams`
 
-## A first careful encounter
+## A first careful en*counter*
 
 Let's start with the (in)famous counter example but by using a `Command`. As said before a `Command` wraps a function and can publish the result in a way that can be consumed by the UI. It does this by implementing the `ValueListenable` interface which means a command behaves like `ValueNotifier`. A command has the type:
 
@@ -92,7 +94,7 @@ The `Command` gets initialized in the constructor of the `WeatherViewModel`:
 updateWeatherCommand = Command.createAsync<String, List<WeatherEntry>>(
     update, // Wrapped function
     [],     // Initial value
-    canExecute: setExecutionStateCommand, //please ignore for the moment
+    restriction: setExecutionStateCommand, //please ignore for the moment
 )   
 ```
 
@@ -115,7 +117,7 @@ class WeatherListView extends StatelessWidget {
     ....
 ```
 
-### Reacting on changes of the function execution
+### Reacting on changes of the function execution state
 `Command` has a property 
 
 ```Dart
@@ -132,11 +134,11 @@ child: ValueListenableBuilder<bool>(
     // if true we show a buys Spinner otherwise the ListView
     if (isRunning == true) {
         return Center(
-        child: Container(
+        child: SizedBox(
             width: 50.0,
             height: 50.0,
             child: CircularProgressIndicator(),
-        ),
+          ),
         );
     } else {
         return WeatherListView();
@@ -144,6 +146,8 @@ child: ValueListenableBuilder<bool>(
   },
 ),
 ```
+
+>As it's not possible to update the UI while a synchronous function is executed `Commands` that wrap a synchronous function don't support `isExecuting` and will throw an assertion if you try to access it.
 
 ### Update the UI on change of the search field
 As we don't want to send a new HTTP request on every keypress in the search field we don't directly wire the `onChanged` event to the `updateWeatherCommand`. Instead we use a second `Command` to convert the `onChanged` event to a `ValueListenable` so that we can use the `debounce` and `listen` function of my extension function package `functional_listener`:
@@ -177,7 +181,7 @@ child: TextField(
 ```
 
 ### Restricting command execution
-Sometimes it is desirable to make the execution of a `Command` depending on some other state. For this you can pass a `ValueListenable<bool>` as `canExecute` parameter, when you create a command. If you do so the command will only be executed if the value of the passed listenable is `true`.
+Sometimes it is desirable to make the execution of a `Command` depending on some other state. For this you can pass a `ValueListenable<bool>` as `restriction` parameter, when you create a command. If you do so the command will only be executed if the value of the passed listenable is `true`.
 In the example app we can restrict the execution by changing the state of a `Switch`. To handle changes of the `Switch` we use..., you guessed it, another command in the `WeatherViewModel`:
 
 ```Dart
@@ -185,11 +189,11 @@ WeatherViewModel() {
     // Command expects a bool value when executed and sets it as its own value
     setExecutionStateCommand = Command.createSync<bool, bool>((b) => b, true);
 
-    // We pass the result of switchChangedCommand as canExecute to the updateWeatherCommand
+    // We pass the result of switchChangedCommand as restriction to the updateWeatherCommand
     updateWeatherCommand = Command.createAsync<String, List<WeatherEntry>>(
     update, // Wrapped function
     [], // Initial value
-    canExecute: setExecutionStateCommand,
+    restriction: setExecutionStateCommand,
   );
 ...
 ```
@@ -209,7 +213,7 @@ ValueListenableBuilder<bool>(
 
 ### Disabling the update button while another update is in progress
 The update button should not be active while an update is running or when the
-`Switch` deactivates it. We could achieve this, again by using the `isExecuting` property of `Command` but we would have to somehow combine it with the value of `setExecutionStateCommand` which is cumbersome. Luckily `Command` has another property `canExecute` which reflects a combined value of `!isExecuting && theInputCanExecute`.
+`Switch` deactivates it. We could achieve this, again by using the `isExecuting` property of `Command` but we would have to somehow combine it with the value of `setExecutionStateCommand` which is cumbersome. Luckily `Command` has another property `canExecute` which reflects a combined value of `!isExecuting && restriction`.
 
 So we can easily solve this requirement with another....wait for it...`ValueListenableBuilder`
 
@@ -267,4 +271,66 @@ You can tweak the behaviour of the error handling by passing a `catchAlway` para
 static void Function(CommandError<Object>) globalExeptionHandler;
 ```
 If you assign a handler function to it, it will be called for all Exceptions thrown by any `Command` in your app independent of the value of `catchAlways` if the `Command` has no listeners on `thrownExceptions` or on `results`. 
+
+## Getting all data at once
+`isExecuting` and `thrownExceptions` are great properties but what if you don't want to use separate `ValueListenableBuilders` for each of them plus one for the data?
+`Command` got you covered with the `results` property that is an `ValueListenable<CommandResult>` which combines all needed data and is updated several times during a `Command` execution.
+
+```Dart
+/// Combined execution state of an `Command`
+/// Will be updated for any state change of any of the fields
+/// 1. If the command was just newly created `results.value` has the value:
+///    `param data,null, null, false` (paramData,data, error, isExecuting)
+/// 2. When calling execute: `param data, null, null, true`
+/// 3. When execution finishes: `param data, the result, null, false`
+/// If an error occurs: `param data, null, error, false`
+/// `param data` is the data that you pass as parameter when calling the command
+class CommandResult<TParam, TResult> {
+  final TParam paramData;
+  final TResult data;
+  final Object error;
+  final bool isExecuting;
+
+  bool get hasData => data != null;
+  bool get hasError => error != null;
+
+  /// This is a stripped down version of the class. Please see the source
+}
+```
+
+You can find a Version of the Weather app that uses this approach in `example_command_results`. There the `homepage.dart` looks like:
+
+```Dart
+child: ValueListenableBuilder<
+    CommandResult<String, List<WeatherEntry>>>(
+  valueListenable:
+      TheViewModel.of(context).updateWeatherCommand.results,
+  builder: (BuildContext context, result, _) {
+    if (result.isExecuting) {
+      return Center(
+        child: SizedBox(
+          width: 50.0,
+          height: 50.0,
+          child: CircularProgressIndicator(),
+        ),
+      );
+    } else if (result.hasData) {
+      return WeatherListView(result.data);
+    } else {
+      assert(result.hasError);
+      return Column(
+        children: [
+          Text('An Error has occurred!'),
+          Text(result.error.toString()),
+          if (result.error != null)
+            Text('For search term: ${result.paramData}')
+        ],
+      );
+    }
+  },
+),
+```
+Even if you use `results` the other properties are updated as before, so you can mix both approaches as you need it. For instance use `results` as above but additionally listening to `thrownExceptions` for logging.
+
+If you want to be able to always display data (while loading or in case of an error) you can pass `includeLastResultInCommandResults=true`, the last successful result will be included as `data` unless a new result is available.
 

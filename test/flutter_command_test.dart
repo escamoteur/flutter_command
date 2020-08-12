@@ -25,7 +25,7 @@ void main() {
     var executionCount = 0;
 
     final command = Command.createSyncNoParamNoResult(() => executionCount++,
-        canExecute: restriction);
+        restriction: restriction);
 
     expect(command.canExecute.value, true);
 
