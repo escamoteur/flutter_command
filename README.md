@@ -357,3 +357,15 @@ child: CommandBuilder<String, List<WeatherEntry>>(
   ),
 ),
 ```
+
+## How create Commands
+´Command´ offers different static factory functions for the different function types you want to wrap:
+
+´´´Dart
+class Command<TParam,TResult>{
+  static Command<void, void> createSyncNoParamNoResult(
+    void Function() action, {
+    ValueListenable<bool> restriction,
+    bool catchAlways,
+  }) {}
+}

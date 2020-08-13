@@ -118,7 +118,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// If `false`, Exceptions thrown by the wraped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<void, void> createSyncNoParamNoResult(
-    Action action, {
+    void Function() action, {
     ValueListenable<bool> restriction,
     bool catchAlways,
   }) {
@@ -142,7 +142,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// If `false`, Exceptions thrown by the wraped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<TParam, void> createSyncNoResult<TParam>(
-    Action1<TParam> action, {
+    void Function(TParam x) action, {
     ValueListenable<bool> restriction,
     bool catchAlways,
   }) {
@@ -167,7 +167,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// If `false`, Exceptions thrown by the wraped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<void, TResult> createSyncNoParam<TResult>(
-    Func<TResult> func,
+    TResult Function() func,
     TResult initialValue, {
     ValueListenable<bool> restriction,
     bool includeLastResultInCommandResults = false,
@@ -192,7 +192,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// If `false`, Exceptions thrown by the wraped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<TParam, TResult> createSync<TParam, TResult>(
-    Func1<TParam, TResult> func,
+    TResult Function(TParam x) func,
     TResult initialValue, {
     ValueListenable<bool> restriction,
     bool includeLastResultInCommandResults = false,
@@ -215,7 +215,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// If `false`, Exceptions thrown by the wraped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<void, void> createAsyncNoParamNoResult(
-    AsyncAction action, {
+    Future Function() action, {
     ValueListenable<bool> restriction,
     bool emitsLastValueToNewSubscriptions = false,
     bool catchAlways,
@@ -237,7 +237,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// If `false`, Exceptions thrown by the wraped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<TParam, void> createAsyncNoResult<TParam>(
-    AsyncAction1<TParam> action, {
+    Future Function(TParam x) action, {
     ValueListenable<bool> restriction,
     bool catchAlways,
   }) {
@@ -259,7 +259,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// If `false`, Exceptions thrown by the wraped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<void, TResult> createAsyncNoParam<TResult>(
-    AsyncFunc<TResult> func,
+    Future<TResult> Function() func,
     TResult initialValue, {
     ValueListenable<bool> restriction,
     bool includeLastResultInCommandResults = false,
@@ -281,7 +281,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// If `false`, Exceptions thrown by the wraped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<TParam, TResult> createAsync<TParam, TResult>(
-    AsyncFunc1<TParam, TResult> func,
+    Future<TResult> Function(TParam x) func,
     TResult initialValue, {
     ValueListenable<bool> restriction,
     bool includeLastResultInCommandResults = false,
