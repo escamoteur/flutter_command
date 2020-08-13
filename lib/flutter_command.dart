@@ -6,18 +6,6 @@ import 'package:quiver_hashcode/hashcode.dart';
 
 export 'package:flutter_command/command_builder.dart';
 
-typedef Action = void Function();
-typedef Action1<TParam> = void Function(TParam param);
-
-typedef Func<TResult> = TResult Function();
-typedef Func1<TParam, TResult> = TResult Function(TParam param);
-
-typedef AsyncAction = Future Function();
-typedef AsyncAction1<TParam> = Future Function(TParam param);
-
-typedef AsyncFunc<TResult> = Future<TResult> Function();
-typedef AsyncFunc1<TParam, TResult> = Future<TResult> Function(TParam param);
-
 /// Combined execution state of an `Command`
 /// Will be issued for any state change of any of the fields
 /// During normal command execution you will get this items listening at the command's [.results] ValueListenable.
@@ -395,7 +383,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
 }
 
 class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
-  Func1<TParam, TResult> _func;
+  TResult Function(TParam) _func;
 
   @override
   ValueListenable<bool> get isExecuting {
@@ -404,7 +392,7 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
   }
 
   CommandSync(
-      Func1<TParam, TResult> func,
+      TResult Function(TParam) func,
       TResult initialValue,
       ValueListenable<bool> restriction,
       bool includeLastResultInCommandResults,
@@ -444,10 +432,10 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
 }
 
 class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
-  AsyncFunc1<TParam, TResult> _func;
+  Future<TResult> Function(TParam) _func;
 
   CommandAsync(
-      AsyncFunc1<TParam, TResult> func,
+      Future<TResult> Function(TParam) func,
       TResult initialValue,
       ValueListenable<bool> restriction,
       bool includeLastResultInCommandResults,
