@@ -367,6 +367,57 @@ child: CommandBuilder<String, List<WeatherEntry>>(
     void Function() action, {
     ValueListenable<bool> restriction,
     bool catchAlways,
-  }) {}
+  }) 
+  /// for syncronous functions with one parameter and no result
+  static Command<TParam, void> createSyncNoResult<TParam>(
+    void Function(TParam x) action, {
+    ValueListenable<bool> restriction,
+    bool catchAlways,
+  }) 
+  /// for syncronous functions with no parameter and but a result
+  static Command<void, TResult> createSyncNoParam<TResult>(
+    TResult Function() func,
+    TResult initialValue, {
+    ValueListenable<bool> restriction,
+    bool includeLastResultInCommandResults = false,
+    bool catchAlways,
+  })
+  /// for syncronous functions with one parameter and result
+  static Command<TParam, TResult> createSync<TParam, TResult>(
+    TResult Function(TParam x) func,
+    TResult initialValue, {
+    ValueListenable<bool> restriction,
+    bool includeLastResultInCommandResults = false,
+    bool catchAlways,
+  }) 
 
-  
+  /// and for Async functions:
+  static Command<void, void> createAsyncNoParamNoResult(
+    Future Function() action, {
+    ValueListenable<bool> restriction,
+    bool catchAlways,
+  }) 
+  static Command<TParam, void> createAsyncNoResult<TParam>(
+    Future Function(TParam x) action, {
+    ValueListenable<bool> restriction,
+    bool catchAlways,
+  }) 
+  static Command<void, TResult> createAsyncNoParam<TResult>(
+    Future<TResult> Function() func,
+    TResult initialValue, {
+    ValueListenable<bool> restriction,
+    bool includeLastResultInCommandResults = false,
+    bool catchAlways,
+  })
+  static Command<TParam, TResult> createAsync<TParam, TResult>(
+    Future<TResult> Function(TParam x) func,
+    TResult initialValue, {
+    ValueListenable<bool> restriction,
+    bool includeLastResultInCommandResults = false,
+    bool catchAlways,
+  })
+  ```
+  For detailed information on the parameters of these functions consult the API docs or the source code documentation.
+
+  ## Reacting on Functions with no results
+  Even if your wrapped function doesn't return a value you can react on the end of the function execution by registering a listener to the `Command`. The command Value will be void but your handler is ensured to be called.

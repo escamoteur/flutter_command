@@ -205,7 +205,6 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   static Command<void, void> createAsyncNoParamNoResult(
     Future Function() action, {
     ValueListenable<bool> restriction,
-    bool emitsLastValueToNewSubscriptions = false,
     bool catchAlways,
   }) {
     return CommandAsync<void, void>((_) async {
