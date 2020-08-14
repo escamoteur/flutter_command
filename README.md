@@ -36,7 +36,7 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 ```
 
-To create a `Command` the `Command` class offers different static functions depending on the signature of the wrapped function. In this case we want to use a synchronous function without any parameters.
+To create a `Command` the `Command` class [offers](#how-to-create-commands) different static functions depending on the signature of the wrapped function. In this case we want to use a synchronous function without any parameters.
 
 Our widget tree now looks like this:
 
@@ -79,7 +79,7 @@ So far the command did not do more than what you could do with BLoC, besides tha
 
 Let's explore this features by examining the included `example` app which queries an open weather service and displays a list of cities with the current weather. 
 
-<img src="https://github.com/escamoteur/flutter_command/blob/master/screen_shot_example.png" alt="Screenshot" width="200" >
+<img src="screen_shot_example.png" alt="Screenshot" width="200" >
 
 The app uses a `WeatherViewModel` which contains the `Command` to update the `ListView` by making a REST call:
 
@@ -147,7 +147,7 @@ child: ValueListenableBuilder<bool>(
 ),
 ```
 
->As it's not possible to update the UI while a synchronous function is executed `Commands` that wrap a synchronous function don't support `isExecuting` and will throw an assertion if you try to access it.
+> :triangular_flag_on_post: As it's not possible to update the UI while a synchronous function is being executed `Commands` that wrap a synchronous function don't support `isExecuting` and will throw an assertion if you try to access it.
 
 ### Update the UI on change of the search field
 As we don't want to send a new HTTP request on every keypress in the search field we don't directly wire the `onChanged` event to the `updateWeatherCommand`. Instead we use a second `Command` to convert the `onChanged` event to a `ValueListenable` so that we can use the `debounce` and `listen` function of my extension function package `functional_listener`:
@@ -238,7 +238,7 @@ child: ValueListenableBuilder<bool>(
 ```
 ### Error Handling
 If the wrapped function inside a `Command` throws an `Exception` the `Command` catches it so your App won't crash.
-Instead it will wrap the caught error together with the value that was passed when the command was executed in an `CommandError` object and assign it to the `Command's` `thrownExeceptions` property which is a `ValueListenable<CommandError>`.
+Instead it will wrap the caught error together with the value that was passed when the command was executed in a `CommandError` object and assign it to the `Command's` `thrownExeceptions` property which is a `ValueListenable<CommandError>`.
 So to react on occurring error you can register your handler with `addListener` or use my `listen` extension function from `functional_listener` as it is done in the example:
 
 ```Dart
@@ -260,10 +260,10 @@ void didChangeDependencies() {
   super.didChangeDependencies();
 }
 ```
-Unfortunately its not possible to reset the value of a `ValueNotifier` without triggering its listeners. So if you have registered a listener you will get it called at every start of a `Command` execution with a value of `null` clear previous errors. If you use `functional_listener` you can do it easily by using the `where` extension.
+Unfortunately its not possible to reset the value of a `ValueNotifier` without triggering its listeners. So if you have registered a listener you will get it called at every start of a `Command` execution with a value of `null` and clear all previous errors. If you use `functional_listener` you can do it easily by using the `where` extension.
 
 ### Error handling the fine print
-You can tweak the behaviour of the error handling by passing a `catchAlway` parameter to the factory functions. If you pass `false` Exceptions will only be caught if there is a listener on `thrownExceptions` or on `results` (see next chapter). You can also change the default behaviour by changing the value of the `catchAlwaysDefault` property. During development its a good idea to set it to `false` to find any non handled exception. In production, setting it to `true` might be the better decision to prevent hard crashes.
+You can tweak the behaviour of the error handling by passing a `catchAlways` parameter to the factory functions. If you pass `false` Exceptions will only be caught if there is a listener on `thrownExceptions` or on `results` (see next chapter). You can also change the default behaviour of all `Command` in your app by changing the value of the `catchAlwaysDefault` property. During development its a good idea to set it to `false` to find any non handled exception. In production, setting it to `true` might be the better decision to prevent hard crashes. Note that `catchAlwaysDefault` property will be implcity ignored if the `catchAlways` parameter for a command is set.
 
 `Command` also offers a static global Exception handler:
 
@@ -358,7 +358,7 @@ child: CommandBuilder<String, List<WeatherEntry>>(
 ),
 ```
 
-## How create Commands
+## How to create Commands
 ´Command´ offers different static factory functions for the different function types you want to wrap:
 
 ```Dart
@@ -420,4 +420,4 @@ child: CommandBuilder<String, List<WeatherEntry>>(
   For detailed information on the parameters of these functions consult the API docs or the source code documentation.
 
   ## Reacting on Functions with no results
-  Even if your wrapped function doesn't return a value you can react on the end of the function execution by registering a listener to the `Command`. The command Value will be void but your handler is ensured to be called.
+  Even if your wrapped function doesn't return a value, you can react on the end of the function execution by registering a listener to the `Command`. The command Value will be void but your handler is ensured to be called.
