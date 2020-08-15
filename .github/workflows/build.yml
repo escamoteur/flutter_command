@@ -17,6 +17,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        dirs: [., example, example_command_results, counter_example]          
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       # Checks-out the respective branch.
@@ -31,6 +32,7 @@ jobs:
       
       - name: Install dependencies
         run: flutter pub get
+        working-directory: ${{ matrix.dirs }}
                    
       # Exits the workflow if any format is carried out.
       # from docs:   --set-exit-if-changed    Return exit code 1 if there are any formatting changes.
