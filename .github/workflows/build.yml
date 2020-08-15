@@ -17,7 +17,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        dirs: [., example, example_command_results, counter_example]          
+        dirs: [., example]          
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       # Checks-out the respective branch.
@@ -42,7 +42,7 @@ jobs:
       # Carry out an flutter analysis      
       - name: Analyze
         run: flutter analyze
-        
+        working-directory: ${{ matrix.dirs }}
       # If golden files are added then this should be handled differently for different OS
       - name: Run tests
         run: flutter test --coverage
