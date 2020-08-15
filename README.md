@@ -268,9 +268,15 @@ You can tweak the behaviour of the error handling by passing a `catchAlways` par
 `Command` also offers a static global Exception handler:
 
 ```Dart
-static void Function(CommandError<Object>) globalExeptionHandler;
+static void Function(CommandError<Object>) globalExceptionHandler;
 ```
-If you assign a handler function to it, it will be called for all Exceptions thrown by any `Command` in your app independent of the value of `catchAlways` if the `Command` has no listeners on `thrownExceptions` or on `results`. 
+If you assign a handler function to it, it will be called for all Exceptions thrown by any `Command` in your app independent of the value of `catchAlways` if the `Command` has no listeners on `thrownExceptions` or on `results`.
+
+The overall work flow of exception handling in flutter_command is depicted in the following diagram.
+
+<!-- just to keep the image scale correctly in small screens -->
+<img src="misc/exception_handling.png" alt="Exception Handling" max-width="100%" height="auto">
+
 
 ## Getting all data at once
 `isExecuting` and `thrownExceptions` are great properties but what if you don't want to use separate `ValueListenableBuilders` for each of them plus one for the data?
