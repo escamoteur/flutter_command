@@ -6,10 +6,10 @@ import 'package:quiver_hashcode/hashcode.dart';
 
 export 'package:flutter_command/command_builder.dart';
 
-/// Combined execution state of an `Command`
-/// Will be issued for any state change of any of the fields
-/// During normal command execution you will get this items listening at the command's [.results] ValueListenable.
-/// 1. If the command was just newly created you will get `param data,null, null, false` (data, error, isExecuting)
+/// Combined execution state of a `Command` represented using four of its fields.
+/// A [CommandResult] will be issued for any state change of any of its fields
+/// During normal command execution you will get this items by listening at the command's [.results] ValueListenable.
+/// 1. If the command was just newly created you will get `param data, null, null, false` (paramData, data, error, isExecuting)
 /// 2. When calling execute: `param data, null, null, true`
 /// 3. When execution finishes: `param data, the result, null, false`
 /// `param data` is the data that you pass as parameter when calling the command
@@ -54,7 +54,7 @@ class CommandResult<TParam, TResult> {
   }
 }
 
-/// [CommandError] wrapps an occuring error together with the argument that was
+/// [CommandError] wraps an occurring error together with the argument that was
 /// passed when the command was called.
 /// This sort of objects are emitted on the `.thrownExceptions` ValueListenable
 /// of the Command
@@ -83,10 +83,10 @@ class CommandError<TParam> {
 /// If this function has a [void] return type registered handler will still be called
 ///  so that you can listen for the end of the execution.
 ///
-/// The [results] `ValueListenable` emits [CommandResult<TRESULT>] which is often easier in combination
+/// The [results] `ValueListenable` emits [CommandResult<TResult>] which is often easier in combination
 /// with Flutter `ValueListenableBuilder`  because you have all state information at one place.
 ///
-/// An [Command] is a generic class of type [Command<TParam, TRESULT>]
+/// An [Command] is a generic class of type [Command<TParam, TResult>]
 /// where [TParam] is the type of data that is passed when calling [execute] and
 /// [TResult] denotes the return type of the handler function. To signal that
 /// a handler doesn't take a parameter or returns no value use the type `void`
@@ -103,7 +103,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value, but you can
   /// register a handler to wait for the completion of the wrapped function.
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
-  /// If `false`, Exceptions thrown by the wraped function won't be caught but rethrown
+  /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<void, void> createSyncNoParamNoResult(
     void Function() action, {
@@ -127,7 +127,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value, but you can
   /// register a handler to wait for the completion of the wrapped function.
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
-  /// If `false`, Exceptions thrown by the wraped function won't be caught but rethrown
+  /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<TParam, void> createSyncNoResult<TParam>(
     void Function(TParam x) action, {
@@ -152,7 +152,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// `.isExecuting`,isExecuting isn't supported for synchronous commands and will throw an
   /// assert if you try to use it.
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
-  /// If `false`, Exceptions thrown by the wraped function won't be caught but rethrown
+  /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<void, TResult> createSyncNoParam<TResult>(
     TResult Function() func,
@@ -177,7 +177,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// `.isExecuting`,isExecuting isn't supported for synchronous commands and will throw an
   /// assert if you try to use it.
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
-  /// If `false`, Exceptions thrown by the wraped function won't be caught but rethrown
+  /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<TParam, TResult> createSync<TParam, TResult>(
     TResult Function(TParam x) func,
@@ -200,7 +200,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value, but you can
   /// register a handler to wait for the completion of the wrapped function.
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
-  /// If `false`, Exceptions thrown by the wraped function won't be caught but rethrown
+  /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<void, void> createAsyncNoParamNoResult(
     Future Function() action, {
@@ -221,7 +221,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value but you can
   /// register a handler to wait for the completion of the wrapped function.
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
-  /// If `false`, Exceptions thrown by the wraped function won't be caught but rethrown
+  /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<TParam, void> createAsyncNoResult<TParam>(
     Future Function(TParam x) action, {
@@ -243,7 +243,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// all `CommandResult` values unless there is no result. This can be handy if you always want to be able
   /// to display something even when you got an error or while the command is still running.
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
-  /// If `false`, Exceptions thrown by the wraped function won't be caught but rethrown
+  /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<void, TResult> createAsyncNoParam<TResult>(
     Future<TResult> Function() func,
@@ -265,7 +265,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// all `CommandResult` values unless there is no result. This can be handy if you always want to be able
   /// to display something even when you got an error or while the command is still running.
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
-  /// If `false`, Exceptions thrown by the wraped function won't be caught but rethrown
+  /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<TParam, TResult> createAsync<TParam, TResult>(
     Future<TResult> Function(TParam x) func,
@@ -285,7 +285,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// you can write `myCommand()`
   void call([TParam param]) => execute(param);
 
-  /// emits [CommandResult<TRESULT>] the combined state of the command, which is
+  /// emits [CommandResult<TResult>] the combined state of the command, which is
   /// often easier in combination with Flutter's `ValueListenableBuilder`
   /// because you have all state information at one place.
   ValueListenable<CommandResult<TParam, TResult>> get results => _commandResult;
@@ -294,7 +294,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// state change of the command
   ValueListenable<bool> get isExecuting => _isExecuting;
 
-  /// `ValueListenable<bool>`  that changes its value on any change of the current
+  /// `ValueListenable<bool>` that changes its value on any change of the current
   /// executability state of the command. Meaning if the command can be executed or not.
   /// This will issue `false` while the command executes, but also if the command
   /// receives a false from the canExecute `ValueListenable` that you can pass when
@@ -311,7 +311,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
 
   /// optional hander that will get call on any exception that happens inside
   /// any Command of the app. Ideal for logging
-  static void Function(CommandError<Object>) globalExeptionHandler;
+  static void Function(CommandError<Object>) globalExceptionHandler;
 
   /// if no individual value for `catchAlways` is passed to the factory methods,
   /// this variable defines the default.
@@ -333,7 +333,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
       ValueNotifier<CommandError<TParam>>(null);
 
   /// If you don't need a command any longer it is a good practise to
-  /// dispose it to make sure all registered notificarion handlers are remove to
+  /// dispose it to make sure all registered notification handlers are remove to
   /// prevent memory leaks
   void dispose() {
     _commandResult.dispose();
@@ -343,7 +343,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
     super.dispose();
   }
 
-  /// Flag that we always should include the last succesful value in `CommandResult`
+  /// Flag that we always should include the last successful value in `CommandResult`
   /// for isExecuting or error states
   bool _includeLastResultInCommandResults;
 
@@ -351,7 +351,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   ///`notifyListener` has to be called directly
   final bool _noReturnValue;
 
-  /// if true all execption will be caught even if no one is listening at [thrownExecption]
+  /// if true all excEption will be caught even if no one is listening at [thrownExecption]
   /// or [results]
   final bool _catchAlways;
 
@@ -372,12 +372,12 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
     /// forward busy states to the `isExecuting` Listenable
     _commandResult.listen((x, _) => _isExecuting.value = x.isExecuting);
 
-    /// Merge the external excecution restricting with the internal
+    /// Merge the external execution restricting with the internal
     /// isExecuting which also blocks execution if true
     _canExecute = restriction == null
         ? ValueNotifier<bool>(true)
         : restriction.combineLatest(_isExecuting,
-            (restriction, isExcuting) => restriction && !isExcuting);
+            (restriction, isExecuting) => restriction && !isExecuting);
   }
 }
 
@@ -419,7 +419,7 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
     } catch (error) {
       if (_commandResult.listenerCount < 3 && !_thrownExceptions.hasListeners) {
         /// we have no external listeners on [results] or [thrownExceptions]
-        Command.globalExeptionHandler?.call(CommandError(param, error));
+        Command.globalExceptionHandler?.call(CommandError(param, error));
         if (!_catchAlways) {
           rethrow;
         }
@@ -473,7 +473,7 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
     } catch (error) {
       if (_commandResult.listenerCount < 3 && !_thrownExceptions.hasListeners) {
         /// we have no external listeners on [results] or [thrownExceptions]
-        Command.globalExeptionHandler?.call(CommandError(param, error));
+        Command.globalExceptionHandler?.call(CommandError(param, error));
         if (!_catchAlways) {
           rethrow;
         }
@@ -497,7 +497,7 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult> {
   /// Number of times execute or the command directly was called
   int executionCount = 0;
 
-  /// constructor that can take an optional `ValueListenable` to control if the command can be executet
+  /// constructor that can take an optional `ValueListenable` to control if the command can be execute
   /// if the wrapped function has `void` as return type [noResult] has to be `true`
   MockCommand(
       TResult initialValue,
@@ -513,7 +513,7 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult> {
         .listen((result, _) => value = result.data);
   }
 
-  /// to be able to simulate any output of the command when it is called you can here queue the output data for the next exeution call
+  /// to be able to simulate any output of the command when it is called you can here queue the output data for the next execution call
   queueResultsForNextExecuteCall(List<CommandResult<TParam, TResult>> values) {
     returnValuesForNextExecute = values;
   }
@@ -577,7 +577,7 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult> {
 
   /// `endExecutionWithData` will issue a [CommandResult] with
   /// data: null
-  /// error: Exeption([message])
+  /// error: Exception([message])
   /// isExecuting : false
   void endExecutionWithError(String message) {
     _commandResult.value = CommandResult<TParam, TResult>(
@@ -602,6 +602,7 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult> {
   }
 }
 
+/// A [ValueNotifier] which keeps a count of the no of its listeners.
 class _ListenerCountingValueNotifier<T> extends ValueNotifier<T> {
   int listenerCount = 0;
 
