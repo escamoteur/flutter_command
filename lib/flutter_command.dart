@@ -377,7 +377,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
     _canExecute = restriction == null
         ? ValueNotifier<bool>(true)
         : restriction.combineLatest(_isExecuting,
-            (restriction, isExcuting) => restriction && !isExcuting);
+            (restriction, isExecuting) => restriction && !isExecuting);
   }
 }
 
