@@ -311,7 +311,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
 
   /// optional hander that will get call on any exception that happens inside
   /// any Command of the app. Ideal for logging
-  static void Function(CommandError<Object>) globalExeptionHandler;
+  static void Function(CommandError<Object>) globalExceptionHandler;
 
   /// if no individual value for `catchAlways` is passed to the factory methods,
   /// this variable defines the default.
@@ -419,7 +419,7 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
     } catch (error) {
       if (_commandResult.listenerCount < 3 && !_thrownExceptions.hasListeners) {
         /// we have no external listeners on [results] or [thrownExceptions]
-        Command.globalExeptionHandler?.call(CommandError(param, error));
+        Command.globalExceptionHandler?.call(CommandError(param, error));
         if (!_catchAlways) {
           rethrow;
         }
@@ -473,7 +473,7 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
     } catch (error) {
       if (_commandResult.listenerCount < 3 && !_thrownExceptions.hasListeners) {
         /// we have no external listeners on [results] or [thrownExceptions]
-        Command.globalExeptionHandler?.call(CommandError(param, error));
+        Command.globalExceptionHandler?.call(CommandError(param, error));
         if (!_catchAlways) {
           rethrow;
         }
