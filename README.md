@@ -263,19 +263,19 @@ void didChangeDependencies() {
 Unfortunately its not possible to reset the value of a `ValueNotifier` without triggering its listeners. So if you have registered a listener you will get it called at every start of a `Command` execution with a value of `null` and clear all previous errors. If you use `functional_listener` you can do it easily by using the `where` extension.
 
 ### Error handling the fine print
-You can tweak the behaviour of the error handling by passing a `catchAlways` parameter to the factory functions. If you pass `false` Exceptions will only be caught if there is a listener on `thrownExceptions` or on `results` (see next chapter). You can also change the default behaviour of all `Command` in your app by changing the value of the `catchAlwaysDefault` property. During development its a good idea to set it to `false` to find any non handled exception. In production, setting it to `true` might be the better decision to prevent hard crashes. Note that `catchAlwaysDefault` property will be implcity ignored if the `catchAlways` parameter for a command is set.
+You can tweak the behaviour of the error handling by passing a `catchAlways` parameter to the factory functions. If you pass `false` Exceptions will only be caught if there is a listener on `thrownExceptions` or on `results` (see next chapter). You can also change the default behaviour of all `Command` in your app by changing the value of the `catchAlwaysDefault` property. During development its a good idea to set it to `false` to find any non handled exception. In production, setting it to `true` might be the better decision to prevent hard crashes. Note that `catchAlwaysDefault` property will be implicitly ignored if the `catchAlways` parameter for a command is set.
 
 `Command` also offers a static global Exception handler:
 
 ```Dart
-static void Function(CommandError<Object>) globalExceptionHandler;
+static void Function(String commandName, CommandError<Object> error) globalExceptionHandler;
 ```
 If you assign a handler function to it, it will be called for all Exceptions thrown by any `Command` in your app independent of the value of `catchAlways` if the `Command` has no listeners on `thrownExceptions` or on `results`.
 
 The overall work flow of exception handling in flutter_command is depicted in the following diagram.
 
 <!-- just to keep the image scale correctly in small screens -->
-<img src="misc/exception_handling.png" alt="Exception Handling" max-width="100%" height="auto">
+<img src="misc/exception_handling.png" alt="Exception Handling" max-width="80%" height="auto">
 
 
 ## Getting all data at once
@@ -373,12 +373,14 @@ child: CommandBuilder<String, List<WeatherEntry>>(
     void Function() action, {
     ValueListenable<bool> restriction,
     bool catchAlways,
+    String debugName
   }) 
   /// for syncronous functions with one parameter and no result
   static Command<TParam, void> createSyncNoResult<TParam>(
     void Function(TParam x) action, {
     ValueListenable<bool> restriction,
     bool catchAlways,
+    String debugName
   }) 
   /// for syncronous functions with no parameter and but a result
   static Command<void, TResult> createSyncNoParam<TResult>(
@@ -387,6 +389,7 @@ child: CommandBuilder<String, List<WeatherEntry>>(
     ValueListenable<bool> restriction,
     bool includeLastResultInCommandResults = false,
     bool catchAlways,
+    String debugName
   })
   /// for syncronous functions with one parameter and result
   static Command<TParam, TResult> createSync<TParam, TResult>(
@@ -395,6 +398,7 @@ child: CommandBuilder<String, List<WeatherEntry>>(
     ValueListenable<bool> restriction,
     bool includeLastResultInCommandResults = false,
     bool catchAlways,
+    String debugName
   }) 
 
   /// and for Async functions:
@@ -402,11 +406,13 @@ child: CommandBuilder<String, List<WeatherEntry>>(
     Future Function() action, {
     ValueListenable<bool> restriction,
     bool catchAlways,
+    String debugName
   }) 
   static Command<TParam, void> createAsyncNoResult<TParam>(
     Future Function(TParam x) action, {
     ValueListenable<bool> restriction,
     bool catchAlways,
+    String debugName
   }) 
   static Command<void, TResult> createAsyncNoParam<TResult>(
     Future<TResult> Function() func,
@@ -414,6 +420,7 @@ child: CommandBuilder<String, List<WeatherEntry>>(
     ValueListenable<bool> restriction,
     bool includeLastResultInCommandResults = false,
     bool catchAlways,
+    String debugName
   })
   static Command<TParam, TResult> createAsync<TParam, TResult>(
     Future<TResult> Function(TParam x) func,
@@ -421,9 +428,18 @@ child: CommandBuilder<String, List<WeatherEntry>>(
     ValueListenable<bool> restriction,
     bool includeLastResultInCommandResults = false,
     bool catchAlways,
+    String debugName
   })
   ```
   For detailed information on the parameters of these functions consult the API docs or the source code documentation.
 
   ## Reacting on Functions with no results
   Even if your wrapped function doesn't return a value, you can react on the end of the function execution by registering a listener to the `Command`. The command Value will be void but your handler is ensured to be called.
+
+## Logging
+If you are not sure what's going on in your App you can register an handler function to 
+
+```Dart
+static void Function(String commandName, CommandResult result) loggingHandler;
+```
+It will get executed on every `Command` execution in your App. `commandName` is the optional `debugName` that you can pass when creating a command.
