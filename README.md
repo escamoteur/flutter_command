@@ -275,7 +275,7 @@ If you assign a handler function to it, it will be called for all Exceptions thr
 The overall work flow of exception handling in flutter_command is depicted in the following diagram.
 
 <!-- just to keep the image scale correctly in small screens -->
-<img src="https://github.com/escamoteur/flutter_command/blob/master/misc/exception_handling.png" alt="Exception Handling" max-width="80%" height="auto">
+![](https://github.com/escamoteur/flutter_command/blob/master/misc/exception_handling.png)
 
 
 ## Getting all data at once
