@@ -394,7 +394,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
       TResult initialValue,
       ValueListenable<bool> restriction,
       bool includeLastResultInCommandResults,
-      noReturnValue,
+      bool noReturnValue,
       bool catchAlways,
       String debugName)
       : _noReturnValue = noReturnValue,
@@ -417,8 +417,9 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
     /// isExecuting which also blocks execution if true
     _canExecute = restriction == null
         ? ValueNotifier<bool>(true)
-        : restriction.combineLatest(_isExecuting,
-            (restriction, isExecuting) => restriction && !isExecuting);
+        : restriction.combineLatest<bool, bool>(_isExecuting,
+                (restriction, isExecuting) => restriction && !isExecuting)
+            as ValueNotifier<bool>;
   }
 }
 
