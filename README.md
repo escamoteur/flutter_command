@@ -79,7 +79,7 @@ So far the command did not do more than what you could do with BLoC, besides tha
 
 Let's explore this features by examining the included `example` app which queries an open weather service and displays a list of cities with the current weather. 
 
-<img src="https://github.com/escamoteur/flutter_command/tree/master/misc/screen_shot_example.png" alt="Screenshot" width="200" >
+<img src="https://github.com/escamoteur/flutter_command/blob/master/misc/screen_shot_example.png" alt="Screenshot" width="200" >
 
 The app uses a `WeatherViewModel` which contains the `Command` to update the `ListView` by making a REST call:
 
@@ -275,7 +275,7 @@ If you assign a handler function to it, it will be called for all Exceptions thr
 The overall work flow of exception handling in flutter_command is depicted in the following diagram.
 
 <!-- just to keep the image scale correctly in small screens -->
-<img src="https://github.com/escamoteur/flutter_command/tree/master/misc/exception_handling.png" alt="Exception Handling" max-width="80%" height="auto">
+<img src="https://github.com/escamoteur/flutter_command/blob/master/misc/exception_handling.png" alt="Exception Handling" max-width="80%" height="auto">
 
 
 ## Getting all data at once
