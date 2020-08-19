@@ -1,10 +1,12 @@
 library flutter_command;
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:functional_listener/functional_listener.dart';
 import 'package:quiver_hashcode/hashcode.dart';
 
 export 'package:flutter_command/command_builder.dart';
+export 'package:functional_listener/functional_listener.dart';
 
 /// Combined execution state of a `Command` represented using four of its fields.
 /// A [CommandResult] will be issued for any state change of any of its fields
@@ -105,15 +107,14 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
-  static Command<void, void> createSyncNoParamNoResult(
-    void Function() action, {
-    ValueListenable<bool> restriction,
-    bool catchAlways,
-  }) {
+  /// [debugName] optional identifier that is included when you register a [globalExceptionHandler]
+  /// or a [loggingHandler]
+  static Command<void, void> createSyncNoParamNoResult(void Function() action,
+      {ValueListenable<bool> restriction, bool catchAlways, String debugName}) {
     return CommandSync<void, void>((_) {
       action();
       return null;
-    }, null, restriction, false, true, catchAlways);
+    }, null, restriction, false, true, catchAlways, debugName);
   }
 
   /// Creates  a Command for a synchronous handler function with one parameter and no return type
@@ -129,15 +130,18 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
+  /// [debugName] optional identifier that is included when you register a [globalExceptionHandler]
+  /// or a [loggingHandler]
   static Command<TParam, void> createSyncNoResult<TParam>(
     void Function(TParam x) action, {
     ValueListenable<bool> restriction,
     bool catchAlways,
+    String debugName,
   }) {
     return CommandSync<TParam, void>((x) {
       action(x);
       return null;
-    }, null, restriction, false, true, catchAlways);
+    }, null, restriction, false, true, catchAlways, debugName);
   }
 
   /// Creates  a Command for a synchronous handler function with no parameter that returns a value
@@ -154,15 +158,16 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
+  /// [debugName] optional identifier that is included when you register a [globalExceptionHandler]
+  /// or a [loggingHandler]
   static Command<void, TResult> createSyncNoParam<TResult>(
-    TResult Function() func,
-    TResult initialValue, {
-    ValueListenable<bool> restriction,
-    bool includeLastResultInCommandResults = false,
-    bool catchAlways,
-  }) {
+      TResult Function() func, TResult initialValue,
+      {ValueListenable<bool> restriction,
+      bool includeLastResultInCommandResults = false,
+      bool catchAlways,
+      String debugName}) {
     return CommandSync<void, TResult>((_) => func(), initialValue, restriction,
-        includeLastResultInCommandResults, false, catchAlways);
+        includeLastResultInCommandResults, false, catchAlways, debugName);
   }
 
   /// Creates  a Command for a synchronous handler function with parameter that returns a value
@@ -179,15 +184,22 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
+  /// [debugName] optional identifier that is included when you register a [globalExceptionHandler]
+  /// or a [loggingHandler]
   static Command<TParam, TResult> createSync<TParam, TResult>(
-    TResult Function(TParam x) func,
-    TResult initialValue, {
-    ValueListenable<bool> restriction,
-    bool includeLastResultInCommandResults = false,
-    bool catchAlways,
-  }) {
-    return CommandSync<TParam, TResult>((x) => func(x), initialValue,
-        restriction, includeLastResultInCommandResults, false, catchAlways);
+      TResult Function(TParam x) func, TResult initialValue,
+      {ValueListenable<bool> restriction,
+      bool includeLastResultInCommandResults = false,
+      bool catchAlways,
+      String debugName}) {
+    return CommandSync<TParam, TResult>(
+        (x) => func(x),
+        initialValue,
+        restriction,
+        includeLastResultInCommandResults,
+        false,
+        catchAlways,
+        debugName);
   }
 
   // Asynchronous
@@ -202,15 +214,17 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
+  /// [debugName] optional identifier that is included when you register a [globalExceptionHandler]
+  /// or a [loggingHandler]
   static Command<void, void> createAsyncNoParamNoResult(
-    Future Function() action, {
-    ValueListenable<bool> restriction,
-    bool catchAlways,
-  }) {
+      Future Function() action,
+      {ValueListenable<bool> restriction,
+      bool catchAlways,
+      String debugName}) {
     return CommandAsync<void, void>((_) async {
       await action();
       return null;
-    }, null, restriction, false, true, catchAlways);
+    }, null, restriction, false, true, catchAlways, debugName);
   }
 
   /// Creates  a Command for an asynchronous handler function with one parameter and no return type
@@ -223,15 +237,17 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
+  /// [debugName] optional identifier that is included when you register a [globalExceptionHandler]
+  /// or a [loggingHandler]
   static Command<TParam, void> createAsyncNoResult<TParam>(
-    Future Function(TParam x) action, {
-    ValueListenable<bool> restriction,
-    bool catchAlways,
-  }) {
+      Future Function(TParam x) action,
+      {ValueListenable<bool> restriction,
+      bool catchAlways,
+      String debugName}) {
     return CommandAsync<TParam, void>((x) async {
       await action(x);
       return null;
-    }, null, restriction, false, false, catchAlways);
+    }, null, restriction, false, false, catchAlways, debugName);
   }
 
   /// Creates  a Command for an asynchronous handler function with no parameter that returns a value
@@ -246,14 +262,19 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<void, TResult> createAsyncNoParam<TResult>(
-    Future<TResult> Function() func,
-    TResult initialValue, {
-    ValueListenable<bool> restriction,
-    bool includeLastResultInCommandResults = false,
-    bool catchAlways,
-  }) {
-    return CommandAsync<void, TResult>((_) async => func(), initialValue,
-        restriction, includeLastResultInCommandResults, false, catchAlways);
+      Future<TResult> Function() func, TResult initialValue,
+      {ValueListenable<bool> restriction,
+      bool includeLastResultInCommandResults = false,
+      bool catchAlways,
+      String debugName}) {
+    return CommandAsync<void, TResult>(
+        (_) async => func(),
+        initialValue,
+        restriction,
+        includeLastResultInCommandResults,
+        false,
+        catchAlways,
+        debugName);
   }
 
   /// Creates  a Command for an asynchronous handler function with parameter that returns a value
@@ -268,14 +289,19 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<TParam, TResult> createAsync<TParam, TResult>(
-    Future<TResult> Function(TParam x) func,
-    TResult initialValue, {
-    ValueListenable<bool> restriction,
-    bool includeLastResultInCommandResults = false,
-    bool catchAlways,
-  }) {
-    return CommandAsync<TParam, TResult>((x) async => func(x), initialValue,
-        restriction, includeLastResultInCommandResults, false, catchAlways);
+      Future<TResult> Function(TParam x) func, TResult initialValue,
+      {ValueListenable<bool> restriction,
+      bool includeLastResultInCommandResults = false,
+      bool catchAlways,
+      String debugName}) {
+    return CommandAsync<TParam, TResult>(
+        (x) async => func(x),
+        initialValue,
+        restriction,
+        includeLastResultInCommandResults,
+        false,
+        catchAlways,
+        debugName);
   }
 
   /// Calls the wrapped handler function with an optional input parameter
@@ -310,8 +336,10 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   ValueListenable<CommandError> get thrownExceptions => _thrownExceptions;
 
   /// optional hander that will get call on any exception that happens inside
-  /// any Command of the app. Ideal for logging
-  static void Function(CommandError<Object>) globalExceptionHandler;
+  /// any Command of the app. Ideal for logging. [commandName]
+  /// the [debugName] of the Command
+  static void Function(String commandName, CommandError<Object> error)
+      globalExceptionHandler;
 
   /// if no individual value for `catchAlways` is passed to the factory methods,
   /// this variable defines the default.
@@ -322,6 +350,10 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   ///          will be rethrown. This is can be very helpful while developing.
   ///          Before the Exception is rethrown [globalExeptionHandler] will be called.
   static bool catchAlwaysDefault = true;
+
+  /// optional handler that will get called on all `Command` executions. [commandName]
+  /// the [debugName] of the Command
+  static void Function(String commandName, CommandResult result) loggingHandler;
 
   /// as we don't want that anyone changes the values of these ValueNotifiers
   /// properties we make them private and only publish their `ValueListenable`
@@ -351,15 +383,24 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   ///`notifyListener` has to be called directly
   final bool _noReturnValue;
 
-  /// if true all excEption will be caught even if no one is listening at [thrownExecption]
+  /// if true all exception will be caught even if no one is listening at [thrownExecption]
   /// or [results]
   final bool _catchAlways;
 
-  Command(TResult initialValue, ValueListenable<bool> restriction,
-      bool includeLastResultInCommandResults, noReturnValue, bool catchAlways)
+  /// optional Name that is included in log messages.
+  final String _debugName;
+
+  Command(
+      TResult initialValue,
+      ValueListenable<bool> restriction,
+      bool includeLastResultInCommandResults,
+      bool noReturnValue,
+      bool catchAlways,
+      String debugName)
       : _noReturnValue = noReturnValue,
         _includeLastResultInCommandResults = includeLastResultInCommandResults,
         _catchAlways = catchAlways,
+        _debugName = debugName,
         super(initialValue) {
     _commandResult =
         _ListenerCountingValueNotifier<CommandResult<TParam, TResult>>(
@@ -376,8 +417,9 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
     /// isExecuting which also blocks execution if true
     _canExecute = restriction == null
         ? ValueNotifier<bool>(true)
-        : restriction.combineLatest(_isExecuting,
-            (restriction, isExecuting) => restriction && !isExecuting);
+        : restriction.combineLatest<bool, bool>(_isExecuting,
+                (restriction, isExecuting) => restriction && !isExecuting)
+            as ValueNotifier<bool>;
   }
 }
 
@@ -396,10 +438,16 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
       ValueListenable<bool> restriction,
       bool includeLastResultInCommandResults,
       bool noReturnValue,
-      bool catchAlways)
+      bool catchAlways,
+      String debugName)
       : _func = func,
-        super(initialValue, restriction, includeLastResultInCommandResults,
-            noReturnValue, catchAlways ?? Command.catchAlwaysDefault);
+        super(
+            initialValue,
+            restriction,
+            includeLastResultInCommandResults,
+            noReturnValue,
+            catchAlways ?? Command.catchAlwaysDefault,
+            debugName);
 
   @override
   void execute([TParam param]) {
@@ -417,15 +465,18 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
         notifyListeners();
       }
     } catch (error) {
+      _commandResult.value = CommandResult<TParam, TResult>(param,
+          _includeLastResultInCommandResults ? value : null, error, false);
       if (_commandResult.listenerCount < 3 && !_thrownExceptions.hasListeners) {
         /// we have no external listeners on [results] or [thrownExceptions]
-        Command.globalExceptionHandler?.call(CommandError(param, error));
+        Command.globalExceptionHandler
+            ?.call(_debugName, CommandError(param, error));
         if (!_catchAlways) {
           rethrow;
         }
       }
-      _commandResult.value = CommandResult<TParam, TResult>(param,
-          _includeLastResultInCommandResults ? value : null, error, false);
+    } finally {
+      Command.loggingHandler?.call(_debugName, _commandResult.value);
     }
   }
 }
@@ -439,10 +490,11 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
       ValueListenable<bool> restriction,
       bool includeLastResultInCommandResults,
       bool noResult,
-      bool catchAlways)
+      bool catchAlways,
+      String debugName)
       : _func = func,
         super(initialValue, restriction, includeLastResultInCommandResults,
-            noResult, catchAlways ?? Command.catchAlwaysDefault);
+            noResult, catchAlways ?? Command.catchAlwaysDefault, debugName);
 
   @override
   void execute([TParam param]) async {
@@ -471,17 +523,19 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
         notifyListeners();
       }
     } catch (error) {
+      _commandResult.value = CommandResult<TParam, TResult>(param,
+          _includeLastResultInCommandResults ? value : null, error, false);
       if (_commandResult.listenerCount < 3 && !_thrownExceptions.hasListeners) {
         /// we have no external listeners on [results] or [thrownExceptions]
-        Command.globalExceptionHandler?.call(CommandError(param, error));
+        Command.globalExceptionHandler
+            ?.call(_debugName, CommandError(param, error));
         if (!_catchAlways) {
           rethrow;
         }
       }
-      _commandResult.value = CommandResult<TParam, TResult>(param,
-          _includeLastResultInCommandResults ? value : null, error, false);
     } finally {
       _isExecuting.value = false;
+      Command.loggingHandler?.call(_debugName, _commandResult.value);
     }
   }
 }
@@ -505,9 +559,10 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult> {
       bool includeLastResultInCommandResults,
       bool emitInitialCommandResult,
       bool noResult,
-      bool catchAlways)
+      bool catchAlways,
+      String debugName)
       : super(initialValue, restriction, includeLastResultInCommandResults,
-            noResult, catchAlways ?? Command.catchAlwaysDefault) {
+            noResult, catchAlways ?? Command.catchAlwaysDefault, debugName) {
     _commandResult
         .where((result) => result.hasData)
         .listen((result, _) => value = result.data);

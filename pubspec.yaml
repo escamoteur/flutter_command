@@ -1,6 +1,6 @@
 name: flutter_command
 description: A new Flutter package project.
-version: 0.5.0
+version: 0.5.8
 author: Thomas Burkhart
 homepage: https://github.com/escamoteur/flutter_command
 
@@ -14,6 +14,7 @@ dependencies:
     sdk: flutter
 
 dev_dependencies:
+  lint: ^1.2.0
   flutter_test:
     sdk: flutter
 
