@@ -3,24 +3,80 @@ import 'package:flutter_command/flutter_command.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:functional_listener/functional_listener.dart';
 
-/// An object that can assist in representing the current of state of Command
-/// test for different valurListenable of a Command.
+/// An object that can assist in representing the current state of Command while
+/// testing different valueListenable of a Command. Basically a [List] with
+/// initialize logic and null safe clear.
 class Collector<T> {
   /// Holds a list of values being passed to this object.
   List<T> values;
-  Collector() {
-    values = <T>[];
-  }
 
   /// Initializes [values] adds the incoming [value] to it.
   call(T value) {
+    values ??= <T>[];
     values.add(value);
   }
 
-  void clear() => values.clear();
+  /// Check null and clear the list.
+  clear() {
+    values?.clear();
+  }
 }
 
 void main() {
+  /// Create commonly used collector for all the valueListenable in a [Command].
+  /// The collectors simply collect the values emitted by the ValueListenable
+  /// into a list and keep it for comparison later.
+  Collector<bool> canExecuteCollector = Collector<bool>();
+  Collector<bool> isExecutingCollector = Collector<bool>();
+  Collector<CommandResult> cmdResultCollector = Collector<CommandResult>();
+  Collector<CommandError> thrownExceptionCollector = Collector<CommandError>();
+  Collector pureResultCollector = Collector();
+
+  /// A utility method to setup [Collector] for all the [ValueListenable] in a
+  /// given command.
+  void setupCollectors(Command command, {bool enablePrint = false}) {
+    // Set up the collectors
+    command.canExecute.listen((b, _) {
+      canExecuteCollector(b);
+      if (enablePrint) {
+        print("Can Execute $b");
+      }
+    });
+    command.isExecuting.listen((b, _) {
+      isExecutingCollector(b);
+      if (enablePrint) {
+        print("Can Execute $b");
+      }
+    });
+    command.results.listen((cmdResult, _) {
+      cmdResultCollector(cmdResult);
+      if (enablePrint) {
+        print("Can Execute $cmdResult");
+      }
+    });
+    command.thrownExceptions.listen((cmdError, _) {
+      thrownExceptionCollector(cmdError);
+      if (enablePrint) {
+        print("Can Execute $cmdError");
+      }
+    });
+    command.listen((pureResult, _) {
+      pureResultCollector(pureResult);
+      if (enablePrint) {
+        print("Can Execute $pureResult");
+      }
+    });
+  }
+
+  /// clear the common collectors before each test.
+  setUp(() {
+    canExecuteCollector.clear();
+    isExecutingCollector.clear();
+    cmdResultCollector.clear();
+    thrownExceptionCollector.clear();
+    pureResultCollector.clear();
+  });
+
   test('Execute simple sync action', () {
     int notificationCount = 0;
     var command = Command.createSyncNoParamNoResult(() => notificationCount++);
@@ -137,38 +193,64 @@ void main() {
   });
 
   Future<String> slowAsyncFunction(String s) async {
-    print("___Start____Action__________");
-
+    // print("___Start____Action__________");
     await Future.delayed(const Duration(milliseconds: 10));
-    print("___End____Action__________");
+    // print("___End____Action__________");
     return s;
   }
 
   test('Execute simple async function with parameter', () async {
     var executionCount = 0;
 
-    // Create collector for all the valueListenable in the Command.
-    // The collectors simply collect the values emitted by the ValueListenable
-    // into a list and keep it for comparison later.
-    Collector<bool> canExecuteCollector = Collector<bool>();
-    Collector<bool> isExecutingCollector = Collector<bool>();
+    final command = Command.createAsyncNoResult<String>(
+      (s) async {
+        executionCount++;
+        await slowAsyncFunction(s);
+      },
+      // restriction: setExecutionStateCommand,
+    );
 
-    final command = Command.createAsyncNoResult<String>((s) async {
-      await slowAsyncFunction(s);
-      executionCount++;
-    });
-    command.canExecute.listen((b, _) {
-      print('can executing listened with $b');
-      // canExecuteCollector(b);
-    });
-    command.isExecuting.listen((b, _) {
-      print('Is executing listened with $b');
-      isExecutingCollector(b);
-    });
+    // set up all the collectors for this command.
+    setupCollectors(command);
 
-    command.results.listen((result, _) {
-      print(result);
-    });
+    // Ensure command is not executing already.
+    expect(command.isExecuting.value, false, reason: "IsExecuting before true");
+
+    // Execute command.
+    command.execute("Done");
+
+    // Waiting till the async function has finished executing.
+    await Future.delayed(Duration(milliseconds: 10));
+
+    expect(command.isExecuting.value, false);
+
+    expect(executionCount, 1);
+
+    // Expected to return false, true, false
+    // but somehow skips the initial state which is false.
+    expect(isExecutingCollector.values, [true, false]);
+
+    expect(canExecuteCollector.values, [false, true]);
+
+    expect(cmdResultCollector.values, [
+      CommandResult<String, void>("Done", null, null, true),
+      CommandResult<String, void>("Done", null, null, false),
+    ]);
+  });
+
+  test('Execute simple async function with parameter and return value',
+      () async {
+    var executionCount = 0;
+
+    final command = Command.createAsync<String, String>(
+      (s) async {
+        executionCount++;
+        return slowAsyncFunction(s);
+      },
+      "initialValue",
+    );
+
+    setupCollectors(command);
 
     expect(command.isExecuting.value, false, reason: "IsExecuting before true");
 
@@ -178,133 +260,90 @@ void main() {
     await Future.delayed(Duration(milliseconds: 10));
 
     expect(command.isExecuting.value, false);
+
+    expect(executionCount, 1);
+
     // Expected to return false, true, false
     // but somehow skips the initial state which is false.
     expect(isExecutingCollector.values, [true, false]);
 
-    expect(executionCount, 1);
-    // expect(canExecuteCollector.values, [true, false, true]);
+    expect(canExecuteCollector.values, [false, true]);
+
+    expect(cmdResultCollector.values, [
+      CommandResult<String, void>("Done", null, null, true),
+      CommandResult<String, void>("Done", "Done", null, false),
+    ]);
   });
 
-  // test('Execute simple async function with parameter and return value',
-  //     () async {
-  //   var executionCount = 0;
+  test('Execute simple async function call while already running', () async {
+    var executionCount = 0;
 
-  //   final command = Command.createAsync<String, String>((s) async {
-  //     executionCount++;
-  //     return slowAsyncFunction(s);
-  //   }, "initial");
+    final command = Command.createAsync<String, String>(
+      (s) async {
+        executionCount++;
+        return slowAsyncFunction(s);
+      },
+      "Initial Value",
+    );
 
-  //   command.canExecute.listen((b) {
-  //     print("Can execute:" + b.toString();
-  //   });
-  //   command.isExecuting.listen((b) {
-  //     print("Is executing:" + b.toString();
-  //   });
+    setupCollectors(command);
 
-  //   command.listen((s) {
-  //     print("Results:" + s);
-  //   });
+    expect(command.isExecuting.value, false, reason: "IsExecuting before true");
 
-  //   expect(command.canExecute, emitsInOrder([true, false, true]),
-  //       reason: "Canexecute before false"));
-  //   expect(command.isExecuting.value ,false),
-  //       reason: "IsExecuting before true"));
+    expect(command.value, "Initial Value");
 
-  //   expect(command.results,
-  //       emitsInOrder([crm(null, false, true), crm("Done", false, false)]);
-  //   expect(command.value ,"Done"));
+    command.execute("Done");
+    command.execute("Done2"); // should not execute
 
-  //   command.execute("Done"));
-  //   await Future.delayed(Duration(milliseconds: 50);
+    await Future.delayed(Duration(milliseconds: 100));
 
-  //   expect(command.isExecuting.value ,false);
-  //   expect(executionCount, 1);
-  // });
+    expect(command.isExecuting.value, false);
+    expect(executionCount, 1);
 
-  // test('Execute simple async function call while already running', () async {
-  //   var executionCount = 0;
+    // The expectation ensures that first command execution went through and
+    // second command execution didn't wen through.
+    expect(cmdResultCollector.values, [
+      CommandResult<String, String>("Done", null, null, true),
+      CommandResult<String, String>("Done", "Done", null, false)
+    ]);
+  });
 
-  //   final command = Command.createAsync<String, String>((s) async {
-  //     executionCount++;
-  //     return slowAsyncFunction(s);
-  //   });
+  test('Execute simple async function called twice with delay', () async {
+    var executionCount = 0;
 
-  //   command.canExecute.listen((b) {
-  //     print("Can execute:" + b.toString();
-  //   });
-  //   command.isExecuting.listen((b) {
-  //     print("Is executing:" + b.toString();
-  //   });
+    final command = Command.createAsync<String, String>(
+      (s) async {
+        executionCount++;
+        return slowAsyncFunction(s);
+      },
+      "Initial value",
+    );
 
-  //   command.listen((s) {
-  //     print("Results:" + s);
-  //   });
+    setupCollectors(command);
 
-  //   expect(command.canExecute, emitsInOrder([true, false, true]),
-  //       reason: "Canexecute before false"));
-  //   expect(command.isExecuting, emitsInOrder([false, true, false]);
-  //   expect(command.isExecuting.value ,false),
-  //       reason: "IsExecuting before true"));
+    expect(command.isExecuting.value, false, reason: "IsExecuting before true");
 
-  //   expect(command.results,
-  //       emitsInOrder([crm(null, false, true), crm("Done", false, false)]);
-  //   expect(command.value ,"Done"));
+    command.execute("Done");
 
-  //   command.execute("Done"));
-  //   command.execute("Done")); // should not execute
+    // Reuse the same command after 50 milliseconds and it should work.
+    await Future.delayed(Duration(milliseconds: 50));
+    command.execute("Done2");
 
-  //   await Future.delayed(Duration(milliseconds: 100);
-
-  //   expect(command.isExecuting.value ,false);
-  //   expect(executionCount, 1);
-  // });
-
-  // test('Execute simple async function called twice with delay', () async {
-  //   var executionCount = 0;
-
-  //   final command = Command.createAsync<String, String>((s) async {
-  //     executionCount++;
-  //     return slowAsyncFunction(s);
-  //   });
-
-  //   command.canExecute.listen((b) {
-  //     print("Can execute:" + b.toString();
-  //   });
-  //   command.isExecuting.listen((b) {
-  //     print("Is executing:" + b.toString();
-  //   });
-
-  //   command.listen((s) {
-  //     print("Results:" + s);
-  //   });
-
-  //   expect(command.canExecute, emitsInOrder([true, false, true, false, true]),
-  //       reason: "Canexecute wrong"));
-  //   expect(
-  //       command.isExecuting, emitsInOrder([false, true, false, true, false]);
-  //   expect(command.isExecuting.value ,false),
-  //       reason: "IsExecuting before true"));
-
-  //   expect(
-  //       command.results,
-  //       emitsInOrder([
-  //         crm(null, false, true),
-  //         crm("Done", false, false),
-  //         crm(null, false, true),
-  //         crm("Done", false, false)
-  //       ]);
-  //   expect(command, emitsInOrder(["Done", "Done"]);
-
-  //   command.execute("Done"));
-  //   await Future.delayed(Duration(milliseconds: 50);
-  //   command.execute("Done")); // should not execute
-
-  //   await Future.delayed(Duration(milliseconds: 50);
-
-  //   expect(command.isExecuting.value ,false);
-  //   expect(executionCount, 2);
-  // });
+    await Future.delayed(Duration(milliseconds: 50));
+    expect(command.isExecuting.value, false);
+    expect(executionCount, 2);
+    expect(canExecuteCollector.values, [false, true, false, true],
+        reason: "CanExecute order is wrong");
+    expect(isExecutingCollector.values, [true, false, true, false],
+        reason: "IsExecuting order is wrong.");
+    expect(pureResultCollector.values, ["Done", "Done2"]);
+    expect(cmdResultCollector.values, [
+      CommandResult<String, String>("Done", null, null, true),
+      CommandResult<String, String>("Done", "Done", null, false),
+      CommandResult<String, String>("Done2", null, null, true),
+      CommandResult<String, String>("Done2", "Done2", null, false)
+    ]);
+  });
 
   // test(
   //     'Execute simple async function called twice with delay and emitLastResult=true',
