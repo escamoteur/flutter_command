@@ -40,15 +40,15 @@ jobs:
         run: flutter format --set-exit-if-changed .
       
       # Carry out an flutter analysis      
-      - name: Analyze
-        run: flutter analyze
-        working-directory: ${{ matrix.dirs }}
+      # - name: Analyze
+      #   run: flutter analyze
+      #   working-directory: ${{ matrix.dirs }}
       # If golden files are added then this should be handled differently for different OS
       - name: Run tests
         run: flutter test --coverage
       
       # Code coverage can be acitivated once its ready.
-      # - name: Upload coverage to codecov
-        # uses: codecov/codecov-action@v1
-        # with:
-          # token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Upload coverage to codecov
+        uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
