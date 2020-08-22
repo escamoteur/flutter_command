@@ -753,7 +753,7 @@ void main() {
     });
   });
 
-  group("Test Gloabal parameters and general utilities like dipose", () {
+  group("Test Global parameters and general utilities like dipose", () {
     test("Check Command Dispose", () async {
       final command = Command.createSync<String, String>(
         (s) {
@@ -814,7 +814,24 @@ void main() {
       expect(isExecutingCollector.values, isNotEmpty);
     });
 
-    test("Check globalExceptionHanler is called", () async {
+    test("Check globalExceptionHadnler is called in Sync Command", () async {
+      final command = Command.createSync<String, String>((s) {
+        throw CustomException("Intentional");
+      }, "Initial Value", debugName: "globalHandler");
+      // Set Global catchAlwaysDefault to false.
+      // It defaults to true.
+      Command.globalExceptionHandler =
+          expectAsync2((String debugName, CommandError ce) {
+        expect(debugName, "globalHandler");
+        expect(ce, isA<CommandError>());
+        expect(
+            ce, CommandError<Object>("Done", CustomException("Intentional")));
+      }, count: 1);
+
+      expect(() => command("Done"), throwsA(isA<CustomException>()));
+    });
+
+    test("Check globalExceptionHandler is called in Async Command", () async {
       final command = Command.createAsync<String, String>((s) async {
         throw CustomException("Intentional");
       }, "Initial Value", debugName: "globalHandler");
@@ -825,13 +842,29 @@ void main() {
         expect(debugName, "globalHandler");
         expect(ce, isA<CommandError>());
         expect(
-            ce, CommandError<String>("Done", CustomException("Intentional")));
+            ce, CommandError<Object>("Done", CustomException("Intentional")));
+      }, count: 1);
+
+      expectLater(() async => command("Done"), throwsA(isA<CustomException>()));
+    });
+
+    test("Check logging Handler is called in Sync command", () async {
+      final command = Command.createSync<String, String>((s) {
+        return s;
+      }, "Initial Value", debugName: "loggingHandler");
+      // Set Global catchAlwaysDefault to false.
+      // It defaults to true.
+      Command.loggingHandler =
+          expectAsync2((String debugName, CommandResult cr) {
+        expect(debugName, "loggingHandler");
+        expect(cr, isA<CommandResult>());
+        expect(cr, CommandResult<String, String>("Done", "Done", null, false));
       }, count: 1);
 
       command("Done");
     });
 
-    test("Check logging Handler is called", () async {
+    test("Check logging Handler is called in Async command", () async {
       final command = Command.createAsync<String, String>((s) async {
         return s;
       }, "Initial Value", debugName: "loggingHandler");
@@ -847,7 +880,26 @@ void main() {
       command("Done");
     });
   });
-
+  group("Test Command Builder", () {
+    testWidgets("Test Command Builder", (WidgetTester tester) async {
+      final testCommand = Command.createAsync<String, String>(
+        (s) => Future.delayed(
+          Duration(seconds: 1),
+          () => "New Value",
+        ),
+        "Initial Value",
+      );
+      tester.pumpWidget(
+        CommandBuilder<String, String>(
+          command: testCommand,
+          onData: (context, value, _) {
+            return Text(value);
+          },
+          
+        ),
+      );
+    });
+  });
   // test("async function should be next'able", () async {
   //   final cmd = Command.createAsync((_) async {
   //     await Future.delayed(Duration(milliseconds: 1));
