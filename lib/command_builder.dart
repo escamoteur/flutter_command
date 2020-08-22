@@ -23,9 +23,9 @@ class CommandBuilder<TParam, TResult> extends StatelessWidget {
           if (result.hasData) {
             return onData(context, result.data, result.paramData);
           } else if (result.isExecuting) {
-            return onData(context, result.data, result.paramData);
+            return whileExecuting(context, result.paramData);
           } else {
-            return onData(context, result.data, result.paramData);
+            return onError(context, result.error, result.paramData);
           }
         });
   }
