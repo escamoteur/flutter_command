@@ -1,4 +1,4 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_command/flutter_command.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:functional_listener/functional_listener.dart';
@@ -367,45 +367,45 @@ void main() {
       ]);
     });
 
-    test('Handle calling noParamFunctions being called with param', () async {
-      var executionCount = 0;
+    // test('Handle calling noParamFunctions being called with param', () async {
+    //   var executionCount = 0;
 
-      final command = Command.createAsyncNoParamNoResult(
-        () async {
-          executionCount++;
-          await slowAsyncFunction("no pram");
-        },
-        // restriction: setExecutionStateCommand,
-      );
+    //   final command = Command.createAsyncNoParamNoResult(
+    //     () async {
+    //       executionCount++;
+    //       await slowAsyncFunction("no pram");
+    //     },
+    //     // restriction: setExecutionStateCommand,
+    //   );
 
-      // set up all the collectors for this command.
-      setupCollectors(command);
+    //   // set up all the collectors for this command.
+    //   setupCollectors(command);
 
-      // Ensure command is not executing already.
-      expect(command.isExecuting.value, false,
-          reason: "IsExecuting before true");
+    //   // Ensure command is not executing already.
+    //   expect(command.isExecuting.value, false,
+    //       reason: "IsExecuting before true");
 
-      // Execute command.
-      command.execute("Done");
+    //   // Execute command.
+    //   command.execute("Done");
 
-      // Waiting till the async function has finished executing.
-      await Future.delayed(Duration(milliseconds: 10));
+    //   // Waiting till the async function has finished executing.
+    //   await Future.delayed(Duration(milliseconds: 10));
 
-      expect(command.isExecuting.value, false);
+    //   expect(command.isExecuting.value, false);
 
-      expect(executionCount, 1);
+    //   expect(executionCount, 1);
 
-      // Expected to return false, true, false
-      // but somehow skips the initial state which is false.
-      expect(isExecutingCollector.values, [true, false]);
+    //   // Expected to return false, true, false
+    //   // but somehow skips the initial state which is false.
+    //   expect(isExecutingCollector.values, [true, false]);
 
-      expect(canExecuteCollector.values, [false, true]);
+    //   expect(canExecuteCollector.values, [false, true]);
 
-      expect(cmdResultCollector.values, [
-        CommandResult<void, void>(null, null, null, true),
-        CommandResult<void, void>(null, null, null, false),
-      ]);
-    });
+    //   expect(cmdResultCollector.values, [
+    //     CommandResult<void, void>(null, null, null, true),
+    //     CommandResult<void, void>(null, null, null, false),
+    //   ]);
+    // });
 
     test('Execute simple async function with No parameter', () async {
       var executionCount = 0;
@@ -753,7 +753,7 @@ void main() {
     });
   });
 
-  group("Test Gloabal parameters and general utilities like dipose", () {
+  group("Test Global parameters and general utilities like dipose", () {
     test("Check Command Dispose", () async {
       final command = Command.createSync<String, String>(
         (s) {
@@ -814,8 +814,23 @@ void main() {
       expect(isExecutingCollector.values, isNotEmpty);
     });
 
-    test("Check globalExceptionHanler is called", () async {
-      final command = Command.createAsync<String, String>((s) async {
+    test("Check globalExceptionHadnler is called in Sync/Async Command",
+        () async {
+      final command = Command.createSync<String, String>((s) {
+        throw CustomException("Intentional");
+      }, "Initial Value", debugName: "globalHandler");
+
+      Command.globalExceptionHandler =
+          expectAsync2((String debugName, CommandError ce) {
+        expect(debugName, "globalHandler");
+        expect(ce, isA<CommandError>());
+        expect(
+            ce, CommandError<Object>("Done", CustomException("Intentional")));
+      }, count: 1);
+
+      expect(() => command("Done"), throwsA(isA<CustomException>()));
+      await Future.delayed(Duration(milliseconds: 100));
+      final command2 = Command.createAsync<String, String>((s) async {
         throw CustomException("Intentional");
       }, "Initial Value", debugName: "globalHandler");
       // Set Global catchAlwaysDefault to false.
@@ -825,29 +840,135 @@ void main() {
         expect(debugName, "globalHandler");
         expect(ce, isA<CommandError>());
         expect(
-            ce, CommandError<String>("Done", CustomException("Intentional")));
+            ce, CommandError<Object>("Done", CustomException("Intentional")));
       }, count: 1);
 
-      command("Done");
+      expectLater(
+          () async => command2("Done"), throwsA(isA<CustomException>()));
     });
 
-    test("Check logging Handler is called", () async {
-      final command = Command.createAsync<String, String>((s) async {
+    test("Check logging Handler is called in Sync/Async command", () async {
+      final command = Command.createSync<String, String>((s) {
         return s;
       }, "Initial Value", debugName: "loggingHandler");
       // Set Global catchAlwaysDefault to false.
       // It defaults to true.
-      Command.loggingHandler =
-          expectAsync2((String debugName, CommandResult cr) {
-        expect(debugName, "loggingHandler");
-        expect(cr, isA<CommandResult>());
-        expect(cr, CommandResult<String, String>("Done", "Done", null, false));
-      }, count: 1);
+      Command.loggingHandler = expectAsync2(
+        (String debugName, CommandResult cr) {
+          expect(debugName, "loggingHandler");
+          expect(cr, isA<CommandResult>());
+          expect(
+            cr,
+            CommandResult<String, String>("Done", "Done", null, false),
+          );
+        },
+        count: 2,
+      );
 
       command("Done");
+      await Future.delayed(Duration(milliseconds: 100));
+      final command2 = Command.createAsync<String, String>((s) async {
+        await Future.delayed(Duration(milliseconds: 20));
+        return s;
+      }, "Initial Value", debugName: "loggingHandler");
+
+      command2("Done");
+    });
+    tearDown(() {
+      Command.loggingHandler = null;
+      Command.globalExceptionHandler = null;
     });
   });
+  group("Test Command Builder", () {
+    testWidgets("Test Command Builder", (WidgetTester tester) async {
+      final testCommand = Command.createAsyncNoParam<String>(
+        () async {
+          await Future.delayed(Duration(seconds: 2));
+          print("Command is called");
+          return "New Value";
+        },
+        "Initial Value",
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: CommandBuilder<void, String>(
+                command: testCommand,
+                onData: (context, value, _) {
+                  return Text(
+                    value,
+                  );
+                },
+                whileExecuting: (_, __) {
+                  return Text("Is Executing");
+                },
+              ),
+            ),
+          ),
+        ),
+      );
 
+      expect(find.byType(Text), findsOneWidget);
+      expect(find.widgetWithText(Center, "Initial Value"), findsOneWidget);
+      testCommand();
+      await tester.pump(Duration(milliseconds: 500));
+      // By now circular progress indicator should be visible.
+      expect(find.widgetWithText(Center, "Initial Value"), findsNothing);
+      expect(find.widgetWithText(Center, "Is Executing"), findsOneWidget);
+      // Wait for command to finish async execution.
+      await tester.pump(Duration(milliseconds: 1500));
+      expect(find.widgetWithText(Center, "Is Executing"), findsNothing);
+      expect(find.widgetWithText(Center, "New Value"), findsOneWidget);
+    });
+    testWidgets("Test Command Builder On error", (WidgetTester tester) async {
+      final testCommand = Command.createAsyncNoParam<String>(
+        () async {
+          await Future.delayed(Duration(seconds: 2));
+          throw CustomException("Exception From Command");
+        },
+        "Initial Value",
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: CommandBuilder<void, String>(
+                command: testCommand,
+                onData: (context, value, _) {
+                  return Text(
+                    value,
+                  );
+                },
+                whileExecuting: (_, __) {
+                  return Text("Is Executing");
+                },
+                onError: (_, error, __) {
+                  if (error is CustomException) {
+                    return Text(error.message);
+                  }
+                  return Text("Unknown Exception Occurred");
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(Text), findsOneWidget);
+      expect(find.widgetWithText(Center, "Initial Value"), findsOneWidget);
+      testCommand();
+      await tester.pump(Duration(milliseconds: 500));
+      // By now circular progress indicator should be visible.
+      expect(find.widgetWithText(Center, "Initial Value"), findsNothing);
+      expect(find.widgetWithText(Center, "Is Executing"), findsOneWidget);
+      // Wait for command to finish async execution.
+      await tester.pump(Duration(milliseconds: 1500));
+      expect(find.widgetWithText(Center, "Is Executing"), findsNothing);
+      expect(find.widgetWithText(Center, "Exception From Command"),
+          findsOneWidget);
+    });
+  });
   // test("async function should be next'able", () async {
   //   final cmd = Command.createAsync((_) async {
   //     await Future.delayed(Duration(milliseconds: 1));
