@@ -378,8 +378,8 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// prevent memory leaks
   void dispose() {
     _commandResult.dispose();
-    _isExecuting.dispose();
     _canExecute.dispose();
+    _isExecuting.dispose();
     _thrownExceptions.dispose();
     super.dispose();
   }
