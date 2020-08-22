@@ -70,6 +70,15 @@ class CommandError<TParam> {
   );
 
   @override
+  bool operator ==(Object other) =>
+      other is CommandError<TParam> &&
+      other.paramData == paramData &&
+      other.error == error;
+
+  @override
+  int get hashCode => hash2(error.hashCode, paramData.hashCode);
+
+  @override
   String toString() {
     return '$error - for param: $paramData';
   }
