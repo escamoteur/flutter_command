@@ -969,181 +969,179 @@ void main() {
           findsOneWidget);
     });
   });
-  // test("async function should be next'able", () async {
-  //   final cmd = Command.createAsync((_) async {
-  //     await Future.delayed(Duration(milliseconds: 1));
-  //     return 42;
-  //   }, "");
 
-  //   cmd.execute();
-  //   final result = await cmd.next;
+  group("Improve Code Coverage", () {
+    test("Test Data class", () {
+      expect(
+        CommandResult<String, String>.blank(),
+        CommandResult<String, String>(null, null, null, false),
+      );
+      expect(
+        CommandResult<String, String>.error(
+            "param", CustomException("Intentional")),
+        CommandResult<String, String>(
+            "param", null, CustomException("Intentional"), false),
+      );
+      expect(
+        CommandResult<String, String>.isLoading("param"),
+        CommandResult<String, String>("param", null, null, true),
+      );
+      expect(
+        CommandResult<String, String>.data("param", "result"),
+        CommandResult<String, String>("param", "result", null, false),
+      );
+      expect(CommandResult<String, String>.data("param", "result").toString(),
+          "ParamData param - Data: result - HasError: false - IsExecuting: false");
+      expect(
+          CommandError<String>("param", CustomException("Intentional"))
+              .toString(),
+          "CustomException: Intentional - for param: param");
+    });
+    test('Test MockCommand - execute', () {
+      final mockCommand = MockCommand(
+        "Initial Value",
+        ValueNotifier<bool>(true),
+        false,
+        false,
+        true,
+        true,
+        "MockingJay",
+      );
+      // Ensure mock command is executable.
+      expect(mockCommand.canExecute.value, true);
+      setupCollectors(mockCommand);
 
-  //   expect(result, 42);
-  // });
+      mockCommand.execute();
 
-  // test("async functions that throw should be next'able", () async {
-  //   final cmd = Command.createAsync((_) async {
-  //     await Future.delayed(Duration(milliseconds: 1);
-  //     throw Exception("oh no"));
-  //   });
+      // verify collectors
+      expect(cmdResultCollector.values, isNull);
+      expect(pureResultCollector.values, ["Initial Value"]);
+      // expect(isExecutingCollector.values, [true, false]);
+    });
+    test('Test MockCommand - startExecuting', () {
+      final mockCommand = MockCommand<String, String>(
+        "Initial Value",
+        ValueNotifier<bool>(true),
+        false,
+        false,
+        true,
+        true,
+        "MockingJay",
+      );
+      // Ensure mock command is executable.
+      expect(mockCommand.canExecute.value, true);
+      setupCollectors(mockCommand);
 
-  //   cmd.execute();
-  //   var didntThrow = true;
-  //   try {
-  //     await cmd.next;
-  //   } catch (e) {
-  //     didntThrow = false;
-  //   }
+      mockCommand.startExecution("Start");
 
-  //   expect(didntThrow, false);
-  // });
+      // verify collectors
+      expect(
+          cmdResultCollector.values,
+          containsAllInOrder(
+              [CommandResult<String, String>("Start", null, null, true)]));
+      // expect(pureResultCollector.values, ["Initial Value"]);
+      // expect(isExecutingCollector.values, [true, false]);
+    });
 
-  // Stream<int> testProvider(int i) async* {
-  //   yield i;
-  //   yield i + 1;
-  //   yield i + 2;
-  // }
+    test('Test MockCommand - endExecutionWithData', () {
+      final mockCommand = MockCommand<String, String>(
+        "Initial Value",
+        ValueNotifier<bool>(true),
+        false,
+        false,
+        true,
+        true,
+        "MockingJay",
+      );
+      // Ensure mock command is executable.
+      expect(mockCommand.canExecute.value, true);
+      setupCollectors(mockCommand);
 
-  // test('Command.createFromStream', () {
-  //   final command = Command.createFromStream<int, int>(testProvider);
+      mockCommand.endExecutionWithData("end_data");
 
-  //   command.canExecute.listen((b) {
-  //     print("Can execute:" + b.toString();
-  //   });
-  //   command.isExecuting.listen((b) {
-  //     print("Is executing:" + b.toString();
-  //   });
+      // verify collectors
+      expect(
+          cmdResultCollector.values,
+          containsAllInOrder(
+              [CommandResult<String, String>(null, "end_data", null, false)]));
+      expect(pureResultCollector.values, ["end_data"]);
+    });
+    test('Test MockCommand - endExecutionNoData', () {
+      final mockCommand = MockCommand<String, String>(
+        "Initial Value",
+        ValueNotifier<bool>(true),
+        false,
+        false,
+        true,
+        true,
+        "MockingJay",
+      );
+      // Ensure mock command is executable.
+      expect(mockCommand.canExecute.value, true);
+      setupCollectors(mockCommand);
 
-  //   command.listen((i) {
-  //     print("Results:" + i.toString();
-  //   });
+      mockCommand.endExecutionNoData();
 
-  //   expect(command.canExecute.value ,true), reason: "Canexecute before false"));
-  //   expect(command.isExecuting.value ,false),
-  //       reason: "IsExecuting before true"));
+      // verify collectors
+      expect(
+          cmdResultCollector.values,
+          containsAllInOrder(
+              [CommandResult<String, String>(null, null, null, false)]));
+      expect(pureResultCollector.values, isNull);
+      // expect(isExecutingCollector.values, [true, false]);
+    });
+    test('Test MockCommand - endExecutionWithError', () {
+      final mockCommand = MockCommand<String, String>(
+        "Initial Value",
+        ValueNotifier<bool>(true),
+        false,
+        false,
+        true,
+        true,
+        "MockingJay",
+      );
+      // Ensure mock command is executable.
+      expect(mockCommand.canExecute.value, true);
+      setupCollectors(mockCommand);
 
-  //   expect(
-  //       command.results,
-  //       emitsInOrder([
-  //         crm(null, false, true),
-  //         crm(1, false, true),
-  //         crm(2, false, true),
-  //         crm(3, false, true),
-  //         crm(3, false, false)
-  //       ]);
-  //   expect(command, emitsInOrder([1, 2, 3]);
+      mockCommand.endExecutionWithError("Test Mock Error");
 
-  //   command.execute(1);
+      // verify collectors
+      expect(mockCommand.results.value.error.toString(),
+          "Exception: Test Mock Error - for param: null");
+      expect(pureResultCollector.values, isNull);
+      // expect(isExecutingCollector.values, [true, false]);
+    });
+    test('Test MockCommand - queueResultsForNextExecuteCall', () {
+      final mockCommand = MockCommand<String, String>(
+        "Initial Value",
+        ValueNotifier<bool>(true),
+        false,
+        false,
+        true,
+        true,
+        "MockingJay",
+      );
 
-  //   expect(command.canExecute.value ,true), reason: "Canexecute after false"));
-  //   expect(command.isExecuting.value ,false);
-  // });
+      mockCommand.queueResultsForNextExecuteCall([
+        CommandResult<String, String>("Param", null, null, true),
+        CommandResult<String, String>("Param", "Result", null, false)
+      ]);
+      // Ensure mock command is executable.
+      expect(mockCommand.canExecute.value, true);
+      setupCollectors(mockCommand);
 
-  // Stream<int> testProviderError(int i) async* {
-  //   throw Exception();
-  // }
+      mockCommand.execute();
 
-  // test('Command.createFromStreamWithException', () {
-  //   final command = Command.createFromStream<int, int>(testProviderError);
-
-  //   command.canExecute.listen((b) {
-  //     print("Can execute:" + b.toString();
-  //   });
-  //   command.isExecuting.listen((b) {
-  //     print("Is executing:" + b.toString();
-  //   });
-
-  //   command.results.listen((i) {
-  //     print("Results:" + i.toString();
-  //   });
-
-  //   expect(command.canExecute.value ,true), reason: "Canexecute before false"));
-  //   expect(command.isExecuting.value ,false),
-  //       reason: "IsExecuting before true"));
-
-  //   expect(command.results,
-  //       emitsInOrder([crm(null, false, true), crm(null, true, false)]);
-
-  //   expect(command.thrownExceptions.value ,TypeMatcher<Exception>());
-
-  //   command.execute(1);
-
-  //   expect(command.canExecute.value ,true), reason: "Canexecute after false"));
-  //   expect(command.isExecuting.value ,false);
-  // });
-
-  // test('Command.createFromStreamWithException2', () {
-  //   var streamController = StreamController<String>.broadcast();
-
-  //   var command = Command.createFromStream((_) {
-  //     return streamController.stream.map((rideMap) {
-  //       throw Exception();
-  //     });
-  //   });
-
-  //   command.results.listen((r) {
-  //     print(r.toString();
-  //   });
-
-  //   command.thrownExceptions.listen((e) {
-  //     print(e.toString();
-  //   });
-
-  //   expect(command.thrownExceptions.value ,TypeMatcher<Exception>());
-
-  //   command.execute();
-
-  //   streamController.add('test');
-
-  //   print('Finished');
-  // });
-
-  // test('Command.createFromStreamWithExceptionOnlyThrown once', () async {
-  //   var command = Command.createFromStream((_) {
-  //     return Stream.value('test').map((rideMap) {
-  //       throw Exception('TestException');
-  //     });
-  //   });
-
-  //   var count = 0;
-  //   command.thrownExceptions.listen((e) {
-  //     count++;
-  //     print(e.toString();
-  //   });
-
-  //   command.execute();
-
-  //   await Future.delayed(Duration(seconds: 1);
-
-  //   expect(count, 1);
-  // });
-
-// No idea why it's not posible to catch the exception with     expect(command.results, emitsError(isException);
-/*
-    test('Command.createFromStreamWithException throw exeption = true', () 
-  {
-
-    final command  = Command.createFromStream<int,int>( testProviderError);
-    command.throwExceptions = true;
-
-    command.canExecute.listen((b){print("Can execute:" + b.toString();});
-    command.isExecuting.listen((b){print("Is executing:" + b.toString();});
-
-    command.results.listen((i){print("Results:" + i.toString();});
-
-
-    expect(command.canExecute.value ,true),reason: "Canexecute before false"));
-    expect(command.isExecuting.value ,false),reason: "Canexecute before true"));
-
-    expect(command.results, emitsError(isException);
-    expect(command, emitsError(isException);
-    
-
-    command.execute(1);
-
-    expect(command.canExecute.value ,true),reason: "Canexecute after false"));
-    expect(command.isExecuting.value ,false);    
+      // verify collectors
+      expect(
+          cmdResultCollector.values,
+          containsAllInOrder([
+            CommandResult<String, String>("Param", null, null, true),
+            CommandResult<String, String>("Param", "Result", null, false),
+          ]));
+      expect(pureResultCollector.values, ["Result"]);
+      // expect(isExecutingCollector.values, [true, false]);
+    });
   });
-
-*/
 }
