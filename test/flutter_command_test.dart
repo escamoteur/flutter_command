@@ -181,12 +181,14 @@ void main() {
     });
 
     test('Execute simple sync action with parameter', () {
-      int notificationCount = 0;
+      int executionCount = 0;
       final command = Command.createSyncNoResult<String>((x) {
         print("action: " + x.toString());
-        notificationCount++;
+        executionCount++;
         return null;
       });
+      // Setup Collectors.
+      setupCollectors(command);
 
       expect(command.canExecute.value, true);
 
@@ -194,62 +196,253 @@ void main() {
       expect(command.results.value,
           CommandResult<String, void>('Parameter', null, null, false));
       expect(command.thrownExceptions.value, null);
-      expect(notificationCount, 1);
+      expect(executionCount, 1);
 
       expect(command.canExecute.value, true);
+
+      // Verify Collectors
+      expect(thrownExceptionCollector.values, isNull);
+      expect(
+          cmdResultCollector.values,
+          containsAllInOrder([
+            CommandResult<void, void>("Parameter", null, null, false),
+          ]));
+      expect(pureResultCollector.values, containsAllInOrder([null]));
     });
 
     test('Execute simple sync function without parameter', () {
-      int notificationCount = 0;
+      int executionCount = 0;
       final command = Command.createSyncNoParam<String>(() {
         print("action: ");
-        notificationCount++;
+        executionCount++;
         return "4711";
       }, '');
 
       expect(command.canExecute.value, true);
-
+      // Setup Collectors
+      setupCollectors(command);
       command.execute();
 
       expect(command.value, "4711");
       expect(command.results.value,
           CommandResult<void, String>(null, '4711', null, false));
       expect(command.thrownExceptions.value, null);
-      expect(notificationCount, 1);
+      expect(executionCount, 1);
 
       expect(command.canExecute.value, true);
+
+      // verify collectors
+      expect(thrownExceptionCollector.values, isNull);
+      expect(
+          pureResultCollector.values,
+          containsAllInOrder([
+            '4711',
+          ]));
+      expect(
+          cmdResultCollector.values,
+          containsAllInOrder(
+              [CommandResult<void, String>(null, '4711', null, false)]));
     });
 
-    test('Execute simple sync function with parameter', () {
-      int notificationCount = 0;
+    test('Execute simple sync function with parameter and result', () {
+      int executionCount = 0;
       final command = Command.createSync<String, String>((s) {
         print("action: " + s);
-        notificationCount++;
+        executionCount++;
         return s + s;
       }, '');
 
       expect(command.canExecute.value, true);
-
+      // Setup Collectors
+      setupCollectors(command);
       command.execute("4711");
       expect(command.value, "47114711");
 
       expect(command.results.value,
           CommandResult<String, String>('4711', '47114711', null, false));
       expect(command.thrownExceptions.value, null);
-      expect(notificationCount, 1);
+      expect(executionCount, 1);
 
       expect(command.canExecute.value, true);
+
+      // verify collectors
+      expect(thrownExceptionCollector.values, isNull);
+      expect(
+          pureResultCollector.values,
+          containsAllInOrder([
+            '47114711',
+          ]));
+      expect(
+          cmdResultCollector.values,
+          containsAllInOrder(
+              [CommandResult<void, String>("4711", '47114711', null, false)]));
+    });
+    test('Execute simple sync function with catchAlways == false', () {
+      int executionCount = 0;
+      final command = Command.createSync<String, String>(
+        (s) {
+          print("action: " + s);
+          executionCount++;
+          throw CustomException("Intentional");
+        },
+        'Initial Value',
+        catchAlways: false,
+      );
+
+      expect(command.canExecute.value, true);
+      // Setup Collectors
+      setupCollectors(command);
+      command.execute("4711");
+
+      // the initial value is still returned so expect ex
+      expect(command.value, "Initial Value");
+
+      expect(command.thrownExceptions.value,
+          CommandError("4711", CustomException("Intentional")));
+      expect(executionCount, 1);
+
+      expect(command.canExecute.value, true);
+
+      // verify collectors
+      expect(
+          thrownExceptionCollector.values,
+          containsAllInOrder([
+            CommandError("4711", CustomException("Intentional")),
+          ]));
+      expect(pureResultCollector.values, isNull);
+      expect(
+          cmdResultCollector.values,
+          containsAllInOrder([
+            CommandResult<void, String>(
+                "4711", null, CustomException("Intentional"), false)
+          ]));
     });
   });
 
   group("Asynchronous Command Testing", () {
     Future<String> slowAsyncFunction(String s) async {
-      // print("___Start____Action__________");
+      print("___Start__Slow__Action__________");
       await Future.delayed(const Duration(milliseconds: 10));
-      // print("___End____Action__________");
+      print("___End__Slow__Action__________");
       return s;
     }
 
+    test('Execute simple async function with no Parameter no Result', () async {
+      var executionCount = 0;
+
+      final command = Command.createAsyncNoParamNoResult(
+        () async {
+          executionCount++;
+          await slowAsyncFunction("no pram");
+        },
+        // restriction: setExecutionStateCommand,
+      );
+
+      // set up all the collectors for this command.
+      setupCollectors(command);
+
+      // Ensure command is not executing already.
+      expect(command.isExecuting.value, false,
+          reason: "IsExecuting before true");
+
+      // Execute command.
+      command.execute();
+
+      // Waiting till the async function has finished executing.
+      await Future.delayed(Duration(milliseconds: 10));
+
+      expect(command.isExecuting.value, false);
+
+      expect(executionCount, 1);
+
+      // Expected to return false, true, false
+      // but somehow skips the initial state which is false.
+      expect(isExecutingCollector.values, [true, false]);
+
+      expect(canExecuteCollector.values, [false, true]);
+
+      expect(cmdResultCollector.values, [
+        CommandResult<void, void>(null, null, null, true),
+        CommandResult<void, void>(null, null, null, false),
+      ]);
+    });
+
+    test('Handle calling noParamFunctions being called with param', () async {
+      var executionCount = 0;
+
+      final command = Command.createAsyncNoParamNoResult(
+        () async {
+          executionCount++;
+          await slowAsyncFunction("no pram");
+        },
+        // restriction: setExecutionStateCommand,
+      );
+
+      // set up all the collectors for this command.
+      setupCollectors(command);
+
+      // Ensure command is not executing already.
+      expect(command.isExecuting.value, false,
+          reason: "IsExecuting before true");
+
+      // Execute command.
+      command.execute("Done");
+
+      // Waiting till the async function has finished executing.
+      await Future.delayed(Duration(milliseconds: 10));
+
+      expect(command.isExecuting.value, false);
+
+      expect(executionCount, 1);
+
+      // Expected to return false, true, false
+      // but somehow skips the initial state which is false.
+      expect(isExecutingCollector.values, [true, false]);
+
+      expect(canExecuteCollector.values, [false, true]);
+
+      expect(cmdResultCollector.values, [
+        CommandResult<void, void>(null, null, null, true),
+        CommandResult<void, void>(null, null, null, false),
+      ]);
+    });
+
+    test('Execute simple async function with No parameter', () async {
+      var executionCount = 0;
+
+      final command = Command.createAsyncNoParam<String>(() async {
+        executionCount++;
+        return await slowAsyncFunction("No Param");
+      }, "Initial Value");
+
+      // set up all the collectors for this command.
+      setupCollectors(command);
+
+      // Ensure command is not executing already.
+      expect(command.isExecuting.value, false,
+          reason: "IsExecuting before true");
+
+      // Execute command.
+      command.execute();
+
+      // Waiting till the async function has finished executing.
+      await Future.delayed(Duration(milliseconds: 10));
+
+      expect(command.isExecuting.value, false);
+
+      expect(executionCount, 1);
+
+      // Expected to return false, true, false
+      // but somehow skips the initial state which is false.
+      expect(isExecutingCollector.values, [true, false]);
+
+      expect(canExecuteCollector.values, [false, true]);
+
+      expect(cmdResultCollector.values, [
+        CommandResult<void, String>(null, null, null, true),
+        CommandResult<void, String>(null, "No Param", null, false),
+      ]);
+    });
     test('Execute simple async function with parameter', () async {
       var executionCount = 0;
 
@@ -452,7 +645,8 @@ void main() {
     }
 
     test('async function with exception and catchAlways==false', () async {
-      final command = Command.createAsync<String, String>(
+      final Command<String, String> command =
+          Command.createAsync<String, String>(
         slowAsyncFunctionFail,
         "Initial Value",
         catchAlways: false,
@@ -463,9 +657,14 @@ void main() {
       expect(command.canExecute.value, true);
       expect(command.isExecuting.value, false);
 
-      command.execute("Done");
       // TODO: Test Rethrows part. Not sure how to test it.
-
+      // Following expectations are not validated.
+      try {
+        command("Done");
+      } catch (e) {
+        expect(e, isA<CustomException>());
+        print('Exception as expected for Done');
+      }
       await Future.delayed(Duration.zero);
 
       expect(command.canExecute.value, true);
@@ -473,7 +672,12 @@ void main() {
 
       await Future.delayed(Duration(milliseconds: 100));
 
-      command.execute("Done2");
+      try {
+        command("Done2");
+      } catch (e) {
+        expect(e, isA<CustomException>());
+        print('Exception as expected for Done2');
+      }
 
       await Future.delayed(Duration.zero);
 
@@ -532,9 +736,11 @@ void main() {
       // Verify nothing came through pure results from .
       expect(pureResultCollector.values, isNull);
 
-      // Verify that nothing is available in thrownExceptions Collector
-      print(thrownExceptionCollector.values);
-      // expect(thrownExceptionCollector.values, isNull);
+      expect(
+          thrownExceptionCollector.values,
+          containsAllInOrder([
+            CommandError<String>("Done", CustomException("Intentionally"))
+          ]));
 
       // Verify the results collector.
       expect(
@@ -544,6 +750,101 @@ void main() {
             CommandResult<String, String>(
                 "Done", null, CustomException("Intentionally"), false),
           ]));
+    });
+  });
+
+  group("Test Gloabal parameters and general utilities like dipose", () {
+    test("Check Command Dispose", () async {
+      final command = Command.createSync<String, String>(
+        (s) {
+          return s;
+        },
+        "Initial Value",
+        catchAlways: false,
+      );
+      // Setup collectors. Note: This indirectly sets listeners.
+      setupCollectors(command);
+
+      // ignore: invalid_use_of_protected_member
+      expect(command.hasListeners, true);
+
+      // execute command and ensure there is no values in any of the collectors.
+      command.dispose();
+
+      // Check valid exception is raised trying to use disposed value notifiers.
+      expect(() => command("Done"), throwsFlutterError);
+
+      // verify collectors
+      expect(canExecuteCollector.values, isNull);
+      expect(cmdResultCollector.values, isNull);
+      expect(pureResultCollector.values, isNull);
+      expect(thrownExceptionCollector.values, isNull);
+      expect(isExecutingCollector.values, isNull);
+    });
+
+    test("Check catchAlwaysDefault = false", () async {
+      final command = Command.createAsync<String, String>((s) async {
+        throw CustomException("Intentional");
+      }, "Initial Value");
+      // Set Global catchAlwaysDefault to false.
+      // It defaults to true.
+      Command.catchAlwaysDefault = false;
+
+      // Setup collectors.
+      setupCollectors(command);
+
+      command("Done");
+      await Future.delayed(Duration.zero);
+
+      // verify collectors
+      expect(canExecuteCollector.values, isNotEmpty);
+      expect(
+          cmdResultCollector.values,
+          containsAllInOrder([
+            CommandResult<String, String>("Done", null, null, true),
+            CommandResult<String, String>(
+                "Done", null, CustomException("Intentional"), false)
+          ]));
+      expect(pureResultCollector.values, isNull);
+      expect(
+          thrownExceptionCollector.values,
+          containsAll([
+            CommandError("Done", CustomException("Intentional")),
+          ]));
+      expect(isExecutingCollector.values, isNotEmpty);
+    });
+
+    test("Check globalExceptionHanler is called", () async {
+      final command = Command.createAsync<String, String>((s) async {
+        throw CustomException("Intentional");
+      }, "Initial Value", debugName: "globalHandler");
+      // Set Global catchAlwaysDefault to false.
+      // It defaults to true.
+      Command.globalExceptionHandler =
+          expectAsync2((String debugName, CommandError ce) {
+        expect(debugName, "globalHandler");
+        expect(ce, isA<CommandError>());
+        expect(
+            ce, CommandError<String>("Done", CustomException("Intentional")));
+      }, count: 1);
+
+      command("Done");
+    });
+
+    test("Check logging Handler is called", () async {
+      final command = Command.createAsync<String, String>((s) async {
+        return s;
+      }, "Initial Value", debugName: "loggingHandler");
+      // Set Global catchAlwaysDefault to false.
+      // It defaults to true.
+      Command.loggingHandler =
+          expectAsync2((String debugName, CommandResult cr) {
+        expect(debugName, "loggingHandler");
+        expect(cr, isA<CommandResult>());
+        expect(cr, CommandResult<String, String>("Done", "Done", null, false));
+      }, count: 1);
+
+      command("Done");
     });
   });
 
