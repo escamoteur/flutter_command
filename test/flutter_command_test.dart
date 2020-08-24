@@ -168,16 +168,12 @@ void main() {
       expect(command.canExecute.value, true);
 
       // verify Collectors.
-      expect(
-          cmdResultCollector.values,
-          containsAllInOrder([
-            CommandResult<void, void>(
-                null, null, CustomException("Intentional"), false),
-          ]));
-      expect(
-          thrownExceptionCollector.values,
-          containsAllInOrder(
-              [CommandError<void>(null, CustomException("Intentional"))]));
+      expect(cmdResultCollector.values, [
+        CommandResult<void, void>(
+            null, null, CustomException("Intentional"), false),
+      ]);
+      expect(thrownExceptionCollector.values,
+          [CommandError<void>(null, CustomException("Intentional"))]);
     });
 
     test('Execute simple sync action with parameter', () {
@@ -202,12 +198,10 @@ void main() {
 
       // Verify Collectors
       expect(thrownExceptionCollector.values, isNull);
-      expect(
-          cmdResultCollector.values,
-          containsAllInOrder([
-            CommandResult<void, void>("Parameter", null, null, false),
-          ]));
-      expect(pureResultCollector.values, containsAllInOrder([null]));
+      expect(cmdResultCollector.values, [
+        CommandResult<void, void>("Parameter", null, null, false),
+      ]);
+      expect(pureResultCollector.values, [null]);
     });
 
     test('Execute simple sync function without parameter', () {
@@ -233,15 +227,11 @@ void main() {
 
       // verify collectors
       expect(thrownExceptionCollector.values, isNull);
-      expect(
-          pureResultCollector.values,
-          containsAllInOrder([
-            '4711',
-          ]));
-      expect(
-          cmdResultCollector.values,
-          containsAllInOrder(
-              [CommandResult<void, String>(null, '4711', null, false)]));
+      expect(pureResultCollector.values, [
+        '4711',
+      ]);
+      expect(cmdResultCollector.values,
+          [CommandResult<void, String>(null, '4711', null, false)]);
     });
 
     test('Execute simple sync function with parameter and result', () {
@@ -267,15 +257,11 @@ void main() {
 
       // verify collectors
       expect(thrownExceptionCollector.values, isNull);
-      expect(
-          pureResultCollector.values,
-          containsAllInOrder([
-            '47114711',
-          ]));
-      expect(
-          cmdResultCollector.values,
-          containsAllInOrder(
-              [CommandResult<void, String>("4711", '47114711', null, false)]));
+      expect(pureResultCollector.values, [
+        '47114711',
+      ]);
+      expect(cmdResultCollector.values,
+          [CommandResult<void, String>("4711", '47114711', null, false)]);
     });
     test('Execute simple sync function with catchAlways == false', () {
       int executionCount = 0;
@@ -304,18 +290,14 @@ void main() {
       expect(command.canExecute.value, true);
 
       // verify collectors
-      expect(
-          thrownExceptionCollector.values,
-          containsAllInOrder([
-            CommandError("4711", CustomException("Intentional")),
-          ]));
+      expect(thrownExceptionCollector.values, [
+        CommandError("4711", CustomException("Intentional")),
+      ]);
       expect(pureResultCollector.values, isNull);
-      expect(
-          cmdResultCollector.values,
-          containsAllInOrder([
-            CommandResult<void, String>(
-                "4711", null, CustomException("Intentional"), false)
-          ]));
+      expect(cmdResultCollector.values, [
+        CommandResult<void, String>(
+            "4711", null, CustomException("Intentional"), false)
+      ]);
     });
   });
 
@@ -630,14 +612,12 @@ void main() {
       expect(isExecutingCollector.values, [true, false, true, false],
           reason: "IsExecuting order is wrong.");
       expect(pureResultCollector.values, ["Done", "Done2"]);
-      expect(
-          cmdResultCollector.values,
-          containsAllInOrder([
-            CommandResult<String, String>("Done", "Initial Value", null, true),
-            CommandResult<String, String>("Done", "Done", null, false),
-            CommandResult<String, String>("Done2", "Done", null, true),
-            CommandResult<String, String>("Done2", "Done2", null, false)
-          ]));
+      expect(cmdResultCollector.values, [
+        CommandResult<String, String>("Done", "Initial Value", null, true),
+        CommandResult<String, String>("Done", "Done", null, false),
+        CommandResult<String, String>("Done2", "Done", null, true),
+        CommandResult<String, String>("Done2", "Done2", null, false)
+      ]);
     });
     Future<String> slowAsyncFunctionFail(String s) async {
       print("___Start____Action___Will throw_______");
@@ -736,20 +716,15 @@ void main() {
       // Verify nothing came through pure results from .
       expect(pureResultCollector.values, isNull);
 
-      expect(
-          thrownExceptionCollector.values,
-          containsAllInOrder([
-            CommandError<String>("Done", CustomException("Intentionally"))
-          ]));
+      expect(thrownExceptionCollector.values,
+          [CommandError<String>("Done", CustomException("Intentionally"))]);
 
       // Verify the results collector.
-      expect(
-          cmdResultCollector.values,
-          containsAllInOrder([
-            CommandResult<String, String>("Done", null, null, true),
-            CommandResult<String, String>(
-                "Done", null, CustomException("Intentionally"), false),
-          ]));
+      expect(cmdResultCollector.values, [
+        CommandResult<String, String>("Done", null, null, true),
+        CommandResult<String, String>(
+            "Done", null, CustomException("Intentionally"), false),
+      ]);
     });
   });
 
@@ -798,19 +773,15 @@ void main() {
 
       // verify collectors
       expect(canExecuteCollector.values, isNotEmpty);
-      expect(
-          cmdResultCollector.values,
-          containsAllInOrder([
-            CommandResult<String, String>("Done", null, null, true),
-            CommandResult<String, String>(
-                "Done", null, CustomException("Intentional"), false)
-          ]));
+      expect(cmdResultCollector.values, [
+        CommandResult<String, String>("Done", null, null, true),
+        CommandResult<String, String>(
+            "Done", null, CustomException("Intentional"), false)
+      ]);
       expect(pureResultCollector.values, isNull);
-      expect(
-          thrownExceptionCollector.values,
-          containsAll([
-            CommandError("Done", CustomException("Intentional")),
-          ]));
+      expect(thrownExceptionCollector.values, [
+        CommandError("Done", CustomException("Intentional")),
+      ]);
       expect(isExecutingCollector.values, isNotEmpty);
     });
 
@@ -1035,10 +1006,8 @@ void main() {
       mockCommand.startExecution("Start");
 
       // verify collectors
-      expect(
-          cmdResultCollector.values,
-          containsAllInOrder(
-              [CommandResult<String, String>("Start", null, null, true)]));
+      expect(cmdResultCollector.values,
+          [CommandResult<String, String>("Start", null, null, true)]);
       // expect(pureResultCollector.values, ["Initial Value"]);
       // expect(isExecutingCollector.values, [true, false]);
     });
@@ -1060,10 +1029,8 @@ void main() {
       mockCommand.endExecutionWithData("end_data");
 
       // verify collectors
-      expect(
-          cmdResultCollector.values,
-          containsAllInOrder(
-              [CommandResult<String, String>(null, "end_data", null, false)]));
+      expect(cmdResultCollector.values,
+          [CommandResult<String, String>(null, "end_data", null, false)]);
       expect(pureResultCollector.values, ["end_data"]);
     });
     test('Test MockCommand - endExecutionNoData', () {
@@ -1083,10 +1050,8 @@ void main() {
       mockCommand.endExecutionNoData();
 
       // verify collectors
-      expect(
-          cmdResultCollector.values,
-          containsAllInOrder(
-              [CommandResult<String, String>(null, null, null, false)]));
+      expect(cmdResultCollector.values,
+          [CommandResult<String, String>(null, null, null, false)]);
       expect(pureResultCollector.values, isNull);
       // expect(isExecutingCollector.values, [true, false]);
     });
@@ -1134,12 +1099,10 @@ void main() {
       mockCommand.execute();
 
       // verify collectors
-      expect(
-          cmdResultCollector.values,
-          containsAllInOrder([
-            CommandResult<String, String>("Param", null, null, true),
-            CommandResult<String, String>("Param", "Result", null, false),
-          ]));
+      expect(cmdResultCollector.values, [
+        CommandResult<String, String>("Param", null, null, true),
+        CommandResult<String, String>("Param", "Result", null, false),
+      ]);
       expect(pureResultCollector.values, ["Result"]);
       // expect(isExecutingCollector.values, [true, false]);
     });
