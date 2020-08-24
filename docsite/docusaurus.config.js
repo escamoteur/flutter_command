@@ -2,10 +2,10 @@ module.exports = {
   title: 'Flutter Command',
   tagline: 'The tagline of my site',
   url: 'https://your-docusaurus-test-site.com',
-  baseUrl: '/',
+  baseUrl: '/flutter_command/',
   onBrokenLinks: 'throw',
   favicon: 'img/favicon.ico',
-  organizationName: 'escamoteur', // Usually your GitHub org/user name.
+  organizationName: 'Abhilash-Chandran', // Usually your GitHub org/user name.
   projectName: 'flutter_command', // Usually your repo name.  
   themeConfig: {
     prism: {
