@@ -1,5 +1,5 @@
 # flutter_command
-
+![Build](https://github.com/escamoteur/flutter_command/workflows/Build/badge.svg)
 [![codecov](https://codecov.io/gh/escamoteur/flutter_command/branch/master/graph/badge.svg)](https://codecov.io/gh/escamoteur/flutter_command)
 
 flutter_command is a way to manage your state based on `ValueListenable` and the `Command` design pattern. Sounds scary uh? Ok lets try it a different way. A `Command` is an object that wraps a function that can be executed by calling the command, therefore decoupling your UI from the wrapped function.
