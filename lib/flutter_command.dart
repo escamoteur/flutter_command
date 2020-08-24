@@ -52,7 +52,7 @@ class CommandResult<TParam, TResult> {
 
   @override
   String toString() {
-    return 'Data: $data - HasError: $hasError - IsExecuting: $isExecuting';
+    return 'ParamData $paramData - Data: $data - HasError: $hasError - IsExecuting: $isExecuting';
   }
 }
 
@@ -68,6 +68,15 @@ class CommandError<TParam> {
     this.paramData,
     this.error,
   );
+
+  @override
+  bool operator ==(Object other) =>
+      other is CommandError<TParam> &&
+      other.paramData == paramData &&
+      other.error == error;
+
+  @override
+  int get hashCode => hash2(error.hashCode, paramData.hashCode);
 
   @override
   String toString() {
@@ -369,8 +378,8 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// prevent memory leaks
   void dispose() {
     _commandResult.dispose();
-    _isExecuting.dispose();
     _canExecute.dispose();
+    _isExecuting.dispose();
     _thrownExceptions.dispose();
     super.dispose();
   }
@@ -416,7 +425,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
     /// Merge the external execution restricting with the internal
     /// isExecuting which also blocks execution if true
     _canExecute = restriction == null
-        ? ValueNotifier<bool>(true)
+        ? _isExecuting.map((val) => !val) as ValueNotifier<bool>
         : restriction.combineLatest<bool, bool>(_isExecuting,
                 (restriction, isExecuting) => restriction && !isExecuting)
             as ValueNotifier<bool>;
