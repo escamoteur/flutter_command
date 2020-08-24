@@ -1,6 +1,6 @@
 name: flutter_command
-description: flutter_command is a way to manage your state based on `ValueListenable` and the `Command` design pattern. Sounds scary uh? Ok lets try it a different way. A `Command` is an object that wraps a function that can be executed by calling the command, therefore decoupling your UI from the wrapped function.
-version: 0.9.0
+description: flutter_command is a way to manage your state based on `ValueListenable` and the `Command` design pattern.
+version: 0.9.1
 author: Thomas Burkhart
 homepage: https://github.com/escamoteur/flutter_command
 
