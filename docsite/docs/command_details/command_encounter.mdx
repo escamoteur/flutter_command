@@ -1,0 +1,63 @@
+---
+id: command_encounter
+title: A first careful en'Counter'
+sidebar_label: A first careful en'Counter'
+---
+
+## A first careful en*counter*
+
+Let's start with the (in)famous counter example but by using a `Command`. As said before a `Command` wraps a function and can publish the result in a way that can be consumed by the UI. It does this by implementing the `ValueListenable` interface which means a command behaves like `ValueNotifier`. A command has the type:
+
+```dart
+Command<TParam,TResult>
+```
+
+at which `TParam` is the type of the parameter which the wrapped function expects as argument and `TResult` is the type of the result of it, which means the `Command` behaves like a `ValueNotifier<TResult>`. In the included project `counter_example` the command is defined as:
+
+```dart
+class _MyHomePageState extends State<MyHomePage> {
+  int counter = 0;
+  /// This command does not expect any parameters when called therefore TParam 
+  /// is void and publishes its results as String
+  Command<void, String> _incrementCounterCommand;
+
+  _MyHomePageState() {
+    _incrementCounterCommand = Command.createSyncNoParam(() {
+      counter++;
+      return counter.toString();
+    }, '0');
+  }
+```
+
+To create a `Command` the `Command` class [offers](command_types) different static functions depending on the signature of the wrapped function. In this case we want to use a synchronous function without any parameters.
+
+Our widget tree now looks like this:
+
+```dart
+  body: Center(
+    child: Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: <Widget>[
+        Text(
+          'You have pushed the button this many times:',
+        ),
+        ValueListenableBuilder<String>(
+            valueListenable: _incrementCounterCommand,
+            builder: (context, val, _) {
+              return Text(
+                val,
+                style: Theme.of(context).textTheme.headline4,
+              );
+            }),
+      ],
+    ),
+  ),
+  floatingActionButton: FloatingActionButton(
+    onPressed: _incrementCounterCommand,
+    tooltip: 'Increment',
+    child: Icon(Icons.add),
+  ), // This trailing comma makes auto-formatting nicer for build methods.
+);
+```
+
+As `Command` is a [callable class](https://dart.dev/guides/language/language-tour#callable-classes), so we can pass it directly to the `onPressed` handler of the `FloatingActionButton` and it will execute the wrapped function. The result of the function will get assigned to the `Command.value` so that the `ValueListenableBuilder` updates automatically.
