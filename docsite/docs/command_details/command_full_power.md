@@ -3,6 +3,7 @@ id: command_full_power
 title: Command in Full Power Mode
 sidebar_label: Command Full Power mode
 ---
+import useBaseUrl from '@docusaurus/useBaseUrl';
 
 So far the command did not do more than what you could do with BLoC, besides that you could call it like a function and didn't need a Stream. But `Command` can do more than that. It allows us to:
 
@@ -12,7 +13,7 @@ So far the command did not do more than what you could do with BLoC, besides tha
 
 Let's explore this features by examining the included `example` app which queries an open weather service and displays a list of cities with the current weather. 
 
-![](https://github.com/escamoteur/flutter_command/blob/master/misc/screen_shot_example.png)
+<img alt="Screen Shot" src={useBaseUrl('img/screen_shot_example.png')} />
 
 The app uses a `WeatherViewModel` which contains the `Command` to update the `ListView` by making a REST call:
 

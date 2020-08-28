@@ -5,7 +5,7 @@ sidebar_label: Command - Under the hood
 ---
 
 :::tip ValueNotifier
-If you are not aware of ValueNotifier or ValueListenable please consider checking this [brief introduction](value_notifier).
+If you are not aware of ValueNotifier or ValueListenable please consider checking this [brief introduction](concepts/value_notifier.md).
 :::
 
 A `Command` is a `ValueNotifier` which wraps a given ***function*** and exposes the result of this ***function*** in its `value` property like a normal `ValueNotifier`. Just like any other `ValueNotifier` you can listen to the changes taking place to its `value` during the execution of this command.

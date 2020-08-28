@@ -1,12 +1,12 @@
 module.exports = {
   title: 'Flutter Command',
-  tagline: 'The tagline of my site',
-  url: 'https://your-docusaurus-test-site.com',
-  baseUrl: '/flutter_command/',
-  onBrokenLinks: 'throw',
+  tagline: 'State management without a state',
+  url: 'https://Abhilash-Chandran.github.io',
+  baseUrl: '/flutter_command/',  
   favicon: 'img/favicon.ico',
   organizationName: 'Abhilash-Chandran', // Usually your GitHub org/user name.
   projectName: 'flutter_command', // Usually your repo name.  
+  onBrokenLinks: 'throw',
   themeConfig: {
     prism: {
       additionalLanguages: ['dart'],
@@ -42,8 +42,8 @@ module.exports = {
               to: 'docs/getting_started',
             },
             {
-              label: 'Concepts',
-              to: 'docs/command/',
+              label: 'CommandBuilder',
+              to: 'docs/command_builder',
             },
           ],
         },
@@ -78,7 +78,7 @@ module.exports = {
           ],
         },
       ],
-      copyright: `Copyright © ${new Date().getFullYear()} My Project, Inc. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} Thomas Bhurkart. Built with Docusaurus 2.`,
     },
   },
   presets: [
@@ -87,18 +87,12 @@ module.exports = {
       {
         docs: {
           // It is recommended to set document id as docs home page (`docs/` path).
-          homePageId: 'docs/',
+          homePageId: '/',
           sidebarPath: require.resolve('./sidebars.js'),
           // Please change this to your repo.
           editUrl:
-            'https://github.com/facebook/docusaurus/edit/master/website/',
-        },
-        blog: {
-          showReadingTime: true,
-          // Please change this to your repo.
-          editUrl:
-            'https://github.com/facebook/docusaurus/edit/master/website/blog/',
-        },
+            'https://github.com/escamoteur/flutter_command',
+        },        
         theme: {
           customCss: require.resolve('./src/css/custom.css'),
         },

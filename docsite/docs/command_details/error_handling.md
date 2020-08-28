@@ -2,8 +2,10 @@
 id: error_handling
 title: Error Handling
 ---
+import useBaseUrl from '@docusaurus/useBaseUrl';
+
 If the wrapped function inside a `Command` throws an `Exception` the `Command` catches it so your App won't crash.
-Instead it will wrap the caught error together with the value that was passed when the command was executed in a `CommandError` object and assign it to the `Command's` `thrownExeceptions` property which is a `ValueListenable<CommandError>`.
+Instead it will wrap the caught error together with the value that was passed when the command was executed in a `CommandError` object and assign it to the `Command's` `thrownExceptions` property which is a `ValueListenable<CommandError>`.
 So to react on occurring error you can register your handler with `addListener` or use my `listen` extension function from `functional_listener` as it is done in the example:
 
 ```Dart
@@ -42,6 +44,5 @@ If you assign a handler function to it, it will be called for all Exceptions thr
 
 The overall work flow of exception handling in flutter_command is depicted in the following diagram.
 
-<!-- just to keep the image scale correctly in small screens -->
+<img alt="Error Handling" src={useBaseUrl('img/exception_handling.png')} />
 
-![](https://github.com/escamoteur/flutter_command/blob/master/misc/exception_handling.png)

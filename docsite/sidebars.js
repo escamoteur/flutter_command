@@ -17,7 +17,8 @@ module.exports = {
         "command_details/command_full_power",        
       ]
 
-    },{
+    },
+    {
       type: "category",
       label: "Command in Detail ",
       items: [        
