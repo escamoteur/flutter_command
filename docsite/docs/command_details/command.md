@@ -4,7 +4,7 @@ title: Command - Under the hood
 sidebar_label: Command - Under the hood
 ---
 
-:::tip ValueNotifier
+:::note ValueNotifier
 If you are not aware of ValueNotifier or ValueListenable please consider checking this [brief introduction](concepts/value_notifier.md).
 :::
 

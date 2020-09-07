@@ -31,6 +31,7 @@ module.exports = {
       ]
 
     },
-    'command_builder'   
+    'command_builder',
+    'testing_commands'
   ]
 };

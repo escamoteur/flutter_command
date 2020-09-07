@@ -23,8 +23,8 @@ const features = [
     imageUrl: 'img/undraw_selected_options_42hx.svg',
     description: (
       <>
-        Connect your functional units to UI without worrying
-        where your UI component is in a tree.
+        Connect your Command with other Commands and
+        let your widgets react on commands of its choice.
       </>
     ),
   },
