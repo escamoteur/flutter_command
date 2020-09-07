@@ -4,7 +4,13 @@ title: CommandBuilder Widget
 sidebar_label: CommandBuilder Widget
 ---
 
-`flutter_command` includes a `CommandBuilder` widget which makes the code above a bit nicer:
+`flutter_command` includes a `CommandBuilder` widget which simplifies the process of reacting to various states of the `results` exposed in a Command. For details check this [section](/command_details/command_attributes.md#extract-information-from-commands) of command attributes.
+
+`CommandBuilder` widget provides properties which can connect a callback to different states of the command's execution timeline. It internally listens to the `results` attribute which is a `ValueListenable` and depending on its properties calls the provided call-backs.
+
+* `results.isExecuting` via `whileExecuting`
+* `results.hasData` via `onData`
+* `results.hasError` via `onError`
 
 ```dart
 child: CommandBuilder<String, List<WeatherEntry>>(
