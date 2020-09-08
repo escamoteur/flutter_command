@@ -1,0 +1,146 @@
+---
+id: command_types
+title: Types of Command
+sidebar_label: Types of Command
+---
+
+import Tabs from '@theme/Tabs';
+import TabItem from '@theme/TabItem';
+
+A `Command` can wrap both synchronous and asynchronous functions available in dart. As `Command` is callable it can be called just like a function. Additionally it accepts parameters to be passed as well. `Command` exposes 8 static constructors to deal with different signatures of the ***function*** being wrapped.
+
+
+## Synchronous Commands
+<Tabs
+  defaultValue="noParamNoResult"
+  values={[    
+    {label: 'noParamNoResult', value: 'noParamNoResult'},
+    {label: 'noParam', value: 'noParam'},
+    {label: 'noResult', value: 'noResult'},
+    {label: 'withParamWithResult', value: 'withParamWithResult'},
+  ]}>
+  <TabItem value="noParamNoResult">
+
+  ```dart
+  /// for synchronous functions with no parameter and no result
+  static Command<void, void> createSyncNoParamNoResult(
+    void Function() action, {
+    ValueListenable<bool> restriction,
+    bool catchAlways,
+    String debugName
+  }) 
+  ```
+
+  </TabItem>
+  <TabItem value="noParam">
+
+  ```dart
+  /// for synchronous functions with no parameter and but a result
+  static Command<void, TResult> createSyncNoParam<TResult>(
+    TResult Function() func,
+    TResult initialValue, {
+    ValueListenable<bool> restriction,
+    bool includeLastResultInCommandResults = false,
+    bool catchAlways,
+    String debugName
+  })
+  ```
+
+  </TabItem>
+  <TabItem value="noResult">
+
+  ```dart
+  /// for synchronous functions with one parameter and no result
+  static Command<TParam, void> createSyncNoResult<TParam>(
+    void Function(TParam x) action, {
+    ValueListenable<bool> restriction,
+    bool catchAlways,
+    String debugName
+  })
+  ```
+
+  </TabItem>  
+  <TabItem value="withParamWithResult">
+
+  ```dart
+  /// for synchronous functions with one parameter and result
+  static Command<TParam, TResult> createSync<TParam, TResult>(
+    TResult Function(TParam x) func,
+    TResult initialValue, {
+    ValueListenable<bool> restriction,
+    bool includeLastResultInCommandResults = false,
+    bool catchAlways,
+    String debugName
+  })
+  ```
+
+  </TabItem>
+</Tabs>
+
+## Asynchronous Commands
+
+<Tabs
+  defaultValue="noParamNoResult"
+  values={[    
+    {label: 'noParamNoResult', value: 'noParamNoResult'},
+    {label: 'noParam', value: 'noParam'},
+    {label: 'noResult', value: 'noResult'},
+    {label: 'withParamWithResult', value: 'withParamWithResult'},
+  ]}>
+  <TabItem value="noParamNoResult">
+
+  ```dart
+  /// for asynchronous functions with no parameter and no result
+  static Command<void, void> createAsyncNoParamNoResult(
+    void Function() action, {
+    ValueListenable<bool> restriction,
+    bool catchAlways,
+    String debugName
+  }) 
+  ```
+
+  </TabItem>
+  <TabItem value="noParam">
+
+  ```dart
+  /// for asynchronous functions with no parameter and but a result
+  static Command<void, TResult> createAsyncNoParam<TResult>(
+    TResult Function() func,
+    TResult initialValue, {
+    ValueListenable<bool> restriction,
+    bool includeLastResultInCommandResults = false,
+    bool catchAlways,
+    String debugName
+  })
+  ```
+
+  </TabItem>
+  <TabItem value="noResult">
+
+  ```dart
+  /// for asynchronous functions with one parameter and no result
+  static Command<TParam, void> createAsyncNoResult<TParam>(
+    void Function(TParam x) action, {
+    ValueListenable<bool> restriction,
+    bool catchAlways,
+    String debugName
+  })
+  ```
+
+  </TabItem>  
+  <TabItem value="withParamWithResult">
+
+  ```dart
+  /// for asynchronous functions with one parameter and result
+  static Command<TParam, TResult> createAsync<TParam, TResult>(
+    TResult Function(TParam x) func,
+    TResult initialValue, {
+    ValueListenable<bool> restriction,
+    bool includeLastResultInCommandResults = false,
+    bool catchAlways,
+    String debugName
+  })
+  ```
+
+  </TabItem>
+</Tabs>
