@@ -4,7 +4,7 @@
 
 flutter_command is a way to manage your state based on `ValueListenable` and the `Command` design pattern. Sounds scary uh? Ok lets try it a different way. A `Command` is an object that wraps a function that can be executed by calling the command, therefore decoupling your UI from the wrapped function.
 
-It's not that easy to define what exactly state management is (see https://medium.com/super-declarative/understanding-state-management-and-why-you-never-will-dd84b624d0e). For me it's how the UI triggers processes in the model/business layer of your app and how to get back the results of these processes to display them. For both aspects `flutter_command` offers solution plus some nice extras. So in a way it offers the same that BLoC does but in a more logical way.
+It's not that easy to define what exactly state management is (see https://medium.com/super-declarative/understanding-state-management-and-why-you-never-will-dd84b624d0e ). For me it's how the UI triggers processes in the model/business layer of your app and how to get back the results of these processes to display them. For both aspects `flutter_command` offers solution plus some nice extras. So in a way it offers the same that BLoC does but in a more logical way.
 
 >This readme might seem very long, but it will guide you easily step by step through all features of `flutter_command`.
 
