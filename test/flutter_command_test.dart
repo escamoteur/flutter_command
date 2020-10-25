@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_command/flutter_command.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -783,6 +785,32 @@ void main() {
         CommandError("Done", CustomException("Intentional")),
       ]);
       expect(isExecutingCollector.values, isNotEmpty);
+    });
+
+    test("Test asFuture", () async {
+      final command = Command.createAsync<String, String>((s) async {
+        await Future.delayed(Duration(milliseconds: 10));
+        return s;
+      }, "Initial Value");
+
+      final commandFuture = command.asFuture;
+      final commandFuture2 = command.asFuture;
+      final commandFuture3 = command.asFuture;
+      Stopwatch sw = Stopwatch()..start();
+      command("Done");
+      final result =
+          await Future.wait([commandFuture, commandFuture2, commandFuture3])
+              .timeout(Duration(milliseconds: 50));
+      final duration = sw.elapsedMilliseconds;
+      sw.stop();
+
+      // verify collectors
+      expect(duration, greaterThan(5));
+      expect(result, ['Done', 'Done', 'Done']);
+
+      final newCall = command.asFuture;
+      expectLater(newCall.timeout(Duration(milliseconds: 10)),
+          throwsA(isA<TimeoutException>()));
     });
 
     test("Check globalExceptionHadnler is called in Sync/Async Command",

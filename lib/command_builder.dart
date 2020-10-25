@@ -21,11 +21,14 @@ class CommandBuilder<TParam, TResult> extends StatelessWidget {
         valueListenable: command.results,
         builder: (context, result, _) {
           if (result.hasData) {
-            return onData(context, result.data, result.paramData);
+            return onData?.call(context, result.data, result.paramData) ??
+                SizedBox();
           } else if (result.isExecuting) {
-            return whileExecuting(context, result.paramData);
+            return whileExecuting?.call(context, result.paramData) ??
+                SizedBox();
           } else {
-            return onError(context, result.error, result.paramData);
+            return onError?.call(context, result.error, result.paramData) ??
+                SizedBox();
           }
         });
   }

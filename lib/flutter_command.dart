@@ -1,5 +1,7 @@
 library flutter_command;
 
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:functional_listener/functional_listener.dart';
@@ -381,6 +383,10 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
     _canExecute.dispose();
     _isExecuting.dispose();
     _thrownExceptions.dispose();
+    if (!(_futureCompleter?.isCompleted ?? true)) {
+      _futureCompleter.complete(null);
+    }
+
     super.dispose();
   }
 
@@ -398,6 +404,15 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
 
   /// optional Name that is included in log messages.
   final String _debugName;
+
+  Completer<TResult> _futureCompleter;
+
+  Future<TResult> get asFuture {
+    if (_futureCompleter == null || _futureCompleter.isCompleted) {
+      _futureCompleter = Completer<TResult>();
+    }
+    return _futureCompleter.future;
+  }
 
   Command(
       TResult initialValue,
@@ -473,6 +488,7 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
       } else {
         notifyListeners();
       }
+      _futureCompleter?.complete(result);
     } catch (error) {
       _commandResult.value = CommandResult<TParam, TResult>(param,
           _includeLastResultInCommandResults ? value : null, error, false);
@@ -480,6 +496,7 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
         /// we have no external listeners on [results] or [thrownExceptions]
         Command.globalExceptionHandler
             ?.call(_debugName, CommandError(param, error));
+        _futureCompleter?.completeError(error);
         if (!_catchAlways) {
           rethrow;
         }
@@ -531,6 +548,7 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
       } else {
         notifyListeners();
       }
+      _futureCompleter?.complete(result);
     } catch (error) {
       _commandResult.value = CommandResult<TParam, TResult>(param,
           _includeLastResultInCommandResults ? value : null, error, false);
@@ -538,6 +556,8 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
         /// we have no external listeners on [results] or [thrownExceptions]
         Command.globalExceptionHandler
             ?.call(_debugName, CommandError(param, error));
+        _futureCompleter?.completeError(error);
+
         if (!_catchAlways) {
           rethrow;
         }

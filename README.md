@@ -445,3 +445,9 @@ If you are not sure what's going on in your App you can register an handler func
 static void Function(String commandName, CommandResult result) loggingHandler;
 ```
 It will get executed on every `Command` execution in your App. `commandName` is the optional `debugName` that you can pass when creating a command.
+
+## Awaiting Commands
+In general you shouldn't await a command as it goes against the reactive philosophy. Your UI should react to the result of the command by "listening" to one of its `ValueListenable` interfaces.
+In case you really need to await the completion of a command you can use the `asFuture` property of the command. `asFuture` returns a `Future<T>` that completes when the function that is wrapped in the Command returns. You can call access this property multiple times and get always the same `Future<T>` returned. If you access `asFuture` after the Command has completed it returns a new `Future<T>` that will complete the next time the Command is called.
+
+There is actually a reason why this property mainly exists that is to make the use of 
