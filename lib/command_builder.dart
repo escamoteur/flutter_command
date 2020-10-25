@@ -4,12 +4,13 @@ import 'package:flutter_command/flutter_command.dart';
 class CommandBuilder<TParam, TResult> extends StatelessWidget {
   final Command<TParam, TResult> command;
   final Widget Function(BuildContext, TResult, TParam) onData;
-  final Widget Function(BuildContext, TParam) whileExecuting;
-  final Widget Function(BuildContext, Object, TParam) onError;
+  final Widget Function(BuildContext, TResult lastValue, TParam) whileExecuting;
+  final Widget Function(BuildContext, Object, TResult lastValue, TParam)
+      onError;
 
   const CommandBuilder({
     this.command,
-    this.onData,
+    @required this.onData,
     this.whileExecuting,
     this.onError,
     Key key,
@@ -20,16 +21,32 @@ class CommandBuilder<TParam, TResult> extends StatelessWidget {
     return ValueListenableBuilder<CommandResult<TParam, TResult>>(
         valueListenable: command.results,
         builder: (context, result, _) {
-          if (result.hasData) {
-            return onData?.call(context, result.data, result.paramData) ??
-                SizedBox();
-          } else if (result.isExecuting) {
-            return whileExecuting?.call(context, result.paramData) ??
-                SizedBox();
-          } else {
-            return onError?.call(context, result.error, result.paramData) ??
-                SizedBox();
-          }
+          return result.toWidget(
+              onResult: (data, paramData) =>
+                  onData?.call(context, data, paramData) ?? SizedBox(),
+              whileExecuting: (lastData, paramData) =>
+                  whileExecuting?.call(context, lastData, paramData) ??
+                  SizedBox(),
+              onError: (lastData, error, paramData) =>
+                  onError?.call(context, lastData, error, paramData) ??
+                  SizedBox());
         });
+  }
+}
+
+extension ToWidgeCommandResult<TParam, TResult>
+    on CommandResult<TParam, TResult> {
+  Widget toWidget(
+      {@required Widget Function(TResult lastResult, TParam param) onResult,
+      Widget Function(TResult lastResult, TParam param) whileExecuting,
+      Widget Function(Object error, TResult lastResult, TParam param)
+          onError}) {
+    if (error != null) {
+      return onError?.call(error, data, paramData) ?? SizedBox();
+    }
+    if (isExecuting) {
+      return whileExecuting?.call(data, paramData) ?? SizedBox();
+    }
+    return onResult(data, paramData);
   }
 }

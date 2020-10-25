@@ -366,6 +366,30 @@ child: CommandBuilder<String, List<WeatherEntry>>(
 ),
 ```
 
+### toWidget() extension method on Command Result
+I you are using a package `get_it_mixin`, `provider` or `flutter_hooks` you probably don't want to use the `CommandBuilder` for you there is an extension method for the `CommandResult` type that you can use like this:
+
+```Dart
+return result.toWidget(
+  whileExecuting: (lastValue, _) => Center(
+    child: SizedBox(
+      width: 50.0,
+      height: 50.0,
+      child: CircularProgressIndicator(),
+    ),
+  ),
+  onResult: (data, _) => WeatherListView(data),
+  onError: (error, lastValue, paramData) => Column(
+    children: [
+      Text('An Error has occurred!'),
+      Text(result.error.toString()),
+      if (result.error != null)
+        Text('For search term: ${result.paramData}')
+    ],
+  ),
+);
+```                  
+
 ## How to create Commands
 ´Command´ offers different static factory functions for the different function types you want to wrap:
 
@@ -448,6 +472,19 @@ It will get executed on every `Command` execution in your App. `commandName` is 
 
 ## Awaiting Commands
 In general you shouldn't await a command as it goes against the reactive philosophy. Your UI should react to the result of the command by "listening" to one of its `ValueListenable` interfaces.
-In case you really need to await the completion of a command you can use the `asFuture` property of the command. `asFuture` returns a `Future<T>` that completes when the function that is wrapped in the Command returns. You can call access this property multiple times and get always the same `Future<T>` returned. If you access `asFuture` after the Command has completed it returns a new `Future<T>` that will complete the next time the Command is called.
+In case you really need to await the completion of a command you can use the `executeWithFuture()` function of the Command. `executeWithFuture` starts the execution of the Command and returns a `Future<T>` that completes when the function that it wraps. 
 
-There is actually a reason why this property mainly exists that is to make the use of 
+The main reason that this function exists is that you can use `RefreshIndicator` directly with a command like:
+
+```Dart
+return RefreshIndicator(
+  onRefresh: () => updateMovieCmd.executeWithFuture(),
+  child: GridView.extent(
+    maxCrossAxisExtent: 200,
+    crossAxisSpacing: 12,
+    mainAxisSpacing: 12,
+    childAspectRatio: 0.7,
+    children: movies.data.map((movie) => _MovieBox(movie: movie)).toList(),
+  ),
+);
+```

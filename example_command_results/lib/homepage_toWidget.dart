@@ -34,24 +34,30 @@ class _HomePageState extends State<HomePage> {
           ),
           Expanded(
             // Handle events to show / hide spinner
-            child: CommandBuilder<String, List<WeatherEntry>>(
-              command: TheViewModel.of(context).updateWeatherCommand,
-              whileExecuting: (context, _,__) => Center(
-                child: SizedBox(
-                  width: 50.0,
-                  height: 50.0,
-                  child: CircularProgressIndicator(),
-                ),
-              ),
-              onData: (context, data, _) => WeatherListView(data),
-              onError: (context, error,_, param) => Column(
-                children: [
-                  Text('An Error has occurred!'),
-                  Text(error.toString()),
-                  if (error != null) Text('For search term: $param')
-                ],
-              ),
-            ),
+            child: ValueListenableBuilder<
+                    CommandResult<String, List<WeatherEntry>>>(
+                valueListenable:
+                    TheViewModel.of(context).updateWeatherCommand.results,
+                builder: (BuildContext context, result, _) {
+                  return result.toWidget(
+                    whileExecuting: (lastValue, _) => Center(
+                      child: SizedBox(
+                        width: 50.0,
+                        height: 50.0,
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+                    onResult: (data, _) => WeatherListView(data),
+                    onError: (error, lastValue, paramData) => Column(
+                      children: [
+                        Text('An Error has occurred!'),
+                        Text(result.error.toString()),
+                        if (result.error != null)
+                          Text('For search term: ${result.paramData}')
+                      ],
+                    ),
+                  );
+                }),
           ),
           Padding(
             padding: const EdgeInsets.all(8.0),

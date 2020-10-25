@@ -787,30 +787,21 @@ void main() {
       expect(isExecutingCollector.values, isNotEmpty);
     });
 
-    test("Test asFuture", () async {
+    test("Test excecuteWithFuture", () async {
       final command = Command.createAsync<String, String>((s) async {
         await Future.delayed(Duration(milliseconds: 10));
         return s;
       }, "Initial Value");
 
-      final commandFuture = command.asFuture;
-      final commandFuture2 = command.asFuture;
-      final commandFuture3 = command.asFuture;
       Stopwatch sw = Stopwatch()..start();
-      command("Done");
-      final result =
-          await Future.wait([commandFuture, commandFuture2, commandFuture3])
-              .timeout(Duration(milliseconds: 50));
+      final commandFuture = command.executeWithFuture("Done");
+      final result = await commandFuture.timeout(Duration(milliseconds: 50));
       final duration = sw.elapsedMilliseconds;
       sw.stop();
 
       // verify collectors
       expect(duration, greaterThan(5));
-      expect(result, ['Done', 'Done', 'Done']);
-
-      final newCall = command.asFuture;
-      expectLater(newCall.timeout(Duration(milliseconds: 10)),
-          throwsA(isA<TimeoutException>()));
+      expect(result, 'Done');
     });
 
     test("Check globalExceptionHadnler is called in Sync/Async Command",
@@ -899,7 +890,7 @@ void main() {
                     value,
                   );
                 },
-                whileExecuting: (_, __) {
+                whileExecuting: (_, __, ___) {
                   return Text("Is Executing");
                 },
               ),
@@ -920,6 +911,7 @@ void main() {
       expect(find.widgetWithText(Center, "Is Executing"), findsNothing);
       expect(find.widgetWithText(Center, "New Value"), findsOneWidget);
     });
+
     testWidgets("Test Command Builder On error", (WidgetTester tester) async {
       final testCommand = Command.createAsyncNoParam<String>(
         () async {
@@ -939,10 +931,10 @@ void main() {
                     value,
                   );
                 },
-                whileExecuting: (_, __) {
+                whileExecuting: (_, __, ___) {
                   return Text("Is Executing");
                 },
-                onError: (_, error, __) {
+                onError: (_, error, __, ___) {
                   if (error is CustomException) {
                     return Text(error.message);
                   }
@@ -950,6 +942,106 @@ void main() {
                 },
               ),
             ),
+          ),
+        ),
+      );
+
+      expect(find.byType(Text), findsOneWidget);
+      expect(find.widgetWithText(Center, "Initial Value"), findsOneWidget);
+      testCommand();
+      await tester.pump(Duration(milliseconds: 500));
+      // By now circular progress indicator should be visible.
+      expect(find.widgetWithText(Center, "Initial Value"), findsNothing);
+      expect(find.widgetWithText(Center, "Is Executing"), findsOneWidget);
+      // Wait for command to finish async execution.
+      await tester.pump(Duration(milliseconds: 1500));
+      expect(find.widgetWithText(Center, "Is Executing"), findsNothing);
+      expect(find.widgetWithText(Center, "Exception From Command"),
+          findsOneWidget);
+    });
+    testWidgets("Test toWidget with Data", (WidgetTester tester) async {
+      final testCommand = Command.createAsyncNoParam<String>(
+        () async {
+          await Future.delayed(Duration(seconds: 2));
+          return 'New Value';
+        },
+        "Initial Value",
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ValueListenableBuilder<CommandResult>(
+                valueListenable: testCommand.results,
+                builder: (_, context, __) {
+                  return Center(
+                    child: testCommand.toWidget(
+                      onResult: (value, _) {
+                        return Text(
+                          value,
+                        );
+                      },
+                      whileExecuting: (_, __) {
+                        return Text("Is Executing");
+                      },
+                      onError: (error, __) {
+                        if (error is CustomException) {
+                          return Text(error.message);
+                        }
+                        return Text("Unknown Exception Occurred");
+                      },
+                    ),
+                  );
+                }),
+          ),
+        ),
+      );
+
+      expect(find.byType(Text), findsOneWidget);
+      expect(find.widgetWithText(Center, "Initial Value"), findsOneWidget);
+      testCommand();
+      await tester.pump(Duration(milliseconds: 500));
+      // By now circular progress indicator should be visible.
+      expect(find.widgetWithText(Center, "Initial Value"), findsNothing);
+      expect(find.widgetWithText(Center, "Is Executing"), findsOneWidget);
+      // Wait for command to finish async execution.
+      await tester.pump(Duration(milliseconds: 1500));
+      expect(find.widgetWithText(Center, "Is Executing"), findsNothing);
+      expect(find.widgetWithText(Center, "New Value"), findsOneWidget);
+    });
+
+    testWidgets("Test toWidget with Error", (WidgetTester tester) async {
+      final testCommand = Command.createAsyncNoParam<String>(
+        () async {
+          await Future.delayed(Duration(seconds: 2));
+          throw CustomException("Exception From Command");
+        },
+        "Initial Value",
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ValueListenableBuilder<CommandResult>(
+                valueListenable: testCommand.results,
+                builder: (_, context, __) {
+                  return Center(
+                    child: testCommand.toWidget(
+                      onResult: (value, _) {
+                        return Text(
+                          value,
+                        );
+                      },
+                      whileExecuting: (_, __) {
+                        return Text("Is Executing");
+                      },
+                      onError: (error, __) {
+                        if (error is CustomException) {
+                          return Text(error.message);
+                        }
+                        return Text("Unknown Exception Occurred");
+                      },
+                    ),
+                  );
+                }),
           ),
         ),
       );

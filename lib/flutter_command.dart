@@ -394,6 +394,8 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// for isExecuting or error states
   bool _includeLastResultInCommandResults;
 
+  TParam _lastParam;
+
   ///Flag to signal the wrapped command has no return value which means
   ///`notifyListener` has to be called directly
   final bool _noReturnValue;
@@ -407,11 +409,34 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
 
   Completer<TResult> _futureCompleter;
 
-  Future<TResult> get asFuture {
-    if (_futureCompleter == null || _futureCompleter.isCompleted) {
-      _futureCompleter = Completer<TResult>();
-    }
+  /// Executes an async Command an returns a Future that completes as soon as
+  /// the Command completes. This is especially useful if you use a
+  /// RefreshIndicator
+  Future<TResult> executeWithFuture([TParam param]) {
+    assert(this is CommandAsync,
+        'executeWithFuture can\t be used with synchronous Commands');
+    _futureCompleter = Completer<TResult>();
+
+    execute(param);
     return _futureCompleter.future;
+  }
+
+  /// Returns a the result of one of three builders depending on the current state
+  /// of the Command. This function won't trigger a rebuild if the command changes states
+  /// so it should be used together with get_it_mixin, provider, flutter_hooks and the like.
+  Widget toWidget({
+    @required Widget Function(TResult lastResult, TParam param) onResult,
+    Widget Function(TResult lastResult, TParam param) whileExecuting,
+    Widget Function(Object error, TParam param) onError,
+  }) {
+    if (thrownExceptions.value?.error != null) {
+      return onError?.call(thrownExceptions.value.error, _lastParam) ??
+          SizedBox();
+    }
+    if (isExecuting.value) {
+      return whileExecuting?.call(value, _lastParam) ?? SizedBox();
+    }
+    return onResult(value, _lastParam);
   }
 
   Command(
