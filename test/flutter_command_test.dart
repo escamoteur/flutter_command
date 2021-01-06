@@ -13,17 +13,17 @@ class Collector<T> {
   List<T> values;
 
   /// Initializes [values] adds the incoming [value] to it.
-  call(T value) {
+  void call(T value) {
     values ??= <T>[];
     values.add(value);
   }
 
   /// Check null and clear the list.
-  clear() {
+  void clear() {
     values?.clear();
   }
 
-  reset() {
+  void reset() {
     clear();
     values = null;
   }
@@ -1096,6 +1096,7 @@ void main() {
         false,
         true,
         true,
+        false,
         "MockingJay",
       );
       // Ensure mock command is executable.
@@ -1117,6 +1118,7 @@ void main() {
         false,
         true,
         true,
+        false,
         "MockingJay",
       );
       // Ensure mock command is executable.
@@ -1140,6 +1142,7 @@ void main() {
         false,
         true,
         true,
+        false,
         "MockingJay",
       );
       // Ensure mock command is executable.
@@ -1161,6 +1164,7 @@ void main() {
         false,
         true,
         true,
+        false,
         "MockingJay",
       );
       // Ensure mock command is executable.
@@ -1183,6 +1187,7 @@ void main() {
         false,
         true,
         true,
+        false,
         "MockingJay",
       );
       // Ensure mock command is executable.
@@ -1205,6 +1210,7 @@ void main() {
         false,
         true,
         true,
+        false,
         "MockingJay",
       );
 
