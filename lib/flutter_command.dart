@@ -478,10 +478,11 @@ abstract class Command<TParam, TResult>
         _catchAlways = catchAlways,
         _debugName = debugName,
         super(initialValue,
-            notifyWhenValueIsEqual: !notifyOnlyWhenValueChanges) {
+            notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges) {
     _commandResult =
         _ListenerCountingValueNotifier<CommandResult<TParam, TResult>>(
-            CommandResult.data(null, initialValue));
+            CommandResult.data(null, initialValue),
+            notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges);
 
     /// forward error states to the `thrownExceptions` Listenable
     _commandResult.where((x) => x.hasError).listen(
@@ -756,21 +757,14 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult> {
 }
 
 /// A [ValueNotifier] which keeps a count of the no of its listeners.
-class _ListenerCountingValueNotifier<T> extends ValueNotifier<T> {
+class _ListenerCountingValueNotifier<T> extends _ValueEqualityNotifier<T> {
   int listenerCount = 0;
 
   final bool notifyOnlyWhenValueChanges;
 
   _ListenerCountingValueNotifier(T value,
       {this.notifyOnlyWhenValueChanges = false})
-      : super(value);
-
-  @override
-  set value(T newValue) {
-    if (value == newValue && notifyOnlyWhenValueChanges) return;
-    value = newValue;
-    notifyListeners();
-  }
+      : super(value, notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges);
 
   @override
   void addListener(void Function() listener) {
@@ -794,17 +788,23 @@ class _ListenerCountingValueNotifier<T> extends ValueNotifier<T> {
 /// A custom [ValueNotifier] which calls [notifyListeners] even when the old
 /// value is equal to new value.
 ///
-/// When the [notifyWhenValueIsEqual] is set to false, this acts like a normal
+/// When the [notifyOnlyWhenValueChanges] is set to true, this acts like a normal
 /// [ValueNotifier] which notifes only when there is a change.
 class _ValueEqualityNotifier<T> extends ValueNotifier<T> {
-  final bool notifyWhenValueIsEqual;
-  _ValueEqualityNotifier(T value, {this.notifyWhenValueIsEqual = true})
-      : super(value);
+  T oldValue;
+  final bool notifyOnlyWhenValueChanges;
+  _ValueEqualityNotifier(this.oldValue,
+      {this.notifyOnlyWhenValueChanges = true})
+      : super(oldValue);
 
   @override
   set value(T newValue) {
-    if (value == newValue && !notifyWhenValueIsEqual) return;
-    value = newValue;
-    notifyListeners();
+    super.value = newValue;
+    if (oldValue == newValue && !notifyOnlyWhenValueChanges) {
+      oldValue = newValue;
+      notifyListeners();
+    }else{
+      oldValue = newValue;
+    }
   }
 }
