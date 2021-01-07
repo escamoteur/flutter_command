@@ -69,26 +69,26 @@ void main() {
       command.isExecuting.listen((b, _) {
         isExecutingCollector(b);
         if (enablePrint) {
-          print("Can Execute $b");
+          print("isExecuting $b");
         }
       });
     }
     command.results.listen((cmdResult, _) {
       cmdResultCollector(cmdResult);
       if (enablePrint) {
-        print("Can Execute $cmdResult");
+        print("Command Result $cmdResult");
       }
     });
     command.thrownExceptions.listen((cmdError, _) {
       thrownExceptionCollector(cmdError);
       if (enablePrint) {
-        print("Can Execute $cmdError");
+        print("Thrown Exceptions $cmdError");
       }
     });
     command.listen((pureResult, _) {
       pureResultCollector(pureResult);
       if (enablePrint) {
-        print("Can Execute $pureResult");
+        print("Command returns $pureResult");
       }
     });
   }
@@ -119,7 +119,11 @@ void main() {
 
       // Verify the collectors values.
       expect(pureResultCollector.values, [null]);
-      expect(cmdResultCollector.values, isNull);
+      // expect(cmdResultCollector.values, isNull);
+      // Since a value is always returened
+      expect(cmdResultCollector.values, [
+        const CommandResult<void, void>(null, null, null, false),
+      ]);
       expect(thrownExceptionCollector.values, isNull);
     });
 
@@ -869,6 +873,13 @@ void main() {
       Command.globalExceptionHandler = null;
     });
   });
+  group("Test notifyOnlyWhenValueChanges related logic", () {
+    test("Test Notification when value doesn't change", () {});
+    test("Test Notification when value changes", () {});
+
+    test("Test notifyOnlyWhenValueChanges flag as true", () {});
+    test("Test notifyOnlyWhenValueChanges flag as false", () {});
+  });
   group("Test Command Builder", () {
     testWidgets("Test Command Builder", (WidgetTester tester) async {
       final testCommand = Command.createAsyncNoParam<String>(
@@ -1147,14 +1158,14 @@ void main() {
       );
       // Ensure mock command is executable.
       expect(mockCommand.canExecute.value, true);
-      setupCollectors(mockCommand);
+      setupCollectors(mockCommand, enablePrint: true);
 
       mockCommand.endExecutionWithData("end_data");
 
       // verify collectors
       expect(cmdResultCollector.values,
           [CommandResult<String, String>(null, "end_data", null, false)]);
-      expect(pureResultCollector.values, ["end_data"]);
+      expect(pureResultCollector.values, ["end_data", "end_data"]);
     });
     test('Test MockCommand - endExecutionNoData', () {
       final mockCommand = MockCommand<String, String>(
