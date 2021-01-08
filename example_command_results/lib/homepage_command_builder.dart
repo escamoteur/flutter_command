@@ -36,7 +36,7 @@ class _HomePageState extends State<HomePage> {
             // Handle events to show / hide spinner
             child: CommandBuilder<String, List<WeatherEntry>>(
               command: TheViewModel.of(context).updateWeatherCommand,
-              whileExecuting: (context, _,__) => Center(
+              whileExecuting: (context, _, __) => Center(
                 child: SizedBox(
                   width: 50.0,
                   height: 50.0,
@@ -44,7 +44,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               onData: (context, data, _) => WeatherListView(data),
-              onError: (context, error,_, param) => Column(
+              onError: (context, error, _, param) => Column(
                 children: [
                   Text('An Error has occurred!'),
                   Text(error.toString()),
