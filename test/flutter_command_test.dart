@@ -41,6 +41,9 @@ class CustomException implements Exception {
       other is CustomException && other.message == message;
 
   @override
+  int get hashCode => message.hashCode;
+
+  @override
   String toString() => "CustomException: $message";
 }
 
@@ -874,11 +877,181 @@ void main() {
     });
   });
   group("Test notifyOnlyWhenValueChanges related logic", () {
-    test("Test Notification when value doesn't change", () {});
-    test("Test Notification when value changes", () {});
+    Future<String> slowAsyncFunction(String s) async {
+      print("___Start__Slow__Action__________");
+      await Future.delayed(const Duration(milliseconds: 10));
+      print("___End__Slow__Action__________");
+      return s;
+    }
 
-    test("Test notifyOnlyWhenValueChanges flag as true", () {});
-    test("Test notifyOnlyWhenValueChanges flag as false", () {});
+    test("Test default notification behaviour when value doesn't change",
+        () async {
+      int executionCount = 0;
+      final Command commandForNotificationTest =
+          Command.createAsync<String, String>(
+        (s) async {
+          executionCount++;
+          return slowAsyncFunction(s);
+        },
+        "Initial Value",
+      );
+      setupCollectors(commandForNotificationTest);
+      expect(commandForNotificationTest.isExecuting.value, false,
+          reason: "IsExecuting before true");
+
+      // First execution
+      commandForNotificationTest.execute("Done");
+      await Future.delayed(Duration(milliseconds: 10));
+      expect(commandForNotificationTest.isExecuting.value, false);
+      expect(executionCount, 1);
+
+      // Second execution
+      commandForNotificationTest.execute("Done");
+      await Future.delayed(Duration(milliseconds: 10));
+      expect(commandForNotificationTest.isExecuting.value, false);
+      expect(executionCount, 2);
+
+      // Expected to return false, true, false
+      // but somehow skips the initial state which is false.
+      expect(isExecutingCollector.values, [true, false, true, false]);
+
+      expect(canExecuteCollector.values, [false, true, false, true]);
+
+      expect(cmdResultCollector.values, [
+        CommandResult<String, void>("Done", null, null, true),
+        CommandResult<String, void>("Done", "Done", null, false),
+        CommandResult<String, void>("Done", null, null, true),
+        CommandResult<String, void>("Done", "Done", null, false),
+      ]);
+
+      expect(pureResultCollector.values, ["Done", "Done"]);
+    });
+    test("Test default notification behaviour when value changes", () async {
+      int executionCount = 0;
+      final Command commandForNotificationTest =
+          Command.createAsync<String, String>(
+        (s) async {
+          executionCount++;
+          return slowAsyncFunction(s);
+        },
+        "Initial Value",
+      );
+      setupCollectors(commandForNotificationTest);
+      expect(commandForNotificationTest.isExecuting.value, false,
+          reason: "IsExecuting before true");
+
+      // First execution
+      commandForNotificationTest.execute("Done");
+      await Future.delayed(Duration(milliseconds: 10));
+      expect(commandForNotificationTest.isExecuting.value, false);
+      expect(executionCount, 1);
+
+      // Second execution
+      commandForNotificationTest.execute("Done2");
+      await Future.delayed(Duration(milliseconds: 10));
+      expect(commandForNotificationTest.isExecuting.value, false);
+      expect(executionCount, 2);
+
+      // Expected to return false, true, false
+      // but somehow skips the initial state which is false.
+      expect(isExecutingCollector.values, [true, false, true, false]);
+
+      expect(canExecuteCollector.values, [false, true, false, true]);
+
+      expect(cmdResultCollector.values, [
+        CommandResult<String, void>("Done", null, null, true),
+        CommandResult<String, void>("Done", "Done", null, false),
+        CommandResult<String, void>("Done2", null, null, true),
+        CommandResult<String, void>("Done2", "Done2", null, false),
+      ]);
+
+      expect(pureResultCollector.values, ["Done", "Done2"]);
+    });
+
+    test("Test notifyOnlyWhenValueChanges flag as true", () async {
+      int executionCount = 0;
+      final Command commandForNotificationTest =
+          Command.createAsync<String, String>(
+        (s) async {
+          executionCount++;
+          return slowAsyncFunction(s);
+        },
+        "Initial Value",
+        notifyOnlyWhenValueChanges: true,
+      );
+      setupCollectors(commandForNotificationTest);
+      expect(commandForNotificationTest.isExecuting.value, false,
+          reason: "IsExecuting before true");
+
+      // First execution
+      commandForNotificationTest.execute("Done");
+      await Future.delayed(Duration(milliseconds: 10));
+      expect(commandForNotificationTest.isExecuting.value, false);
+      expect(executionCount, 1);
+
+      // Second execution
+      commandForNotificationTest.execute("Done");
+      await Future.delayed(Duration(milliseconds: 10));
+      expect(commandForNotificationTest.isExecuting.value, false);
+      expect(executionCount, 2);
+
+      // Expected to return false, true, false
+      // but somehow skips the initial state which is false.
+      expect(isExecutingCollector.values, [true, false, true, false]);
+
+      expect(canExecuteCollector.values, [false, true, false, true]);
+
+      expect(cmdResultCollector.values, [
+        CommandResult<String, void>("Done", null, null, true),
+        CommandResult<String, void>("Done", "Done", null, false),
+        CommandResult<String, void>("Done", null, null, true),
+        CommandResult<String, void>("Done", "Done", null, false),
+      ]);
+      // Thos is the main result evaluation. :)
+      expect(pureResultCollector.values, ["Done"]);
+    });
+    test("Test notifyOnlyWhenValueChanges flag as false", () async {
+      int executionCount = 0;
+      final Command commandForNotificationTest =
+          Command.createAsync<String, String>(
+        (s) async {
+          executionCount++;
+          return slowAsyncFunction(s);
+        },
+        "Initial Value",
+        notifyOnlyWhenValueChanges: false,
+      );
+      setupCollectors(commandForNotificationTest);
+      expect(commandForNotificationTest.isExecuting.value, false,
+          reason: "IsExecuting before true");
+
+      // First execution
+      commandForNotificationTest.execute("Done");
+      await Future.delayed(Duration(milliseconds: 10));
+      expect(commandForNotificationTest.isExecuting.value, false);
+      expect(executionCount, 1);
+
+      // Second execution
+      commandForNotificationTest.execute("Done");
+      await Future.delayed(Duration(milliseconds: 10));
+      expect(commandForNotificationTest.isExecuting.value, false);
+      expect(executionCount, 2);
+
+      // Expected to return false, true, false
+      // but somehow skips the initial state which is false.
+      expect(isExecutingCollector.values, [true, false, true, false]);
+
+      expect(canExecuteCollector.values, [false, true, false, true]);
+
+      expect(cmdResultCollector.values, [
+        CommandResult<String, void>("Done", null, null, true),
+        CommandResult<String, void>("Done", "Done", null, false),
+        CommandResult<String, void>("Done", null, null, true),
+        CommandResult<String, void>("Done", "Done", null, false),
+      ]);
+
+      expect(pureResultCollector.values, ["Done", "Done"]);
+    });
   });
   group("Test Command Builder", () {
     testWidgets("Test Command Builder", (WidgetTester tester) async {
@@ -1158,7 +1331,7 @@ void main() {
       );
       // Ensure mock command is executable.
       expect(mockCommand.canExecute.value, true);
-      setupCollectors(mockCommand, enablePrint: true);
+      setupCollectors(mockCommand);
 
       mockCommand.endExecutionWithData("end_data");
 
@@ -1242,6 +1415,302 @@ void main() {
       ]);
       expect(pureResultCollector.values, ["Result"]);
       // expect(isExecutingCollector.values, [true, false]);
+    });
+  });
+
+  group("pipeResults related test - Asynchronous", () {
+    Future<String> slowAsyncFunction(String s) async {
+      print("___Start__Slow__Action_________with_$s");
+      await Future.delayed(const Duration(milliseconds: 5));
+      print("___End__Slow__Action__________");
+      return s;
+    }
+
+    Collector rootPureResults;
+    Collector pc1PureResults;
+    Collector pc2PureResults;
+    Collector pc3PureResults;
+    Command rootCommand;
+    Command pipedCommand1;
+    Command pipedCommand2;
+    Command pipedCommand3;
+
+    setUp(() {
+      rootPureResults = Collector<String>();
+      pc1PureResults = Collector<String>();
+      pc2PureResults = Collector<String>();
+      pc3PureResults = Collector<String>();
+
+      rootCommand = Command.createAsync<String, String>(
+        (s) async {
+          return slowAsyncFunction(s);
+        },
+        "Initial Value",
+      );
+
+      pipedCommand1 = Command.createAsync<String, String>(
+        (s) async {
+          return slowAsyncFunction("$s-from-ppc1");
+        },
+        "Initial Value",
+      );
+
+      pipedCommand2 = Command.createAsync<String, String>(
+        (s) async {
+          return slowAsyncFunction("$s-from-ppc2");
+        },
+        "Initial Value",
+      );
+      pipedCommand3 = Command.createAsync<String, String>(
+        (s) async {
+          return slowAsyncFunction("$s-from-ppc3");
+        },
+        "Initial Value",
+      );
+      rootCommand.listen((rootPureResult, _) {
+        rootPureResults(rootPureResult);
+      });
+      pipedCommand1.listen((pc1PureResult, _) {
+        pc1PureResults(pc1PureResult);
+      });
+      pipedCommand2.listen((pc2PureResult, _) {
+        pc2PureResults(pc2PureResult);
+      });
+      pipedCommand3.listen((pc3PureResult, _) {
+        pc3PureResults(pc3PureResult);
+      });
+    });
+
+    test("Test pipeResults - with one piped command", () async {
+      /// Set up 1 piped command
+      rootCommand.pipeResult<String>(pipedCommand1,
+          pipedCommandTakesParam: true);
+
+      // root execution
+      rootCommand("Done");
+      await Future.delayed(const Duration(milliseconds: 75));
+
+      expect(rootPureResults.values, ["Done"]);
+      expect(pc1PureResults.values, ["Done-from-ppc1"]);
+    });
+    test("Test pipeResults - with two piped command", () async {
+      /// Set up 2 piped command
+      rootCommand
+          .pipeResult<String>(pipedCommand1, pipedCommandTakesParam: true)
+          .pipeResult<String>(pipedCommand2, pipedCommandTakesParam: true);
+
+      // root command execution
+      rootCommand("Done");
+
+      await Future.delayed(const Duration(milliseconds: 75));
+
+      expect(rootPureResults.values, ["Done"]);
+      expect(pc1PureResults.values, ["Done-from-ppc1"]);
+      expect(pc2PureResults.values, ["Done-from-ppc1-from-ppc2"]);
+    });
+    test("Test pipeResults - with three piped command", () async {
+      /// Set up 3 piped command
+      rootCommand
+          .pipeResult<String>(pipedCommand1, pipedCommandTakesParam: true)
+          .pipeResult<String>(pipedCommand2, pipedCommandTakesParam: true)
+          .pipeResult<String>(pipedCommand3, pipedCommandTakesParam: true);
+
+      // root command execution
+      rootCommand("Done");
+
+      await Future.delayed(const Duration(milliseconds: 75));
+
+      expect(rootPureResults.values, ["Done"]);
+      expect(pc1PureResults.values, ["Done-from-ppc1"]);
+      expect(pc2PureResults.values, ["Done-from-ppc1-from-ppc2"]);
+      expect(pc3PureResults.values, ["Done-from-ppc1-from-ppc2-from-ppc3"]);
+    });
+
+    test("test with pipedCommandTakeParam as false", () async {
+      final Command rootCommand = Command.createAsync<String, String>(
+          (s) async => slowAsyncFunction(s), "initialValue");
+
+      final Command pipedCommand = Command.createAsyncNoParam(
+          () async => slowAsyncFunction("Custom Result"), "initial value");
+
+      final Collector pipedCommandResults = Collector<String>();
+      rootCommand.pipeResult(pipedCommand, pipedCommandTakesParam: false);
+
+      pipedCommand.listen((result, _) {
+        pipedCommandResults(result);
+      });
+      // Call the root command
+      rootCommand("Root Value");
+      await Future.delayed(const Duration(milliseconds: 50));
+      expect(pipedCommandResults.values, ["Custom Result"]);
+    });
+    test("test with custom pipedCommandParam", () async {
+      final Command rootCommand = Command.createAsync<String, String>(
+          (s) async => slowAsyncFunction(s), "initialValue");
+
+      // This command takes list of string and returns a string concatenated by
+      // as under-score '_'.
+      final Command pipedCommand = Command.createAsync<List<String>, String>(
+          (stringList) async => Future.delayed(
+                const Duration(milliseconds: 5),
+                () => stringList.join("_"),
+              ),
+          "initial value");
+
+      final Collector pipedCommandResults = Collector<String>();
+
+      // Note here the type of the result from root command is not the same
+      // as parameter of pipedCommand.
+      rootCommand.pipeResult<List<String>>(pipedCommand,
+          pipedCommandTakesParam: true,
+          pipedCommandParam: ["Alternative Parameter", "Different message"]);
+
+      pipedCommand.listen((result, _) {
+        pipedCommandResults(result);
+      });
+      // Call the root command
+      rootCommand("Root Value");
+      await Future.delayed(const Duration(milliseconds: 50));
+      expect(pipedCommandResults.values,
+          ["Alternative Parameter_Different message"]);
+    });
+  });
+
+  group("pipeResults related test - Synchronous", () {
+    Collector rootPureResults;
+    Collector pc1PureResults;
+    Collector pc2PureResults;
+    Collector pc3PureResults;
+    Command rootCommand;
+    Command pipedCommand1;
+    Command pipedCommand2;
+    Command pipedCommand3;
+
+    setUp(() {
+      rootPureResults = Collector<String>();
+      pc1PureResults = Collector<String>();
+      pc2PureResults = Collector<String>();
+      pc3PureResults = Collector<String>();
+
+      rootCommand = Command.createSync<String, String>(
+        (s) => s,
+        "Initial Value",
+      );
+
+      pipedCommand1 = Command.createSync<String, String>(
+        (s) => "$s-from-ppc1",
+        "Initial Value",
+      );
+
+      pipedCommand2 = Command.createSync<String, String>(
+        (s) => "$s-from-ppc2",
+        "Initial Value",
+      );
+      pipedCommand3 = Command.createSync<String, String>(
+        (s) => "$s-from-ppc3",
+        "Initial Value",
+      );
+      rootCommand.listen((rootPureResult, _) {
+        rootPureResults(rootPureResult);
+      });
+      pipedCommand1.listen((pc1PureResult, _) {
+        pc1PureResults(pc1PureResult);
+      });
+      pipedCommand2.listen((pc2PureResult, _) {
+        pc2PureResults(pc2PureResult);
+      });
+      pipedCommand3.listen((pc3PureResult, _) {
+        pc3PureResults(pc3PureResult);
+      });
+    });
+
+    test("Test pipeResults - with one piped command", () async {
+      /// Set up 1 piped command
+      rootCommand.pipeResult<String>(pipedCommand1,
+          pipedCommandTakesParam: true);
+
+      // root execution
+      rootCommand("Done");
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      expect(rootPureResults.values, ["Done"]);
+      expect(pc1PureResults.values, ["Done-from-ppc1"]);
+    });
+    test("Test pipeResults - with two piped command", () async {
+      /// Set up 2 piped command
+      rootCommand
+          .pipeResult<String>(pipedCommand1, pipedCommandTakesParam: true)
+          .pipeResult<String>(pipedCommand2, pipedCommandTakesParam: true);
+
+      // root command execution
+      rootCommand("Done");
+
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      expect(rootPureResults.values, ["Done"]);
+      expect(pc1PureResults.values, ["Done-from-ppc1"]);
+      expect(pc2PureResults.values, ["Done-from-ppc1-from-ppc2"]);
+    });
+    test("Test pipeResults - with three piped command", () async {
+      /// Set up 3 piped command
+      rootCommand
+          .pipeResult<String>(pipedCommand1, pipedCommandTakesParam: true)
+          .pipeResult<String>(pipedCommand2, pipedCommandTakesParam: true)
+          .pipeResult<String>(pipedCommand3, pipedCommandTakesParam: true);
+
+      // root command execution
+      rootCommand("Done");
+
+      await Future.delayed(const Duration(milliseconds: 10));
+
+      expect(rootPureResults.values, ["Done"]);
+      expect(pc1PureResults.values, ["Done-from-ppc1"]);
+      expect(pc2PureResults.values, ["Done-from-ppc1-from-ppc2"]);
+      expect(pc3PureResults.values, ["Done-from-ppc1-from-ppc2-from-ppc3"]);
+    });
+    test("test with pipedCommandTakeParam as false", () async {
+      final Command rootCommand =
+          Command.createSync<String, String>((s) => s, "initialValue");
+
+      final Command pipedCommand =
+          Command.createSyncNoParam(() => "Custom Result", "initial value");
+
+      final Collector pipedCommandResults = Collector<String>();
+      rootCommand.pipeResult(pipedCommand, pipedCommandTakesParam: false);
+
+      pipedCommand.listen((result, _) {
+        pipedCommandResults(result);
+      });
+      // Call the root command
+      rootCommand("Root Value");
+      await Future.delayed(const Duration(milliseconds: 50));
+      expect(pipedCommandResults.values, ["Custom Result"]);
+    });
+    test("test with custom pipedCommandParam", () async {
+      final Command rootCommand =
+          Command.createSync<String, String>((s) => s, "initialValue");
+
+      // This command takes list of string and returns a string concatenated by
+      // as under-score '_'.
+      final Command pipedCommand = Command.createSync<List<String>, String>(
+          (stringList) => stringList.join("_"), "initial value");
+
+      final Collector pipedCommandResults = Collector<String>();
+
+      // Note here the type of the result from root command is not the same
+      // as parameter of pipedCommand.
+      rootCommand.pipeResult<List<String>>(pipedCommand,
+          pipedCommandTakesParam: true,
+          pipedCommandParam: ["Alternative Parameter", "Different message"]);
+
+      pipedCommand.listen((result, _) {
+        pipedCommandResults(result);
+      });
+      // Call the root command
+      rootCommand("Root Value");
+      await Future.delayed(const Duration(milliseconds: 50));
+      expect(pipedCommandResults.values,
+          ["Alternative Parameter_Different message"]);
     });
   });
 }

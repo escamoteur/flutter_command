@@ -447,6 +447,42 @@ abstract class Command<TParam, TResult>
     return _futureCompleter.future;
   }
 
+  /// Pipes one [Command]'s result [value] to another command as input and
+  /// returns the pipedCommand for further processing like adding another
+  /// [Command] as piped command.
+  ///
+  /// If the [pipedCommandTakesParam] is set to false then [pipedCommand] is
+  /// called without passing any parameters.
+  ///
+  /// If the [pipedCommandTakesParam] is set to true [pipedCommand] is called
+  /// with the resulting [value] of the previous command only if the
+  /// [pipedCommand] accepts parameters of the same type as [TPipedCommandParam].
+  ///
+  /// As a fall back case, [pipedCommandParam] will be used if the [value]
+  /// returned by the command doesn't match the parameter type of the
+  /// [pipedCommand]. This allows connecting non compatible commands if needed.
+  ///
+  Command pipeResult<TPipedCommandParam>(
+    Command pipedCommand, {
+    @required bool pipedCommandTakesParam,
+    TPipedCommandParam pipedCommandParam,
+    Duration debounceDuration = const Duration(),
+  }) {
+    assert(pipedCommand != null, 'pipedCommand cannot be null');
+    assert(pipedCommandTakesParam != null,
+        'pipedCommandTakesParam cannot be null');
+    debounce(debounceDuration).listen((TResult resultValue, _) {
+      if (pipedCommandTakesParam && resultValue is TPipedCommandParam) {
+        pipedCommand(resultValue);
+      } else if (pipedCommandTakesParam && pipedCommandParam != null) {
+        pipedCommand(pipedCommandParam);
+      } else {
+        pipedCommand();
+      }
+    });
+    return pipedCommand;
+  }
+
   /// Returns a the result of one of three builders depending on the current state
   /// of the Command. This function won't trigger a rebuild if the command changes states
   /// so it should be used together with get_it_mixin, provider, flutter_hooks and the like.
@@ -756,14 +792,12 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult> {
   }
 }
 
-/// A [ValueNotifier] which keeps a count of the no of its listeners.
+/// A [_ValueEqualityNotifier] which keeps a count of the no of its listeners.
 class _ListenerCountingValueNotifier<T> extends _ValueEqualityNotifier<T> {
   int listenerCount = 0;
 
-  final bool notifyOnlyWhenValueChanges;
-
   _ListenerCountingValueNotifier(T value,
-      {this.notifyOnlyWhenValueChanges = false})
+      {bool notifyOnlyWhenValueChanges = false})
       : super(value, notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges);
 
   @override
@@ -789,22 +823,17 @@ class _ListenerCountingValueNotifier<T> extends _ValueEqualityNotifier<T> {
 /// value is equal to new value.
 ///
 /// When the [notifyOnlyWhenValueChanges] is set to true, this acts like a normal
-/// [ValueNotifier] which notifes only when there is a change.
+/// [ValueNotifier] which notifies only when there is a change in the value it
+/// already holds.
 class _ValueEqualityNotifier<T> extends ValueNotifier<T> {
-  T oldValue;
   final bool notifyOnlyWhenValueChanges;
-  _ValueEqualityNotifier(this.oldValue,
-      {this.notifyOnlyWhenValueChanges = true})
-      : super(oldValue);
+  _ValueEqualityNotifier(T value, {this.notifyOnlyWhenValueChanges = false})
+      : super(value);
 
   @override
   set value(T newValue) {
+    final oldValue = super.value;
     super.value = newValue;
-    if (oldValue == newValue && !notifyOnlyWhenValueChanges) {
-      oldValue = newValue;
-      notifyListeners();
-    }else{
-      oldValue = newValue;
-    }
+    if (oldValue == newValue && !notifyOnlyWhenValueChanges) notifyListeners();
   }
 }
