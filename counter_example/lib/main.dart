@@ -33,6 +33,9 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int counter = 0;
+
+  ///this is a simplification. In a real app you wouldn't put a command
+  /// in a State Object but in some business object
   Command<void, String> _incrementCounterCommand;
 
   _MyHomePageState() {

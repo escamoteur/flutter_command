@@ -46,6 +46,5 @@ class TheViewModel extends InheritedWidget {
       context.dependOnInheritedWidgetOfExactType<TheViewModel>().theModel;
 
   @override
-  bool updateShouldNotify(TheViewModel oldWidget) =>
-      theModel != oldWidget.theModel;
+  bool updateShouldNotify(TheViewModel oldWidget) => theModel != oldWidget.theModel;
 }

@@ -1,4 +1,4 @@
-## [0.9.3] - 25.10.2020
+## [1.0.0-nullsafety.1] - 15.02.2021
 
 * Added `toWidget()` extension method on `CommandResult`
 

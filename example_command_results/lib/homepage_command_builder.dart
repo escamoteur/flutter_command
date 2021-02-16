@@ -36,7 +36,7 @@ class _HomePageState extends State<HomePage> {
             // Handle events to show / hide spinner
             child: CommandBuilder<String, List<WeatherEntry>>(
               command: TheViewModel.of(context).updateWeatherCommand,
-              whileExecuting: (context, _,__) => Center(
+              whileExecuting: (context, _, __) => Center(
                 child: SizedBox(
                   width: 50.0,
                   height: 50.0,
@@ -44,7 +44,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               onData: (context, data, _) => WeatherListView(data),
-              onError: (context, error,_, param) => Column(
+              onError: (context, error, _, param) => Column(
                 children: [
                   Text('An Error has occurred!'),
                   Text(error.toString()),
@@ -60,31 +60,25 @@ class _HomePageState extends State<HomePage> {
               children: <Widget>[
                 Expanded(
                   child: ValueListenableBuilder<bool>(
-                    valueListenable: TheViewModel.of(context)
-                        .updateWeatherCommand
-                        .canExecute,
+                    valueListenable: TheViewModel.of(context).updateWeatherCommand.canExecute,
                     builder: (BuildContext context, bool canExecute, _) {
                       // Depending on the value of canEcecute we set or clear the Handler
-                      final handler = canExecute
-                          ? TheViewModel.of(context).updateWeatherCommand
-                          : null;
-                      return RaisedButton(
+                      final handler = canExecute ? TheViewModel.of(context).updateWeatherCommand : null;
+                      return ElevatedButton(
                         child: Text("Update"),
-                        color: Color.fromARGB(255, 33, 150, 243),
-                        textColor: Color.fromARGB(255, 255, 255, 255),
+                        style: ElevatedButton.styleFrom(
+                            primary: Color.fromARGB(255, 33, 150, 243), onPrimary: Color.fromARGB(255, 255, 255, 255)),
                         onPressed: handler,
                       );
                     },
                   ),
                 ),
                 ValueListenableBuilder<bool>(
-                    valueListenable:
-                        TheViewModel.of(context).setExecutionStateCommand,
+                    valueListenable: TheViewModel.of(context).setExecutionStateCommand,
                     builder: (context, value, _) {
                       return Switch(
                         value: value,
-                        onChanged:
-                            TheViewModel.of(context).setExecutionStateCommand,
+                        onChanged: TheViewModel.of(context).setExecutionStateCommand,
                       );
                     })
               ],
