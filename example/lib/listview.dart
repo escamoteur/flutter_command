@@ -17,12 +17,12 @@ class WeatherListView extends StatelessWidget {
             subtitle: Text(data[index].description),
             leading: Image.network(
               data[index].iconURL,
-              frameBuilder: (BuildContext context, Widget child, int frame,
+              frameBuilder: (BuildContext context, Widget child, int? frame,
                   bool wasSynchronouslyLoaded) {
                 return child;
               },
               loadingBuilder: (BuildContext context, Widget child,
-                  ImageChunkEvent loadingProgress) {
+                  ImageChunkEvent? loadingProgress) {
                 if (loadingProgress == null) return child;
                 return CircularProgressIndicator();
               },

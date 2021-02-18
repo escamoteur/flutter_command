@@ -10,7 +10,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  ListenableSubscription errorSubscription;
+  ListenableSubscription? errorSubscription;
 
   @override
   void didChangeDependencies() {
@@ -31,7 +31,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
-    errorSubscription.cancel();
+    errorSubscription?.cancel();
     super.dispose();
   }
 
@@ -91,7 +91,11 @@ class _HomePageState extends State<HomePage> {
                         child: Text("Update"),
                         style: ElevatedButton.styleFrom(
                             primary: Color.fromARGB(255, 33, 150, 243), onPrimary: Color.fromARGB(255, 255, 255, 255)),
-                        onPressed: handler,
+
+                        /// because of a current limitation of Dart
+                        /// we have to use `?.execute` if the command is
+                        /// stored in a nullable variable like in this case
+                        onPressed: handler?.execute,
                       );
                     },
                   ),

@@ -420,7 +420,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
 }
 
 class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
-  final TResult Function(TParam?) _func;
+  final TResult Function(TParam) _func;
 
   @override
   ValueListenable<bool> get isExecuting {
@@ -428,7 +428,7 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
     return ValueNotifier<bool>(false);
   }
 
-  CommandSync(TResult Function(TParam?) func, TResult initialValue, ValueListenable<bool>? restriction,
+  CommandSync(TResult Function(TParam) func, TResult initialValue, ValueListenable<bool>? restriction,
       bool includeLastResultInCommandResults, bool noReturnValue, bool? catchAlways, String? debugName)
       : _func = func,
         super(initialValue, restriction, includeLastResultInCommandResults, noReturnValue,
