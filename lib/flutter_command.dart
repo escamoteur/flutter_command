@@ -463,16 +463,20 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
         result = _funcNoParam!();
       } else {
         assert(_func != null);
+        assert(param != null || null is TParam,
+            'You passed a null value to the command ${_debugName ?? ''} that has a non-nullable type as TParam');
         result = _func!(param as TParam);
       }
-      _commandResult.value = CommandResult<TParam, TResult>(param, result, null, false);
       if (!_noReturnValue) {
+        _commandResult.value = CommandResult<TParam, TResult>(param, result, null, false);
         value = result;
       } else {
         notifyListeners();
       }
       _futureCompleter?.complete(result);
     } catch (error) {
+      if (error is AssertionError) rethrow;
+
       _commandResult.value =
           CommandResult<TParam, TResult>(param, _includeLastResultInCommandResults ? value : null, error, false);
       if (_commandResult.listenerCount < 3 && !_thrownExceptions.hasListeners) {
@@ -533,6 +537,8 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
         result = await _funcNoParam!();
       } else {
         assert(_func != null);
+        assert(param != null || null is TParam,
+            'You passed a null value to the command ${_debugName ?? ''} that has a non-nullable type as TParam');
         result = await _func!(param as TParam);
       }
       _commandResult.value = CommandResult<TParam, TResult>(param, result, null, false);
@@ -543,6 +549,7 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
       }
       _futureCompleter?.complete(result);
     } catch (error) {
+      if (error is AssertionError) rethrow;
       _commandResult.value =
           CommandResult<TParam, TResult>(param, _includeLastResultInCommandResults ? value : null, error, false);
       if (_commandResult.listenerCount < 3 && !_thrownExceptions.hasListeners) {

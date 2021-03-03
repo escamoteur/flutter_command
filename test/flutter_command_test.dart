@@ -228,7 +228,7 @@ void main() {
     test('Execute simple sync function with parameter and result', () {
       int executionCount = 0;
       final command = Command.createSync<String, String>((s) {
-        print("action: ${s!}");
+        print("action: ${s}");
         executionCount++;
         return s + s;
       }, '');
@@ -250,13 +250,54 @@ void main() {
       expect(pureResultCollector.values, [
         '47114711',
       ]);
-      expect(cmdResultCollector.values, [const CommandResult<String, String>("4711", '47114711', null, false)]);
+      expect(cmdResultCollector.values, [const CommandResult<String?, String?>("4711", '47114711', null, false)]);
+    });
+    test('Execute simple sync function with parameter and result with nullable types', () {
+      int executionCount = 0;
+      final command = Command.createSync<String?, String?>((s) {
+        print("action: $s");
+        executionCount++;
+        return s;
+      }, '');
+
+      expect(command.canExecute.value, true);
+      // Setup Collectors
+      setupCollectors(command);
+      command.execute(null);
+      expect(command.value, null);
+
+      expect(command.results.value, const CommandResult<String?, String?>(null, null, null, false));
+
+      expect(command.thrownExceptions.value, null);
+      expect(executionCount, 1);
+
+      expect(command.canExecute.value, true);
+
+      // verify collectors
+      expect(thrownExceptionCollector.values, isNull);
+      expect(pureResultCollector.values, [
+        null,
+      ]);
+      expect(cmdResultCollector.values, [const CommandResult<String?, String?>(null, null, null, false)]);
+    });
+    test('Execute simple sync function with parameter passing null', () {
+      int executionCount = 0;
+      final command = Command.createSync<String, String>((s) {
+        print("action: $s");
+        executionCount++;
+        return s;
+      }, '');
+
+      expect(command.canExecute.value, true);
+      // Setup Collectors
+      setupCollectors(command);
+      expect(() => command.execute(null), throwsA(isA<AssertionError>()));
     });
     test('Execute simple sync function with catchAlways == false and listeners', () async {
       int executionCount = 0;
       final command = Command.createSync<String, String>(
         (s) {
-          print("action: ${s!}");
+          print("action: ${s}");
           executionCount++;
           throw CustomException("Intentional");
         },
@@ -295,7 +336,7 @@ void main() {
     test('Execute simple sync function with catchAlways == false and no listeners', () async {
       int executionCount = 0;
       final command = Command.createSync<String, String>((s) {
-        print("action: ${s!}");
+        print("action: ${s}");
         executionCount++;
         throw CustomException("Intentional");
       }, 'Initial Value', catchAlways: false, debugName: 'FailedCommand');
@@ -882,7 +923,7 @@ void main() {
                 onData: (context, value, _) {
                   assert(value != null);
                   return Text(
-                    value!,
+                    value,
                   );
                 },
                 whileExecuting: (_, __, ___) {
@@ -923,7 +964,7 @@ void main() {
                 command: testCommand,
                 onData: (context, value, _) {
                   return Text(
-                    value!,
+                    value,
                   );
                 },
                 whileExecuting: (_, __, ___) {
