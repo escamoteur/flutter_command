@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_command/flutter_command.dart';
-import 'package:flutter_weather_demo/weather_viewmodel.dart';
+import 'package:flutter_weather_demo/main.dart';
+import 'package:flutter_weather_demo/weather_manager.dart';
 
 import 'listview.dart';
-import 'main.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -29,13 +29,13 @@ class _HomePageState extends State<HomePage> {
                 fontSize: 20.0,
                 color: Color.fromARGB(255, 0, 0, 0),
               ),
-              onChanged: TheViewModel.of(context).textChangedCommand,
+              onChanged: weatherManager.textChangedCommand,
             ),
           ),
           Expanded(
             // Handle events to show / hide spinner
-            child: CommandBuilder<String, List<WeatherEntry>>(
-              command: TheViewModel.of(context).updateWeatherCommand,
+            child: CommandBuilder<String?, List<WeatherEntry>>(
+              command: weatherManager.updateWeatherCommand,
               whileExecuting: (context, _, __) => Center(
                 child: SizedBox(
                   width: 50.0,
@@ -60,25 +60,29 @@ class _HomePageState extends State<HomePage> {
               children: <Widget>[
                 Expanded(
                   child: ValueListenableBuilder<bool>(
-                    valueListenable: TheViewModel.of(context).updateWeatherCommand.canExecute,
+                    valueListenable: weatherManager.updateWeatherCommand.canExecute,
                     builder: (BuildContext context, bool canExecute, _) {
-                      // Depending on the value of canEcecute we set or clear the Handler
-                      final handler = canExecute ? TheViewModel.of(context).updateWeatherCommand : null;
+                      // Depending on th?e value f canExecute we set or clear the Handler
+                      final handler = canExecute ? weatherManager.updateWeatherCommand : null;
                       return ElevatedButton(
                         child: Text("Update"),
                         style: ElevatedButton.styleFrom(
                             primary: Color.fromARGB(255, 33, 150, 243), onPrimary: Color.fromARGB(255, 255, 255, 255)),
-                        onPressed: handler,
+
+                        /// because of a current limitation of Dart
+                        /// we have to use `?.execute` if the command is
+                        /// stored in a nullable variable like in this case
+                        onPressed: handler?.execute,
                       );
                     },
                   ),
                 ),
                 ValueListenableBuilder<bool>(
-                    valueListenable: TheViewModel.of(context).setExecutionStateCommand,
+                    valueListenable: weatherManager.setExecutionStateCommand,
                     builder: (context, value, _) {
                       return Switch(
                         value: value,
-                        onChanged: TheViewModel.of(context).setExecutionStateCommand,
+                        onChanged: weatherManager.setExecutionStateCommand,
                       );
                     })
               ],

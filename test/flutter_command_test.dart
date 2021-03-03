@@ -1079,12 +1079,9 @@ void main() {
     });
     test('Test MockCommand - execute', () {
       final mockCommand = MockCommand<void, String>(
-        "Initial Value",
-        ValueNotifier<bool>(true),
-        false,
-        false,
-        true,
-        "MockingJay",
+        initialValue: "Initial Value",
+        restriction: ValueNotifier<bool>(true),
+        debugName: "MockingJay",
       );
       // Ensure mock command is executable.
       expect(mockCommand.canExecute.value, true);
@@ -1098,12 +1095,9 @@ void main() {
     });
     test('Test MockCommand - startExecuting', () {
       final mockCommand = MockCommand<String, String>(
-        "Initial Value",
-        ValueNotifier<bool>(true),
-        false,
-        false,
-        true,
-        "MockingJay",
+        initialValue: "Initial Value",
+        restriction: ValueNotifier<bool>(true),
+        debugName: "MockingJay",
       );
       // Ensure mock command is executable.
       expect(mockCommand.canExecute.value, true);
@@ -1119,12 +1113,9 @@ void main() {
 
     test('Test MockCommand - endExecutionWithData', () {
       final mockCommand = MockCommand<String, String>(
-        "Initial Value",
-        ValueNotifier<bool>(true),
-        false,
-        false,
-        true,
-        "MockingJay",
+        initialValue: "Initial Value",
+        restriction: ValueNotifier<bool>(true),
+        debugName: "MockingJay",
       );
       // Ensure mock command is executable.
       expect(mockCommand.canExecute.value, true);
@@ -1138,12 +1129,9 @@ void main() {
     });
     test('Test MockCommand - endExecutionNoData', () {
       final mockCommand = MockCommand<String, String>(
-        "Initial Value",
-        ValueNotifier<bool>(true),
-        false,
-        false,
-        true,
-        "MockingJay",
+        initialValue: "Initial Value",
+        restriction: ValueNotifier<bool>(true),
+        debugName: "MockingJay",
       );
       // Ensure mock command is executable.
       expect(mockCommand.canExecute.value, true);
@@ -1158,12 +1146,9 @@ void main() {
     });
     test('Test MockCommand - endExecutionWithError', () {
       final mockCommand = MockCommand<String, String>(
-        "Initial Value",
-        ValueNotifier<bool>(true),
-        false,
-        false,
-        true,
-        "MockingJay",
+        initialValue: "Initial Value",
+        restriction: ValueNotifier<bool>(true),
+        debugName: "MockingJay",
       );
       // Ensure mock command is executable.
       expect(mockCommand.canExecute.value, true);
@@ -1178,14 +1163,10 @@ void main() {
     });
     test('Test MockCommand - queueResultsForNextExecuteCall', () {
       final mockCommand = MockCommand<String, String>(
-        "Initial Value",
-        ValueNotifier<bool>(true),
-        false,
-        false,
-        true,
-        "MockingJay",
+        initialValue: "Initial Value",
+        restriction: ValueNotifier<bool>(true),
+        debugName: "MockingJay",
       );
-
       mockCommand.queueResultsForNextExecuteCall([
         const CommandResult<String, String>("Param", null, null, true),
         const CommandResult<String, String>("Param", "Result", null, false)

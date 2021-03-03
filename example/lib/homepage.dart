@@ -14,11 +14,9 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void didChangeDependencies() {
-    errorSubscription ??= TheViewModel.of(context)
-        .updateWeatherCommand
-        .thrownExceptions
-        .where((x) => x != null) // filter out the error value reset
-        .listen((error, _) {
+    errorSubscription ??=
+        weatherManager.updateWeatherCommand.thrownExceptions.where((x) => x != null) // filter out the error value reset
+            .listen((error, _) {
       showDialog(
           context: context,
           builder: (context) => AlertDialog(
@@ -53,13 +51,13 @@ class _HomePageState extends State<HomePage> {
                 fontSize: 20.0,
                 color: Color.fromARGB(255, 0, 0, 0),
               ),
-              onChanged: TheViewModel.of(context).textChangedCommand,
+              onChanged: weatherManager.textChangedCommand,
             ),
           ),
           Expanded(
             // Handle events to show / hide spinner
             child: ValueListenableBuilder<bool>(
-              valueListenable: TheViewModel.of(context).updateWeatherCommand.isExecuting,
+              valueListenable: weatherManager.updateWeatherCommand.isExecuting,
               builder: (BuildContext context, bool isRunning, _) {
                 // if true we show a busy Spinner otherwise the ListView
                 if (isRunning == true) {
@@ -83,10 +81,10 @@ class _HomePageState extends State<HomePage> {
               children: <Widget>[
                 Expanded(
                   child: ValueListenableBuilder<bool>(
-                    valueListenable: TheViewModel.of(context).updateWeatherCommand.canExecute,
+                    valueListenable: weatherManager.updateWeatherCommand.canExecute,
                     builder: (BuildContext context, bool canExecute, _) {
-                      // Depending on the value of canEcecute we set or clear the Handler
-                      final handler = canExecute ? TheViewModel.of(context).updateWeatherCommand : null;
+                      // Depending on the value of canExecute we set or clear the Handler
+                      final handler = canExecute ? weatherManager.updateWeatherCommand : null;
                       return ElevatedButton(
                         child: Text("Update"),
                         style: ElevatedButton.styleFrom(
@@ -101,11 +99,11 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 ValueListenableBuilder<bool>(
-                    valueListenable: TheViewModel.of(context).setExecutionStateCommand,
+                    valueListenable: weatherManager.setExecutionStateCommand,
                     builder: (context, value, _) {
                       return Switch(
                         value: value,
-                        onChanged: TheViewModel.of(context).setExecutionStateCommand,
+                        onChanged: weatherManager.setExecutionStateCommand,
                       );
                     })
               ],

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-import 'weather_viewmodel.dart';
+import 'package:flutter_weather_demo/weather_manager.dart';
 
 class WeatherListView extends StatelessWidget {
   final List<WeatherEntry> data;
@@ -11,23 +10,23 @@ class WeatherListView extends StatelessWidget {
       itemCount: data.length,
       itemBuilder: (BuildContext context, int index) => ListTile(
         title: Text(data[index].cityName),
-        subtitle: Text(data[index].description),
-        leading: Image.network(
-          data[index].iconURL,
-          frameBuilder: (BuildContext context, Widget child, int frame,
-              bool wasSynchronouslyLoaded) {
-            return child;
-          },
-          loadingBuilder: (BuildContext context, Widget child,
-              ImageChunkEvent loadingProgress) {
-            if (loadingProgress == null) return child;
-            return CircularProgressIndicator();
-          },
-          errorBuilder: (context, error, stackTrace) => Icon(
-            Icons.error,
-            size: 40,
-          ),
-        ),
+        subtitle: Text(data[index].description ?? ''),
+        leading: data[index].iconURL != null
+            ? Image.network(
+                data[index].iconURL!,
+                frameBuilder: (BuildContext context, Widget child, int? frame, bool wasSynchronouslyLoaded) {
+                  return child;
+                },
+                loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return CircularProgressIndicator();
+                },
+                errorBuilder: (context, error, stackTrace) => Icon(
+                  Icons.error,
+                  size: 40,
+                ),
+              )
+            : SizedBox(),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
