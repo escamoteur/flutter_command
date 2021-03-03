@@ -39,7 +39,8 @@ class CustomException implements Exception {
 
   @override
   // ignore: hash_and_equals
-  bool operator ==(Object other) => other is CustomException && other.message == message;
+  bool operator ==(Object other) =>
+      other is CustomException && other.message == message;
 
   @override
   String toString() => "CustomException: $message";
@@ -51,8 +52,10 @@ void main() {
   /// into a list and keep it for comparison later.
   final Collector<bool> canExecuteCollector = Collector<bool>();
   final Collector<bool> isExecutingCollector = Collector<bool>();
-  final Collector<CommandResult> cmdResultCollector = Collector<CommandResult>();
-  final Collector<CommandError> thrownExceptionCollector = Collector<CommandError>();
+  final Collector<CommandResult> cmdResultCollector =
+      Collector<CommandResult>();
+  final Collector<CommandError> thrownExceptionCollector =
+      Collector<CommandError>();
   final Collector pureResultCollector = Collector();
 
   /// A utility method to setup [Collector] for all the [ValueListenable] in a
@@ -132,7 +135,8 @@ void main() {
 
       var executionCount = 0;
 
-      final command = Command.createSyncNoParamNoResult(() => executionCount++, restriction: restriction);
+      final command = Command.createSyncNoParamNoResult(() => executionCount++,
+          restriction: restriction);
 
       expect(command.canExecute.value, true);
 
@@ -155,7 +159,8 @@ void main() {
     });
 
     test('Execute simple sync action with exception', () {
-      final command = Command.createSyncNoParamNoResult(() => throw CustomException("Intentional"));
+      final command = Command.createSyncNoParamNoResult(
+          () => throw CustomException("Intentional"));
 
       setupCollectors(command);
 
@@ -170,9 +175,11 @@ void main() {
 
       // verify Collectors.
       expect(cmdResultCollector.values, [
-        CommandResult<void, void>(null, null, CustomException("Intentional"), false),
+        CommandResult<void, void>(
+            null, null, CustomException("Intentional"), false),
       ]);
-      expect(thrownExceptionCollector.values, [CommandError<void>(null, CustomException("Intentional"))]);
+      expect(thrownExceptionCollector.values,
+          [CommandError<void>(null, CustomException("Intentional"))]);
     });
 
     test('Execute simple sync action with parameter', () {
@@ -211,7 +218,8 @@ void main() {
       command.execute();
 
       expect(command.value, "4711");
-      expect(command.results.value, const CommandResult<void, String>(null, '4711', null, false));
+      expect(command.results.value,
+          const CommandResult<void, String>(null, '4711', null, false));
       expect(command.thrownExceptions.value, null);
       expect(executionCount, 1);
 
@@ -222,7 +230,8 @@ void main() {
       expect(pureResultCollector.values, [
         '4711',
       ]);
-      expect(cmdResultCollector.values, [const CommandResult<void, String>(null, '4711', null, false)]);
+      expect(cmdResultCollector.values,
+          [const CommandResult<void, String>(null, '4711', null, false)]);
     });
 
     test('Execute simple sync function with parameter and result', () {
@@ -239,7 +248,8 @@ void main() {
       command.execute("4711");
       expect(command.value, "47114711");
 
-      expect(command.results.value, const CommandResult<String, String>('4711', '47114711', null, false));
+      expect(command.results.value,
+          const CommandResult<String, String>('4711', '47114711', null, false));
       expect(command.thrownExceptions.value, null);
       expect(executionCount, 1);
 
@@ -250,9 +260,13 @@ void main() {
       expect(pureResultCollector.values, [
         '47114711',
       ]);
-      expect(cmdResultCollector.values, [const CommandResult<String?, String?>("4711", '47114711', null, false)]);
+      expect(cmdResultCollector.values, [
+        const CommandResult<String?, String?>("4711", '47114711', null, false)
+      ]);
     });
-    test('Execute simple sync function with parameter and result with nullable types', () {
+    test(
+        'Execute simple sync function with parameter and result with nullable types',
+        () {
       int executionCount = 0;
       final command = Command.createSync<String?, String?>((s) {
         print("action: $s");
@@ -266,7 +280,8 @@ void main() {
       command.execute(null);
       expect(command.value, null);
 
-      expect(command.results.value, const CommandResult<String?, String?>(null, null, null, false));
+      expect(command.results.value,
+          const CommandResult<String?, String?>(null, null, null, false));
 
       expect(command.thrownExceptions.value, null);
       expect(executionCount, 1);
@@ -278,7 +293,8 @@ void main() {
       expect(pureResultCollector.values, [
         null,
       ]);
-      expect(cmdResultCollector.values, [const CommandResult<String?, String?>(null, null, null, false)]);
+      expect(cmdResultCollector.values,
+          [const CommandResult<String?, String?>(null, null, null, false)]);
     });
     test('Execute simple sync function with parameter passing null', () {
       int executionCount = 0;
@@ -293,7 +309,8 @@ void main() {
       setupCollectors(command);
       expect(() => command.execute(null), throwsA(isA<AssertionError>()));
     });
-    test('Execute simple sync function with catchAlways == false and listeners', () async {
+    test('Execute simple sync function with catchAlways == false and listeners',
+        () async {
       int executionCount = 0;
       final command = Command.createSync<String, String>(
         (s) {
@@ -319,7 +336,8 @@ void main() {
       // the initial value is still returned so expect ex
       expect(command.value, "Initial Value");
 
-      expect(command.thrownExceptions.value, CommandError<String>("4711", CustomException("Intentional")));
+      expect(command.thrownExceptions.value,
+          CommandError<String>("4711", CustomException("Intentional")));
       expect(executionCount, 1);
       expect(globalExceptionHandlerCallCount, 0);
 
@@ -330,10 +348,14 @@ void main() {
         CommandError("4711", CustomException("Intentional")),
       ]);
       expect(pureResultCollector.values, isNull);
-      expect(cmdResultCollector.values,
-          [CommandResult<String, String>("4711", null, CustomException("Intentional"), false)]);
+      expect(cmdResultCollector.values, [
+        CommandResult<String, String>(
+            "4711", null, CustomException("Intentional"), false)
+      ]);
     });
-    test('Execute simple sync function with catchAlways == false and no listeners', () async {
+    test(
+        'Execute simple sync function with catchAlways == false and no listeners',
+        () async {
       int executionCount = 0;
       final command = Command.createSync<String, String>((s) {
         print("action: ${s}");
@@ -388,7 +410,8 @@ void main() {
       setupCollectors(command);
 
       // Ensure command is not executing already.
-      expect(command.isExecuting.value, false, reason: "IsExecuting before true");
+      expect(command.isExecuting.value, false,
+          reason: "IsExecuting before true");
 
       // Execute command.
       command.execute();
@@ -465,7 +488,8 @@ void main() {
       setupCollectors(command);
 
       // Ensure command is not executing already.
-      expect(command.isExecuting.value, false, reason: "IsExecuting before true");
+      expect(command.isExecuting.value, false,
+          reason: "IsExecuting before true");
 
       // Execute command.
       command.execute();
@@ -503,7 +527,8 @@ void main() {
       setupCollectors(command);
 
       // Ensure command is not executing already.
-      expect(command.isExecuting.value, false, reason: "IsExecuting before true");
+      expect(command.isExecuting.value, false,
+          reason: "IsExecuting before true");
 
       // Execute command.
       command.execute("Done");
@@ -527,7 +552,8 @@ void main() {
       ]);
     });
 
-    test('Execute simple async function with parameter and return value', () async {
+    test('Execute simple async function with parameter and return value',
+        () async {
       var executionCount = 0;
 
       final command = Command.createAsync<String, String>(
@@ -540,7 +566,8 @@ void main() {
 
       setupCollectors(command);
 
-      expect(command.isExecuting.value, false, reason: "IsExecuting before true");
+      expect(command.isExecuting.value, false,
+          reason: "IsExecuting before true");
 
       command.execute("Done");
 
@@ -576,7 +603,8 @@ void main() {
 
       setupCollectors(command);
 
-      expect(command.isExecuting.value, false, reason: "IsExecuting before true");
+      expect(command.isExecuting.value, false,
+          reason: "IsExecuting before true");
 
       expect(command.value, "Initial Value");
 
@@ -609,7 +637,8 @@ void main() {
 
       setupCollectors(command);
 
-      expect(command.isExecuting.value, false, reason: "IsExecuting before true");
+      expect(command.isExecuting.value, false,
+          reason: "IsExecuting before true");
 
       command.execute("Done");
 
@@ -622,8 +651,10 @@ void main() {
       expect(executionCount, 2);
 
       // Verify all the necessary collectors
-      expect(canExecuteCollector.values, [false, true, false, true], reason: "CanExecute order is wrong");
-      expect(isExecutingCollector.values, [true, false, true, false], reason: "IsExecuting order is wrong.");
+      expect(canExecuteCollector.values, [false, true, false, true],
+          reason: "CanExecute order is wrong");
+      expect(isExecutingCollector.values, [true, false, true, false],
+          reason: "IsExecuting order is wrong.");
       expect(pureResultCollector.values, ["Done", "Done2"]);
       expect(cmdResultCollector.values, [
         const CommandResult<String, String>("Done", null, null, true),
@@ -633,7 +664,9 @@ void main() {
       ]);
     });
 
-    test('Execute simple async function called twice with delay and emitLastResult=true', () async {
+    test(
+        'Execute simple async function called twice with delay and emitLastResult=true',
+        () async {
       var executionCount = 0;
 
       final command = Command.createAsync<String, String>(
@@ -648,7 +681,8 @@ void main() {
       // Setup all collectors.
       setupCollectors(command);
 
-      expect(command.isExecuting.value, false, reason: "IsExecuting before true");
+      expect(command.isExecuting.value, false,
+          reason: "IsExecuting before true");
 
       command.execute("Done");
       await Future.delayed(const Duration(milliseconds: 50));
@@ -660,11 +694,14 @@ void main() {
       expect(executionCount, 2);
 
       // Verify all the necessary collectors
-      expect(canExecuteCollector.values, [false, true, false, true], reason: "CanExecute order is wrong");
-      expect(isExecutingCollector.values, [true, false, true, false], reason: "IsExecuting order is wrong.");
+      expect(canExecuteCollector.values, [false, true, false, true],
+          reason: "CanExecute order is wrong");
+      expect(isExecutingCollector.values, [true, false, true, false],
+          reason: "IsExecuting order is wrong.");
       expect(pureResultCollector.values, ["Done", "Done2"]);
       expect(cmdResultCollector.values, [
-        const CommandResult<String, String>("Done", "Initial Value", null, true),
+        const CommandResult<String, String>(
+            "Done", "Initial Value", null, true),
         const CommandResult<String, String>("Done", "Done", null, false),
         const CommandResult<String, String>("Done2", "Done", null, true),
         const CommandResult<String, String>("Done2", "Done2", null, false)
@@ -675,10 +712,13 @@ void main() {
       throw CustomException("Intentionally");
     }
 
-    test('async function with exception and catchAlways==false with no listeners', () async {
-      final Command<String, String> command = Command.createAsync<String, String>(
-          slowAsyncFunctionFail, "Initial Value",
-          catchAlways: false, debugName: "FailedCommand");
+    test(
+        'async function with exception and catchAlways==false with no listeners',
+        () async {
+      final Command<String, String> command =
+          Command.createAsync<String, String>(
+              slowAsyncFunctionFail, "Initial Value",
+              catchAlways: false, debugName: "FailedCommand");
 
       String? name = '';
       late CommandError commandError;
@@ -706,10 +746,13 @@ void main() {
       expect(pureResultCollector.values, isNull);
     });
 
-    test('async function with exception and catchAlways==false with no listeners', () async {
-      final Command<String, String> command = Command.createAsync<String, String>(
-          slowAsyncFunctionFail, "Initial Value",
-          catchAlways: false, debugName: "FailedCommand");
+    test(
+        'async function with exception and catchAlways==false with no listeners',
+        () async {
+      final Command<String, String> command =
+          Command.createAsync<String, String>(
+              slowAsyncFunctionFail, "Initial Value",
+              catchAlways: false, debugName: "FailedCommand");
 
       String? name = '';
       late CommandError commandError;
@@ -736,7 +779,9 @@ void main() {
       // Verify nothing came through pure results from .
       expect(pureResultCollector.values, isNull);
     });
-    test('async function with exception with and catchAlways==false with listeners', () async {
+    test(
+        'async function with exception with and catchAlways==false with listeners',
+        () async {
       final command = Command.createAsync<String, String>(
         slowAsyncFunctionFail,
         "Initial Value",
@@ -759,12 +804,14 @@ void main() {
       // Verify nothing came through pure results from .
       expect(pureResultCollector.values, isNull);
 
-      expect(thrownExceptionCollector.values, [CommandError<String>("Done", CustomException("Intentionally"))]);
+      expect(thrownExceptionCollector.values,
+          [CommandError<String>("Done", CustomException("Intentionally"))]);
 
       // Verify the results collector.
       expect(cmdResultCollector.values, [
         const CommandResult<String, String>("Done", null, null, true),
-        CommandResult<String, String>("Done", null, CustomException("Intentionally"), false),
+        CommandResult<String, String>(
+            "Done", null, CustomException("Intentionally"), false),
       ]);
     });
   });
@@ -816,7 +863,8 @@ void main() {
       expect(canExecuteCollector.values, isNotEmpty);
       expect(cmdResultCollector.values, [
         const CommandResult<String, String>("Done", null, null, true),
-        CommandResult<String, String>("Done", null, CustomException("Intentional"), false)
+        CommandResult<String, String>(
+            "Done", null, CustomException("Intentional"), false)
       ]);
       expect(pureResultCollector.values, isNull);
       expect(thrownExceptionCollector.values, [
@@ -836,7 +884,8 @@ void main() {
 
       final Stopwatch sw = Stopwatch()..start();
       final commandFuture = command.executeWithFuture("Done");
-      final result = await commandFuture.timeout(const Duration(milliseconds: 50));
+      final result =
+          await commandFuture.timeout(const Duration(milliseconds: 50));
       final duration = sw.elapsedMilliseconds;
       sw.stop();
 
@@ -845,15 +894,18 @@ void main() {
       expect(result, 'Done');
     });
 
-    test("Check globalExceptionHadnler is called in Sync/Async Command", () async {
+    test("Check globalExceptionHadnler is called in Sync/Async Command",
+        () async {
       final command = Command.createSync<String, String>((s) {
         throw CustomException("Intentional");
       }, "Initial Value", debugName: "globalHandler");
 
-      Command.globalExceptionHandler = expectAsync2<void, String?, CommandError<Object>>((debugName, ce) {
+      Command.globalExceptionHandler =
+          expectAsync2<void, String?, CommandError<Object>>((debugName, ce) {
         expect(debugName, "globalHandler");
         expect(ce, isA<CommandError>());
-        expect(ce, CommandError<Object>("Done", CustomException("Intentional")));
+        expect(
+            ce, CommandError<Object>("Done", CustomException("Intentional")));
       }, count: 1);
 
       command('Done');
@@ -863,10 +915,12 @@ void main() {
         throw CustomException("Intentional");
       }, "Initial Value", debugName: "globalHandler", catchAlways: false);
 
-      Command.globalExceptionHandler = expectAsync2<void, String?, CommandError<Object>>((debugName, ce) {
+      Command.globalExceptionHandler =
+          expectAsync2<void, String?, CommandError<Object>>((debugName, ce) {
         expect(debugName, "globalHandler");
         expect(ce, isA<CommandError>());
-        expect(ce, CommandError<Object>("Done", CustomException("Intentional")));
+        expect(
+            ce, CommandError<Object>("Done", CustomException("Intentional")));
       }, count: 1);
 
       expect(() => command2("Done"), throwsA(isA<CustomException>()));
@@ -992,7 +1046,8 @@ void main() {
       // Wait for command to finish async execution.
       await tester.pump(const Duration(milliseconds: 1500));
       expect(find.widgetWithText(Center, "Is Executing"), findsNothing);
-      expect(find.widgetWithText(Center, "Exception From Command"), findsOneWidget);
+      expect(find.widgetWithText(Center, "Exception From Command"),
+          findsOneWidget);
     });
     testWidgets("Test toWidget with Data", (WidgetTester tester) async {
       final testCommand = Command.createAsyncNoParam<String>(
@@ -1091,7 +1146,8 @@ void main() {
       // Wait for command to finish async execution.
       await tester.pump(const Duration(milliseconds: 1500));
       expect(find.widgetWithText(Center, "Is Executing"), findsNothing);
-      expect(find.widgetWithText(Center, "Exception From Command"), findsOneWidget);
+      expect(find.widgetWithText(Center, "Exception From Command"),
+          findsOneWidget);
     });
   });
 
@@ -1102,8 +1158,10 @@ void main() {
         const CommandResult<String, String>(null, null, null, false),
       );
       expect(
-        CommandResult<String, String>.error("param", CustomException("Intentional")),
-        CommandResult<String, String>("param", null, CustomException("Intentional"), false),
+        CommandResult<String, String>.error(
+            "param", CustomException("Intentional")),
+        CommandResult<String, String>(
+            "param", null, CustomException("Intentional"), false),
       );
       expect(
         const CommandResult<String, String>.isLoading("param"),
@@ -1113,9 +1171,13 @@ void main() {
         const CommandResult<String, String>.data("param", "result"),
         const CommandResult<String, String>("param", "result", null, false),
       );
-      expect(const CommandResult<String, String>.data("param", "result").toString(),
+      expect(
+          const CommandResult<String, String>.data("param", "result")
+              .toString(),
           "ParamData param - Data: result - HasError: false - IsExecuting: false");
-      expect(CommandError<String>("param", CustomException("Intentional")).toString(),
+      expect(
+          CommandError<String>("param", CustomException("Intentional"))
+              .toString(),
           "CustomException: Intentional - for param: param");
     });
     test('Test MockCommand - execute', () {
@@ -1128,7 +1190,8 @@ void main() {
       expect(mockCommand.canExecute.value, true);
       setupCollectors(mockCommand);
 
-      mockCommand.queueResultsForNextExecuteCall([const CommandResult<void, String>.data(null, 'param')]);
+      mockCommand.queueResultsForNextExecuteCall(
+          [const CommandResult<void, String>.data(null, 'param')]);
       mockCommand.execute();
 
       // verify collectors
@@ -1147,7 +1210,8 @@ void main() {
       mockCommand.startExecution("Start");
 
       // verify collectors
-      expect(cmdResultCollector.values, [const CommandResult<String, String>("Start", null, null, true)]);
+      expect(cmdResultCollector.values,
+          [const CommandResult<String, String>("Start", null, null, true)]);
       // expect(pureResultCollector.values, ["Initial Value"]);
       // expect(isExecutingCollector.values, [true, false]);
     });
@@ -1165,7 +1229,8 @@ void main() {
       mockCommand.endExecutionWithData("end_data");
 
       // verify collectors
-      expect(cmdResultCollector.values, [const CommandResult<String, String>(null, "end_data", null, false)]);
+      expect(cmdResultCollector.values,
+          [const CommandResult<String, String>(null, "end_data", null, false)]);
       expect(pureResultCollector.values, ["end_data"]);
     });
     test('Test MockCommand - endExecutionNoData', () {
@@ -1181,7 +1246,8 @@ void main() {
       mockCommand.endExecutionNoData();
 
       // verify collectors
-      expect(cmdResultCollector.values, [const CommandResult<String, String>(null, null, null, false)]);
+      expect(cmdResultCollector.values,
+          [const CommandResult<String, String>(null, null, null, false)]);
       expect(pureResultCollector.values, isNull);
       // expect(isExecutingCollector.values, [true, false]);
     });
@@ -1198,7 +1264,8 @@ void main() {
       mockCommand.endExecutionWithError("Test Mock Error");
 
       // verify collectors
-      expect(mockCommand.results.value.error.toString(), "Exception: Test Mock Error - for param: null");
+      expect(mockCommand.results.value.error.toString(),
+          "Exception: Test Mock Error - for param: null");
       expect(pureResultCollector.values, isNull);
       // expect(isExecutingCollector.values, [true, false]);
     });

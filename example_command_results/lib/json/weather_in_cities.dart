@@ -11,12 +11,14 @@ class WeatherInCities {
   final int cnt;
   final List<City> cities;
 
-  factory WeatherInCities.fromJson(Map<String, dynamic> json) => WeatherInCities(
+  factory WeatherInCities.fromJson(Map<String, dynamic> json) =>
+      WeatherInCities(
         cod: json["cod"] ?? 0 as int,
         calctime: json["calctime"] ?? 0.0 as double,
         cnt: json["cnt"] ?? 0 as int,
-        cities:
-            List<City>.from((json["list"] ?? [] as List).map((x) => City.fromJson(x as Map<String, dynamic>)).toList()),
+        cities: List<City>.from((json["list"] ?? [] as List)
+            .map((x) => City.fromJson(x as Map<String, dynamic>))
+            .toList()),
       );
 
   Map<String, dynamic> toJson() => {
@@ -65,8 +67,8 @@ class City {
         rain: json["rain"] ?? 0.0 as double,
         snow: json["snow"] ?? 0.0 as double,
         clouds: Clouds.fromJson(json["clouds"] ?? {} as Map<String, dynamic>),
-        weather:
-            List<Weather>.from((json["weather"] ?? [] as List).map((x) => Weather.fromJson(x as Map<String, dynamic>))),
+        weather: List<Weather>.from((json["weather"] ?? [] as List)
+            .map((x) => Weather.fromJson(x as Map<String, dynamic>))),
       );
 
   Map<String, dynamic> toJson() => {

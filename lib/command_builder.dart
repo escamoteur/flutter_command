@@ -3,10 +3,13 @@ import 'package:flutter_command/flutter_command.dart';
 
 class CommandBuilder<TParam, TResult> extends StatelessWidget {
   final Command<TParam, TResult> command;
-  final Widget Function(BuildContext context, TResult data, TParam? param)? onData;
+  final Widget Function(BuildContext context, TResult data, TParam? param)?
+      onData;
   final Widget Function(BuildContext context, TParam? param)? onNullData;
-  final Widget Function(BuildContext context, TResult? lastValue, TParam? param)? whileExecuting;
-  final Widget Function(BuildContext context, Object?, TResult? lastValue, TParam?)? onError;
+  final Widget Function(
+      BuildContext context, TResult? lastValue, TParam? param)? whileExecuting;
+  final Widget Function(
+      BuildContext context, Object?, TResult? lastValue, TParam?)? onError;
 
   const CommandBuilder({
     required this.command,
@@ -23,17 +26,22 @@ class CommandBuilder<TParam, TResult> extends StatelessWidget {
         valueListenable: command.results,
         builder: (context, result, _) {
           return result.toWidget(
-              onData: (data, paramData) => onData?.call(context, data, paramData) ?? const SizedBox(),
-              onNullData: (paramData) => onNullData?.call(context, paramData) ?? const SizedBox(),
+              onData: (data, paramData) =>
+                  onData?.call(context, data, paramData) ?? const SizedBox(),
+              onNullData: (paramData) =>
+                  onNullData?.call(context, paramData) ?? const SizedBox(),
               whileExecuting: (lastData, paramData) =>
-                  whileExecuting?.call(context, lastData, paramData) ?? const SizedBox(),
+                  whileExecuting?.call(context, lastData, paramData) ??
+                  const SizedBox(),
               onError: (lastData, error, paramData) =>
-                  onError?.call(context, lastData, error, paramData) ?? const SizedBox());
+                  onError?.call(context, lastData, error, paramData) ??
+                  const SizedBox());
         });
   }
 }
 
-extension ToWidgeCommandResult<TParam, TResult> on CommandResult<TParam, TResult> {
+extension ToWidgeCommandResult<TParam, TResult>
+    on CommandResult<TParam, TResult> {
   Widget toWidget({
     required Widget Function(TResult result, TParam? param) onData,
     Widget Function(TParam? param)? onNullData,

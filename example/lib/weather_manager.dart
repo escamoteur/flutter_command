@@ -16,14 +16,14 @@ class WeatherManager {
     // Command expects a bool value when executed and sets it as its own value
     setExecutionStateCommand = Command.createSync<bool, bool>((b) => b, true);
 
-    // We pass the result of switchChangedCommand as canExecut to the upDateWeatherCommand
+    // We pass the result of switchChangedCommand as restrictions to the upDateWeatherCommand
     updateWeatherCommand = Command.createAsync<String?, List<WeatherEntry>>(
       update, // Wrapped function
       [], // Initial value
       restriction: setExecutionStateCommand,
     );
 
-    // Will be called on every change of the searchfield
+    // Will be called on every change of the search-field
     textChangedCommand = Command.createSync((s) => s, '');
 
     // handler for results
@@ -38,7 +38,7 @@ class WeatherManager {
 
     updateWeatherCommand.thrownExceptions.listen((ex, _) => print(ex.toString()));
 
-    // Update data on startup
+    // Update data on start-up
     updateWeatherCommand.execute();
   }
 

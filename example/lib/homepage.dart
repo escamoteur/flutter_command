@@ -14,9 +14,9 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void didChangeDependencies() {
-    errorSubscription ??=
-        weatherManager.updateWeatherCommand.thrownExceptions.where((x) => x != null) // filter out the error value reset
-            .listen((error, _) {
+    errorSubscription ??= weatherManager.updateWeatherCommand.thrownExceptions
+        .where((x) => x != null) // filter out the error value reset
+        .listen((error, _) {
       showDialog(
           context: context,
           builder: (context) => AlertDialog(
@@ -81,14 +81,18 @@ class _HomePageState extends State<HomePage> {
               children: <Widget>[
                 Expanded(
                   child: ValueListenableBuilder<bool>(
-                    valueListenable: weatherManager.updateWeatherCommand.canExecute,
+                    valueListenable:
+                        weatherManager.updateWeatherCommand.canExecute,
                     builder: (BuildContext context, bool canExecute, _) {
                       // Depending on the value of canExecute we set or clear the Handler
-                      final handler = canExecute ? weatherManager.updateWeatherCommand : null;
+                      final handler = canExecute
+                          ? weatherManager.updateWeatherCommand
+                          : null;
                       return ElevatedButton(
                         child: Text("Update"),
                         style: ElevatedButton.styleFrom(
-                            primary: Color.fromARGB(255, 33, 150, 243), onPrimary: Color.fromARGB(255, 255, 255, 255)),
+                            primary: Color.fromARGB(255, 33, 150, 243),
+                            onPrimary: Color.fromARGB(255, 255, 255, 255)),
 
                         /// because of a current limitation of Dart
                         /// we have to use `?.execute` if the command is
