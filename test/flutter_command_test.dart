@@ -228,7 +228,7 @@ void main() {
     test('Execute simple sync function with parameter and result', () {
       int executionCount = 0;
       final command = Command.createSync<String, String>((s) {
-        print("action: ${s}");
+        print("action: $s");
         executionCount++;
         return s + s;
       }, '');

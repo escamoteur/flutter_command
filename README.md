@@ -72,6 +72,8 @@ Our widget tree now looks like this:
 
 As `Command` is a [callable class](https://dart.dev/guides/language/language-tour#callable-classes), so we can pass it directly to the `onPressed` handler of the `FloatingActionButton` and it will execute the wrapped function. The result of the function will get assigned to the `Command.value` so that the `ValueListenableBuilder` updates automatically.
 
+**This is a very basic demo! In a real all you wouldn't place a command in a Widgets State**
+
 ## Commands in full power mode
 So far the command did not do more than what you could do with BLoC, besides that you could call it like a function and didn't need a Stream. But `Command` can do more than that. It allows us to:
 
@@ -83,13 +85,13 @@ Let's explore this features by examining the included `example` app which querie
 
 ![](https://github.com/escamoteur/flutter_command/blob/master/misc/screen_shot_example.png)
 
-The app uses a `WeatherViewModel` which contains the `Command` to update the `ListView` by making a REST call:
+The app uses a `WeatherManager` which contains the `Command` to update the `ListView` by making a REST call:
 
 ```Dart
 Command<String, List<WeatherEntry>> updateWeatherCommand;
 ```
 The `updateWeatherCommand` expects a search term and will return a list of `WeatherEntry`.
-The `Command` gets initialized in the constructor of the `WeatherViewModel`:
+The `Command` gets initialized in the constructor of the `WeatherManager`:
 
 
 ```Dart
@@ -111,7 +113,7 @@ class WeatherListView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<List<WeatherEntry>>(
-      valueListenable: TheViewModel.of(context).updateWeatherCommand,
+      valueListenable: weatherManager.updateWeatherCommand,
       builder: (BuildContext context, List<WeatherEntry> data, _) {
         // only if we get data
         return ListView.builder(
@@ -131,7 +133,7 @@ So we use this in the UI in `homepage.dart` to display a progress indicator whil
 ```Dart
 child: ValueListenableBuilder<bool>(
     valueListenable:
-        TheViewModel.of(context).updateWeatherCommand.isExecuting,
+        weatherManager.updateWeatherCommand.isExecuting,
     builder: (BuildContext context, bool isRunning, _) {
     // if true we show a buys Spinner otherwise the ListView
     if (isRunning == true) {
@@ -178,16 +180,16 @@ In the `homepage.dart`:
 ```Dart
 child: TextField(
     /// I omitted some properties from the example here
-    onChanged: TheViewModel.of(context).textChangedCommand,
+    onChanged: weatherManager.textChangedCommand,
 ),
 ```
 
 ### Restricting command execution
 Sometimes it is desirable to make the execution of a `Command` depending on some other state. For this you can pass a `ValueListenable<bool>` as `restriction` parameter, when you create a command. If you do so the command will only be executed if the value of the passed listenable is `true`.
-In the example app we can restrict the execution by changing the state of a `Switch`. To handle changes of the `Switch` we use..., you guessed it, another command in the `WeatherViewModel`:
+In the example app we can restrict the execution by changing the state of a `Switch`. To handle changes of the `Switch` we use..., you guessed it, another command in the `WeatherManager`:
 
 ```Dart
-WeatherViewModel() {
+WeatherManager() {
     // Command expects a bool value when executed and sets it as its own value
     setExecutionStateCommand = Command.createSync<bool, bool>((b) => b, true);
 
@@ -203,12 +205,12 @@ To update the `Switch` we use again a `ValueListenableBuilder`:
 ```Dart
 ValueListenableBuilder<bool>(
     valueListenable:
-        TheViewModel.of(context).setExecutionStateCommand,
+        weatherManager.setExecutionStateCommand,
     builder: (context, value, _) {
         return Switch(
         value: value,
         onChanged:
-            TheViewModel.of(context).setExecutionStateCommand,
+            weatherManager.setExecutionStateCommand,
         );
     })
 ```
@@ -221,13 +223,13 @@ So we can easily solve this requirement with another....wait for it...`ValueList
 
 ```Dart
 child: ValueListenableBuilder<bool>(
-  valueListenable: TheViewModel.of(context)
+  valueListenable: weatherManager
       .updateWeatherCommand
       .canExecute,
   builder: (BuildContext context, bool canExecute, _) {
     // Depending on the value of canExecute we set or clear the handler
     final handler = canExecute
-        ? TheViewModel.of(context).updateWeatherCommand
+        ? weatherManager.updateWeatherCommand
         : null;
     return RaisedButton(
       child: Text("Update"),
@@ -247,7 +249,7 @@ So to react on occurring error you can register your handler with `addListener` 
 /// in HomePage.dart
 @override
 void didChangeDependencies() {
-  errorSubscription ??= TheViewModel.of(context)
+  errorSubscription ??= weatherManager
       .updateWeatherCommand
       .thrownExceptions
       .where((x) => x != null) // filter out the error value reset
@@ -312,7 +314,7 @@ You can find a Version of the Weather app that uses this approach in `example_co
 child: ValueListenableBuilder<
     CommandResult<String, List<WeatherEntry>>>(
   valueListenable:
-      TheViewModel.of(context).updateWeatherCommand.results,
+      weatherManager.updateWeatherCommand.results,
   builder: (BuildContext context, result, _) {
     if (result.isExecuting) {
       return Center(
@@ -347,7 +349,7 @@ If you want to be able to always display data (while loading or in case of an er
 
 ```Dart
 child: CommandBuilder<String, List<WeatherEntry>>(
-  command: TheViewModel.of(context).updateWeatherCommand,
+  command: weatherManager.updateWeatherCommand,
   whileExecuting: (context, _) => Center(
     child: SizedBox(
       width: 50.0,
@@ -488,3 +490,6 @@ return RefreshIndicator(
   ),
 );
 ```
+
+## Commands and the get_it_mixin
+If you want to use Commands as comfortable as possible, check out the [get_it_mixin](https://pub.dev/packages/get_it_mixin) with its `watchX` function. With it you can use Commands without any Builders in a very intuitive way.
