@@ -291,7 +291,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<TParam, TResult> createAsync<TParam, TResult>(
-      Future<TResult> Function(TParam? x) func, TResult initialValue,
+      Future<TResult> Function(TParam x) func, TResult initialValue,
       {ValueListenable<bool>? restriction,
       bool includeLastResultInCommandResults = false,
       bool? catchAlways,
