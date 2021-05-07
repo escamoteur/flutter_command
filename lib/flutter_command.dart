@@ -105,6 +105,42 @@ class CommandError<TParam> {
 /// [TResult] denotes the return type of the handler function. To signal that
 /// a handler doesn't take a parameter or returns no value use the type `void`
 abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
+  Command(
+      TResult initialValue,
+      ValueListenable<bool>? restriction,
+      bool includeLastResultInCommandResults,
+      bool noReturnValue,
+      bool catchAlways,
+      String? debugName,
+      bool noParamValue)
+      : _noReturnValue = noReturnValue,
+        _noParamValue = noParamValue,
+        _includeLastResultInCommandResults = includeLastResultInCommandResults,
+        _catchAlways = catchAlways,
+        _debugName = debugName,
+        super(initialValue) {
+    _commandResult =
+        _ListenerCountingValueNotifier<CommandResult<TParam?, TResult>>(
+            CommandResult.data(null, initialValue));
+
+    /// forward error states to the `thrownExceptions` Listenable
+    _commandResult.where((x) => x.hasError).listen((x, _) {
+      _thrownExceptions.value = CommandError<TParam>(x.paramData, x.error!);
+      _thrownExceptions.notifyListeners();
+    });
+
+    /// forward busy states to the `isExecuting` Listenable
+    _commandResult.listen((x, _) => _isExecuting.value = x.isExecuting);
+
+    /// Merge the external execution restricting with the internal
+    /// isExecuting which also blocks execution if true
+    _canExecute = (restriction == null)
+        ? _isExecuting.map((val) => !val) as ValueNotifier<bool>
+        : restriction.combineLatest<bool, bool>(_isExecuting,
+                (restriction, isExecuting) => restriction && !isExecuting)
+            as ValueNotifier<bool>;
+  }
+
   ///
   /// Creates  a Command for a synchronous handler function with no parameter and no return type
   /// [action]: handler function
@@ -125,8 +161,17 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
       {ValueListenable<bool>? restriction,
       bool? catchAlways,
       String? debugName}) {
-    return CommandSync<void, void>(null, action, null, restriction, false, true,
-        catchAlways, debugName, true);
+    return CommandSync<void, void>(
+      null,
+      action,
+      null,
+      restriction,
+      false,
+      true,
+      catchAlways,
+      debugName,
+      true,
+    );
   }
 
   /// Creates  a Command for a synchronous handler function with one parameter and no return type
@@ -150,8 +195,17 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
     bool? catchAlways,
     String? debugName,
   }) {
-    return CommandSync<TParam, void>((x) => action(x), null, null, restriction,
-        false, true, catchAlways, debugName, false);
+    return CommandSync<TParam, void>(
+      (x) => action(x),
+      null,
+      null,
+      restriction,
+      false,
+      true,
+      catchAlways,
+      debugName,
+      false,
+    );
   }
 
   /// Creates  a Command for a synchronous handler function with no parameter that returns a value
@@ -176,8 +230,17 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
       bool includeLastResultInCommandResults = false,
       bool? catchAlways,
       String? debugName}) {
-    return CommandSync<void, TResult>(null, func, initialValue, restriction,
-        includeLastResultInCommandResults, false, catchAlways, debugName, true);
+    return CommandSync<void, TResult>(
+      null,
+      func,
+      initialValue,
+      restriction,
+      includeLastResultInCommandResults,
+      false,
+      catchAlways,
+      debugName,
+      true,
+    );
   }
 
   /// Creates  a Command for a synchronous handler function with parameter that returns a value
@@ -233,8 +296,17 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
       {ValueListenable<bool>? restriction,
       bool? catchAlways,
       String? debugName}) {
-    return CommandAsync<void, void>(null, action, null, restriction, false,
-        true, catchAlways, debugName, true);
+    return CommandAsync<void, void>(
+      null,
+      action,
+      null,
+      restriction,
+      false,
+      true,
+      catchAlways,
+      debugName,
+      true,
+    );
   }
 
   /// Creates  a Command for an asynchronous handler function with one parameter and no return type
@@ -254,8 +326,17 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
       {ValueListenable<bool>? restriction,
       bool? catchAlways,
       String? debugName}) {
-    return CommandAsync<TParam, void>((x) async => action(x), null, null,
-        restriction, false, false, catchAlways, debugName, false);
+    return CommandAsync<TParam, void>(
+      (x) async => action(x),
+      null,
+      null,
+      restriction,
+      false,
+      false,
+      catchAlways,
+      debugName,
+      false,
+    );
   }
 
   /// Creates  a Command for an asynchronous handler function with no parameter that returns a value
@@ -275,8 +356,17 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
       bool includeLastResultInCommandResults = false,
       bool? catchAlways,
       String? debugName}) {
-    return CommandAsync<void, TResult>(null, func, initialValue, restriction,
-        includeLastResultInCommandResults, false, catchAlways, debugName, true);
+    return CommandAsync<void, TResult>(
+      null,
+      func,
+      initialValue,
+      restriction,
+      includeLastResultInCommandResults,
+      false,
+      catchAlways,
+      debugName,
+      true,
+    );
   }
 
   /// Creates  a Command for an asynchronous handler function with parameter that returns a value
@@ -291,7 +381,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<TParam, TResult> createAsync<TParam, TResult>(
-      Future<TResult> Function(TParam? x) func, TResult initialValue,
+      Future<TResult> Function(TParam x) func, TResult initialValue,
       {ValueListenable<bool>? restriction,
       bool includeLastResultInCommandResults = false,
       bool? catchAlways,
@@ -340,7 +430,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   ///
   ValueListenable<CommandError?> get thrownExceptions => _thrownExceptions;
 
-  /// optional hander that will get call on any exception that happens inside
+  /// optional hander that will get called on any exception that happens inside
   /// any Command of the app. Ideal for logging. [commandName]
   /// the [debugName] of the Command
   static void Function(String? commandName, CommandError<Object> error)?
@@ -438,42 +528,6 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
           const SizedBox();
     }
     return onResult(value, _commandResult.value.paramData);
-  }
-
-  Command(
-      TResult initialValue,
-      ValueListenable<bool>? restriction,
-      bool includeLastResultInCommandResults,
-      bool noReturnValue,
-      bool catchAlways,
-      String? debugName,
-      bool noParamValue)
-      : _noReturnValue = noReturnValue,
-        _noParamValue = noParamValue,
-        _includeLastResultInCommandResults = includeLastResultInCommandResults,
-        _catchAlways = catchAlways,
-        _debugName = debugName,
-        super(initialValue) {
-    _commandResult =
-        _ListenerCountingValueNotifier<CommandResult<TParam?, TResult>>(
-            CommandResult.data(null, initialValue));
-
-    /// forward error states to the `thrownExceptions` Listenable
-    _commandResult.where((x) => x.hasError).listen((x, _) {
-      _thrownExceptions.value = CommandError<TParam>(x.paramData, x.error!);
-      _thrownExceptions.notifyListeners();
-    });
-
-    /// forward busy states to the `isExecuting` Listenable
-    _commandResult.listen((x, _) => _isExecuting.value = x.isExecuting);
-
-    /// Merge the external execution restricting with the internal
-    /// isExecuting which also blocks execution if true
-    _canExecute = (restriction == null)
-        ? _isExecuting.map((val) => !val) as ValueNotifier<bool>
-        : restriction.combineLatest<bool, bool>(_isExecuting,
-                (restriction, isExecuting) => restriction && !isExecuting)
-            as ValueNotifier<bool>;
   }
 }
 

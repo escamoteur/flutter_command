@@ -1,3 +1,19 @@
+## [2.0.1] - 07.03.2021
+
+* Fixed small nullability bug in the signature of 
+
+```Dart
+  static Command<TParam, TResult> createAsync<TParam, TResult>(
+      Future<TResult> Function(TParam? x) func, TResult initialValue
+```
+
+the type of `func` has to be correctly `Future<TResult> Function(TParam x)` so now it looks like
+```dart
+  static Command<TParam, TResult> createAsync<TParam, TResult>(
+      Future<TResult> Function(TParam x) func, TResult initialValue,
+```
+You could probably call this a breaking change but as it won't change the behaviour, just that you probably will have to remove some '!' from your code I won't do a major version here.
+
 ## [2.0.0] - 03.03.2021
 
 * finished null safety migration
