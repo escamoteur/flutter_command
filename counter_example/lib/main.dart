@@ -18,13 +18,16 @@ class MyApp extends StatelessWidget {
         // closer together (more dense) than on mobile platforms.
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
+      home: MyHomePage('Flutter Demo Home Page'),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
+  MyHomePage(
+    this.title, {
+    Key? key,
+  }) : super(key: key);
   final String title;
 
   @override
@@ -33,7 +36,10 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   int counter = 0;
-  Command<void, String> _incrementCounterCommand;
+
+  ///this is a simplification. In a real app you wouldn't put a command
+  /// in a State Object but in some business object
+  late Command<void, String> _incrementCounterCommand;
 
   _MyHomePageState() {
     _incrementCounterCommand = Command.createSyncNoParam(() {

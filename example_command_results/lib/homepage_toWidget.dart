@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_command/flutter_command.dart';
-import 'package:flutter_weather_demo/weather_viewmodel.dart';
+import 'package:flutter_weather_demo/main.dart';
+import 'package:flutter_weather_demo/weather_manager.dart';
 
 import 'listview.dart';
-import 'main.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -29,15 +29,14 @@ class _HomePageState extends State<HomePage> {
                 fontSize: 20.0,
                 color: Color.fromARGB(255, 0, 0, 0),
               ),
-              onChanged: TheViewModel.of(context).textChangedCommand,
+              onChanged: weatherManager.textChangedCommand,
             ),
           ),
           Expanded(
             // Handle events to show / hide spinner
             child: ValueListenableBuilder<
-                    CommandResult<String, List<WeatherEntry>>>(
-                valueListenable:
-                    TheViewModel.of(context).updateWeatherCommand.results,
+                    CommandResult<String?, List<WeatherEntry>>>(
+                valueListenable: weatherManager.updateWeatherCommand.results,
                 builder: (BuildContext context, result, _) {
                   return result.toWidget(
                     whileExecuting: (lastValue, _) => Center(
@@ -47,7 +46,7 @@ class _HomePageState extends State<HomePage> {
                         child: CircularProgressIndicator(),
                       ),
                     ),
-                    onResult: (data, _) => WeatherListView(data),
+                    onData: (data, _) => WeatherListView(data),
                     onError: (error, lastValue, paramData) => Column(
                       children: [
                         Text('An Error has occurred!'),
@@ -66,31 +65,33 @@ class _HomePageState extends State<HomePage> {
               children: <Widget>[
                 Expanded(
                   child: ValueListenableBuilder<bool>(
-                    valueListenable: TheViewModel.of(context)
-                        .updateWeatherCommand
-                        .canExecute,
+                    valueListenable:
+                        weatherManager.updateWeatherCommand.canExecute,
                     builder: (BuildContext context, bool canExecute, _) {
                       // Depending on the value of canEcecute we set or clear the Handler
                       final handler = canExecute
-                          ? TheViewModel.of(context).updateWeatherCommand
+                          ? weatherManager.updateWeatherCommand
                           : null;
-                      return RaisedButton(
+                      return ElevatedButton(
                         child: Text("Update"),
-                        color: Color.fromARGB(255, 33, 150, 243),
-                        textColor: Color.fromARGB(255, 255, 255, 255),
-                        onPressed: handler,
+                        style: ElevatedButton.styleFrom(
+                            primary: Color.fromARGB(255, 33, 150, 243),
+                            onPrimary: Color.fromARGB(255, 255, 255, 255)),
+
+                        /// because of a current limitation of Dart
+                        /// we have to use `?.execute` if the command is
+                        /// stored in a nullable variable like in this case
+                        onPressed: handler?.execute,
                       );
                     },
                   ),
                 ),
                 ValueListenableBuilder<bool>(
-                    valueListenable:
-                        TheViewModel.of(context).setExecutionStateCommand,
+                    valueListenable: weatherManager.setExecutionStateCommand,
                     builder: (context, value, _) {
                       return Switch(
                         value: value,
-                        onChanged:
-                            TheViewModel.of(context).setExecutionStateCommand,
+                        onChanged: weatherManager.setExecutionStateCommand,
                       );
                     })
               ],
