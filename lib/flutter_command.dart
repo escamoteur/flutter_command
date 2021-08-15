@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_positional_boolean_parameters
 library flutter_command;
 
 import 'dart:async';
@@ -5,7 +6,7 @@ import 'dart:async';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:functional_listener/functional_listener.dart';
-import 'package:quiver_hashcode/hashcode.dart';
+import 'package:quiver/core.dart';
 
 export 'package:flutter_command/command_builder.dart';
 export 'package:functional_listener/functional_listener.dart';
@@ -18,21 +19,21 @@ export 'package:functional_listener/functional_listener.dart';
 /// 3. When execution finishes: `param data, the result, null, false`
 /// `param data` is the data that you pass as parameter when calling the command
 class CommandResult<TParam, TResult> {
-  final TParam paramData;
-  final TResult data;
-  final Object error;
+  final TParam? paramData;
+  final TResult? data;
+  final Object? error;
   final bool isExecuting;
 
-  // ignore: avoid_positional_boolean_parameters
   const CommandResult(this.paramData, this.data, this.error, this.isExecuting);
 
-  const CommandResult.data(TParam param, TResult data)
+  const CommandResult.data(TParam? param, TResult data)
       : this(param, data, null, false);
 
-  const CommandResult.error(TParam param, dynamic error)
+  const CommandResult.error(TParam? param, dynamic error)
       : this(param, null, error, false);
 
-  const CommandResult.isLoading([TParam param]) : this(param, null, null, true);
+  const CommandResult.isLoading([TParam? param])
+      : this(param, null, null, true);
 
   const CommandResult.blank() : this(null, null, null, false);
 
@@ -63,8 +64,8 @@ class CommandResult<TParam, TResult> {
 /// This sort of objects are emitted on the `.thrownExceptions` ValueListenable
 /// of the Command
 class CommandError<TParam> {
-  final Object error;
-  final TParam paramData;
+  final Object? error;
+  final TParam? paramData;
 
   CommandError(
     this.paramData,
@@ -103,8 +104,48 @@ class CommandError<TParam> {
 /// where [TParam] is the type of data that is passed when calling [execute] and
 /// [TResult] denotes the return type of the handler function. To signal that
 /// a handler doesn't take a parameter or returns no value use the type `void`
-abstract class Command<TParam, TResult>
-    extends _ValueEqualityNotifier<TResult> {
+abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
+  Command(
+      TResult initialValue,
+      ValueListenable<bool>? restriction,
+      bool includeLastResultInCommandResults,
+      bool noReturnValue,
+      bool catchAlways,
+      bool notifyOnlyWhenValueChanges,
+      String? debugName,
+      bool noParamValue)
+      : _noReturnValue = noReturnValue,
+        _noParamValue = noParamValue,
+        _includeLastResultInCommandResults = includeLastResultInCommandResults,
+        _catchAlways = catchAlways,
+        _debugName = debugName,
+        super(initialValue,
+            mode: notifyOnlyWhenValueChanges
+                ? CustomNotifierMode.normal
+                : CustomNotifierMode.always) {
+    _commandResult =
+        _ListenerCountingValueNotifier<CommandResult<TParam?, TResult>>(
+            CommandResult.data(null, initialValue),
+            notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges);
+
+    /// forward error states to the `thrownExceptions` Listenable
+    _commandResult.where((x) => x.hasError).listen((x, _) {
+      _thrownExceptions.value = CommandError<TParam>(x.paramData, x.error!);
+      _thrownExceptions.notifyListeners();
+    });
+
+    /// forward busy states to the `isExecuting` Listenable
+    _commandResult.listen((x, _) => _isExecuting.value = x.isExecuting);
+
+    /// Merge the external execution restricting with the internal
+    /// isExecuting which also blocks execution if true
+    _canExecute = (restriction == null)
+        ? _isExecuting.map((val) => !val) as ValueNotifier<bool>
+        : restriction.combineLatest<bool, bool>(_isExecuting,
+                (restriction, isExecuting) => restriction && !isExecuting)
+            as ValueNotifier<bool>;
+  }
+
   ///
   /// Creates  a Command for a synchronous handler function with no parameter and no return type
   /// [action]: handler function
@@ -122,15 +163,22 @@ abstract class Command<TParam, TResult>
   /// [debugName] optional identifier that is included when you register a [globalExceptionHandler]
   /// or a [loggingHandler]
   static Command<void, void> createSyncNoParamNoResult(void Function() action,
-      {ValueListenable<bool> restriction,
-      bool catchAlways,
+      {ValueListenable<bool>? restriction,
+      bool? catchAlways,
       bool notifyOnlyWhenValueChanges = false,
-      String debugName}) {
-    return CommandSync<void, void>((_) {
-      action();
-      return null;
-    }, null, restriction, false, true, catchAlways, notifyOnlyWhenValueChanges,
-        debugName);
+      String? debugName}) {
+    return CommandSync<void, void>(
+      null,
+      action,
+      null,
+      restriction,
+      false,
+      true,
+      catchAlways,
+      notifyOnlyWhenValueChanges,
+      debugName,
+      true,
+    );
   }
 
   /// Creates  a Command for a synchronous handler function with one parameter and no return type
@@ -150,16 +198,23 @@ abstract class Command<TParam, TResult>
   /// or a [loggingHandler]
   static Command<TParam, void> createSyncNoResult<TParam>(
     void Function(TParam x) action, {
-    ValueListenable<bool> restriction,
-    bool catchAlways,
+    ValueListenable<bool>? restriction,
+    bool? catchAlways,
     bool notifyOnlyWhenValueChanges = false,
-    String debugName,
+    String? debugName,
   }) {
-    return CommandSync<TParam, void>((x) {
-      action(x);
-      return null;
-    }, null, restriction, false, true, catchAlways, notifyOnlyWhenValueChanges,
-        debugName);
+    return CommandSync<TParam, void>(
+      (x) => action(x),
+      null,
+      null,
+      restriction,
+      false,
+      true,
+      catchAlways,
+      notifyOnlyWhenValueChanges,
+      debugName,
+      false,
+    );
   }
 
   /// Creates  a Command for a synchronous handler function with no parameter that returns a value
@@ -180,20 +235,23 @@ abstract class Command<TParam, TResult>
   /// or a [loggingHandler]
   static Command<void, TResult> createSyncNoParam<TResult>(
       TResult Function() func, TResult initialValue,
-      {ValueListenable<bool> restriction,
+      {ValueListenable<bool>? restriction,
       bool includeLastResultInCommandResults = false,
-      bool catchAlways,
+      bool? catchAlways,
       bool notifyOnlyWhenValueChanges = false,
-      String debugName}) {
+      String? debugName}) {
     return CommandSync<void, TResult>(
-        (_) => func(),
-        initialValue,
-        restriction,
-        includeLastResultInCommandResults,
-        false,
-        catchAlways,
-        notifyOnlyWhenValueChanges,
-        debugName);
+      null,
+      func,
+      initialValue,
+      restriction,
+      includeLastResultInCommandResults,
+      false,
+      catchAlways,
+      notifyOnlyWhenValueChanges,
+      debugName,
+      true,
+    );
   }
 
   /// Creates  a Command for a synchronous handler function with parameter that returns a value
@@ -214,20 +272,22 @@ abstract class Command<TParam, TResult>
   /// or a [loggingHandler]
   static Command<TParam, TResult> createSync<TParam, TResult>(
       TResult Function(TParam x) func, TResult initialValue,
-      {ValueListenable<bool> restriction,
+      {ValueListenable<bool>? restriction,
       bool includeLastResultInCommandResults = false,
-      bool catchAlways,
+      bool? catchAlways,
       bool notifyOnlyWhenValueChanges = false,
-      String debugName}) {
+      String? debugName}) {
     return CommandSync<TParam, TResult>(
         (x) => func(x),
+        null,
         initialValue,
         restriction,
         includeLastResultInCommandResults,
         false,
         catchAlways,
         notifyOnlyWhenValueChanges,
-        debugName);
+        debugName,
+        false);
   }
 
   // Asynchronous
@@ -246,15 +306,22 @@ abstract class Command<TParam, TResult>
   /// or a [loggingHandler]
   static Command<void, void> createAsyncNoParamNoResult(
       Future Function() action,
-      {ValueListenable<bool> restriction,
-      bool catchAlways,
+      {ValueListenable<bool>? restriction,
+      bool? catchAlways,
       bool notifyOnlyWhenValueChanges = false,
-      String debugName}) {
-    return CommandAsync<void, void>((_) async {
-      await action();
-      return null;
-    }, null, restriction, false, true, catchAlways, notifyOnlyWhenValueChanges,
-        debugName);
+      String? debugName}) {
+    return CommandAsync<void, void>(
+      null,
+      action,
+      null,
+      restriction,
+      false,
+      true,
+      catchAlways,
+      notifyOnlyWhenValueChanges,
+      debugName,
+      true,
+    );
   }
 
   /// Creates  a Command for an asynchronous handler function with one parameter and no return type
@@ -271,15 +338,22 @@ abstract class Command<TParam, TResult>
   /// or a [loggingHandler]
   static Command<TParam, void> createAsyncNoResult<TParam>(
       Future Function(TParam x) action,
-      {ValueListenable<bool> restriction,
-      bool catchAlways,
+      {ValueListenable<bool>? restriction,
+      bool? catchAlways,
       bool notifyOnlyWhenValueChanges = false,
-      String debugName}) {
-    return CommandAsync<TParam, void>((x) async {
-      await action(x);
-      return null;
-    }, null, restriction, false, false, catchAlways, notifyOnlyWhenValueChanges,
-        debugName);
+      String? debugName}) {
+    return CommandAsync<TParam, void>(
+      (x) async => action(x),
+      null,
+      null,
+      restriction,
+      false,
+      false,
+      catchAlways,
+      notifyOnlyWhenValueChanges,
+      debugName,
+      false,
+    );
   }
 
   /// Creates  a Command for an asynchronous handler function with no parameter that returns a value
@@ -295,20 +369,23 @@ abstract class Command<TParam, TResult>
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<void, TResult> createAsyncNoParam<TResult>(
       Future<TResult> Function() func, TResult initialValue,
-      {ValueListenable<bool> restriction,
+      {ValueListenable<bool>? restriction,
       bool includeLastResultInCommandResults = false,
-      bool catchAlways,
+      bool? catchAlways,
       bool notifyOnlyWhenValueChanges = false,
-      String debugName}) {
+      String? debugName}) {
     return CommandAsync<void, TResult>(
-        (_) async => func(),
-        initialValue,
-        restriction,
-        includeLastResultInCommandResults,
-        false,
-        catchAlways,
-        notifyOnlyWhenValueChanges,
-        debugName);
+      null,
+      func,
+      initialValue,
+      restriction,
+      includeLastResultInCommandResults,
+      false,
+      catchAlways,
+      notifyOnlyWhenValueChanges,
+      debugName,
+      true,
+    );
   }
 
   /// Creates  a Command for an asynchronous handler function with parameter that returns a value
@@ -324,33 +401,36 @@ abstract class Command<TParam, TResult>
   /// unless there is a listener on [thrownExceptions] or [results].
   static Command<TParam, TResult> createAsync<TParam, TResult>(
       Future<TResult> Function(TParam x) func, TResult initialValue,
-      {ValueListenable<bool> restriction,
+      {ValueListenable<bool>? restriction,
       bool includeLastResultInCommandResults = false,
-      bool catchAlways,
+      bool? catchAlways,
       bool notifyOnlyWhenValueChanges = false,
-      String debugName}) {
+      String? debugName}) {
     return CommandAsync<TParam, TResult>(
         (x) async => func(x),
+        null,
         initialValue,
         restriction,
         includeLastResultInCommandResults,
         false,
         catchAlways,
         notifyOnlyWhenValueChanges,
-        debugName);
+        debugName,
+        false);
   }
 
   /// Calls the wrapped handler function with an optional input parameter
-  void execute([TParam param]);
+  void execute([TParam? param]);
 
   /// This makes Command a callable class, so instead of `myCommand.execute()`
   /// you can write `myCommand()`
-  void call([TParam param]) => execute(param);
+  void call([TParam? param]) => execute(param);
 
   /// emits [CommandResult<TResult>] the combined state of the command, which is
   /// often easier in combination with Flutter's `ValueListenableBuilder`
   /// because you have all state information at one place.
-  ValueListenable<CommandResult<TParam, TResult>> get results => _commandResult;
+  ValueListenable<CommandResult<TParam?, TResult>> get results =>
+      _commandResult;
 
   /// `ValueListenable`  that changes its value on any change of the execution
   /// state change of the command
@@ -369,12 +449,12 @@ abstract class Command<TParam, TResult>
   /// if the wrapped function throws an error, its value is set to the error is
   /// wrapped in an `CommandError`
   ///
-  ValueListenable<CommandError> get thrownExceptions => _thrownExceptions;
+  ValueListenable<CommandError?> get thrownExceptions => _thrownExceptions;
 
-  /// optional hander that will get call on any exception that happens inside
+  /// optional hander that will get called on any exception that happens inside
   /// any Command of the app. Ideal for logging. [commandName]
   /// the [debugName] of the Command
-  static void Function(String commandName, CommandError<Object> error)
+  static void Function(String? commandName, CommandError<Object> error)?
       globalExceptionHandler;
 
   /// if no individual value for `catchAlways` is passed to the factory methods,
@@ -389,16 +469,19 @@ abstract class Command<TParam, TResult>
 
   /// optional handler that will get called on all `Command` executions. [commandName]
   /// the [debugName] of the Command
-  static void Function(String commandName, CommandResult result) loggingHandler;
+  static void Function(String? commandName, CommandResult result)?
+      loggingHandler;
 
   /// as we don't want that anyone changes the values of these ValueNotifiers
   /// properties we make them private and only publish their `ValueListenable`
   /// interface via getters.
-  _ListenerCountingValueNotifier<CommandResult<TParam, TResult>> _commandResult;
+  late _ListenerCountingValueNotifier<CommandResult<TParam?, TResult>>
+      _commandResult;
   final ValueNotifier<bool> _isExecuting = ValueNotifier<bool>(false);
-  ValueNotifier<bool> _canExecute;
-  final ValueNotifier<CommandError<TParam>> _thrownExceptions =
-      ValueNotifier<CommandError<TParam>>(null);
+  late ValueNotifier<bool> _canExecute;
+  final CustomValueNotifier<CommandError<TParam?>?> _thrownExceptions =
+      CustomValueNotifier<CommandError<TParam?>?>(null,
+          mode: CustomNotifierMode.manual);
 
   /// If you don't need a command any longer it is a good practise to
   /// dispose it to make sure all registered notification handlers are remove to
@@ -410,7 +493,7 @@ abstract class Command<TParam, TResult>
     _isExecuting.dispose();
     _thrownExceptions.dispose();
     if (!(_futureCompleter?.isCompleted ?? true)) {
-      _futureCompleter.complete(null);
+      _futureCompleter!.complete(null);
     }
 
     super.dispose();
@@ -418,33 +501,34 @@ abstract class Command<TParam, TResult>
 
   /// Flag that we always should include the last successful value in `CommandResult`
   /// for isExecuting or error states
-  bool _includeLastResultInCommandResults;
-
-  TParam _lastParam;
+  final bool _includeLastResultInCommandResults;
 
   ///Flag to signal the wrapped command has no return value which means
   ///`notifyListener` has to be called directly
   final bool _noReturnValue;
+
+  ///Flag to signal the wrapped command expects not parameter value
+  final bool _noParamValue;
 
   /// if true all exception will be caught even if no one is listening at [thrownExecption]
   /// or [results]
   final bool _catchAlways;
 
   /// optional Name that is included in log messages.
-  final String _debugName;
+  final String? _debugName;
 
-  Completer<TResult> _futureCompleter;
+  Completer<TResult>? _futureCompleter;
 
   /// Executes an async Command an returns a Future that completes as soon as
   /// the Command completes. This is especially useful if you use a
   /// RefreshIndicator
-  Future<TResult> executeWithFuture([TParam param]) {
+  Future<TResult> executeWithFuture([TParam? param]) {
     assert(this is CommandAsync,
         'executeWithFuture can\t be used with synchronous Commands');
     _futureCompleter = Completer<TResult>();
 
     execute(param);
-    return _futureCompleter.future;
+    return _futureCompleter!.future;
   }
 
   /// Pipes one [Command]'s result [value] to another command as input and
@@ -456,26 +540,23 @@ abstract class Command<TParam, TResult>
   ///
   /// If the [pipedCommandTakesParam] is set to true [pipedCommand] is called
   /// with the resulting [value] of the previous command only if the
-  /// [pipedCommand] accepts parameters of the same type as [TPipedCommandParam].
+  /// [pipedCommand] accepts parameters of the same type as [TPipedDefaultParam].
   ///
-  /// As a fall back case, [pipedCommandParam] will be used if the [value]
+  /// As a fall back case, [pipedDefaultParam] will be used if the [value]
   /// returned by the command doesn't match the parameter type of the
   /// [pipedCommand]. This allows connecting non compatible commands if needed.
   ///
-  Command pipeResult<TPipedCommandParam>(
+  Command pipeResult<TPipedDefaultParam>(
     Command pipedCommand, {
-    @required bool pipedCommandTakesParam,
-    TPipedCommandParam pipedCommandParam,
+    required bool pipedCommandTakesParam,
+    TPipedDefaultParam? pipedDefaultParam,
     Duration debounceDuration = const Duration(),
   }) {
-    assert(pipedCommand != null, 'pipedCommand cannot be null');
-    assert(pipedCommandTakesParam != null,
-        'pipedCommandTakesParam cannot be null');
-    debounce(debounceDuration).listen((TResult resultValue, _) {
-      if (pipedCommandTakesParam && resultValue is TPipedCommandParam) {
+    this.debounce(debounceDuration).listen((TResult resultValue, _) {
+      if (pipedCommandTakesParam && resultValue is TPipedDefaultParam) {
         pipedCommand(resultValue);
-      } else if (pipedCommandTakesParam && pipedCommandParam != null) {
-        pipedCommand(pipedCommandParam);
+      } else if (pipedCommandTakesParam && pipedDefaultParam != null) {
+        pipedCommand(pipedDefaultParam);
       } else {
         pipedCommand();
       }
@@ -487,75 +568,46 @@ abstract class Command<TParam, TResult>
   /// of the Command. This function won't trigger a rebuild if the command changes states
   /// so it should be used together with get_it_mixin, provider, flutter_hooks and the like.
   Widget toWidget({
-    @required Widget Function(TResult lastResult, TParam param) onResult,
-    Widget Function(TResult lastResult, TParam param) whileExecuting,
-    Widget Function(Object error, TParam param) onError,
+    required Widget Function(TResult lastResult, TParam? param) onResult,
+    Widget Function(TResult lastResult, TParam? param)? whileExecuting,
+    Widget Function(Object? error, TParam? param)? onError,
   }) {
-    if (thrownExceptions.value?.error != null) {
-      return onError?.call(thrownExceptions.value.error, _lastParam) ??
-          SizedBox();
+    if (_commandResult.value.hasError) {
+      return onError?.call(
+              _commandResult.value.error, _commandResult.value.paramData) ??
+          const SizedBox();
     }
     if (isExecuting.value) {
-      return whileExecuting?.call(value, _lastParam) ?? SizedBox();
+      return whileExecuting?.call(value, _commandResult.value.paramData) ??
+          const SizedBox();
     }
-    return onResult(value, _lastParam);
-  }
-
-  Command(
-      TResult initialValue,
-      ValueListenable<bool> restriction,
-      bool includeLastResultInCommandResults,
-      bool noReturnValue,
-      bool catchAlways,
-      bool notifyOnlyWhenValueChanges,
-      String debugName)
-      : _noReturnValue = noReturnValue,
-        _includeLastResultInCommandResults = includeLastResultInCommandResults,
-        _catchAlways = catchAlways,
-        _debugName = debugName,
-        super(initialValue,
-            notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges) {
-    _commandResult =
-        _ListenerCountingValueNotifier<CommandResult<TParam, TResult>>(
-            CommandResult.data(null, initialValue),
-            notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges);
-
-    /// forward error states to the `thrownExceptions` Listenable
-    _commandResult.where((x) => x.hasError).listen(
-        (x, _) => _thrownExceptions.value = CommandError(x.paramData, x.error));
-
-    /// forward busy states to the `isExecuting` Listenable
-    _commandResult.listen((x, _) => _isExecuting.value = x.isExecuting);
-
-    /// Merge the external execution restricting with the internal
-    /// isExecuting which also blocks execution if true
-    _canExecute = restriction == null
-        ? _isExecuting.map((val) => !val) as ValueNotifier<bool>
-        : restriction.combineLatest<bool, bool>(_isExecuting,
-                (restriction, isExecuting) => restriction && !isExecuting)
-            as ValueNotifier<bool>;
+    return onResult(value, _commandResult.value.paramData);
   }
 }
 
 class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
-  TResult Function(TParam) _func;
+  final TResult Function(TParam)? _func;
+  final TResult Function()? _funcNoParam;
 
   @override
   ValueListenable<bool> get isExecuting {
-    assert(false, 'isExecuting isn\'t supported by synchronous commands');
+    assert(false, "isExecuting isn't supported by synchronous commands");
     return ValueNotifier<bool>(false);
   }
 
   CommandSync(
-      TResult Function(TParam) func,
-      TResult initialValue,
-      ValueListenable<bool> restriction,
-      bool includeLastResultInCommandResults,
-      bool noReturnValue,
-      bool catchAlways,
-      bool notifyOnlyWhenValueChanges,
-      String debugName)
-      : _func = func,
+    TResult Function(TParam)? func,
+    TResult Function()? funcNoParam,
+    TResult initialValue,
+    ValueListenable<bool>? restriction,
+    bool includeLastResultInCommandResults,
+    bool noReturnValue,
+    bool? catchAlways,
+    bool notifyOnlyWhenValueChanges,
+    String? debugName,
+    bool noParamValue,
+  )   : _func = func,
+        _funcNoParam = funcNoParam,
         super(
             initialValue,
             restriction,
@@ -563,25 +615,37 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
             noReturnValue,
             catchAlways ?? Command.catchAlwaysDefault,
             notifyOnlyWhenValueChanges,
-            debugName);
+            debugName,
+            noParamValue);
 
   @override
-  void execute([TParam param]) {
+  void execute([TParam? param]) {
     if (!_canExecute.value) {
       return;
     }
     _thrownExceptions.value = null;
     try {
-      final result = _func(param);
-      _commandResult.value =
-          CommandResult<TParam, TResult>(param, result, null, false);
+      TResult result;
+      if (_noParamValue) {
+        assert(_funcNoParam != null);
+        result = _funcNoParam!();
+      } else {
+        assert(_func != null);
+        assert(param != null || null is TParam,
+            'You passed a null value to the command ${_debugName ?? ''} that has a non-nullable type as TParam');
+        result = _func!(param as TParam);
+      }
       if (!_noReturnValue) {
+        _commandResult.value =
+            CommandResult<TParam, TResult>(param, result, null, false);
         value = result;
       } else {
         notifyListeners();
       }
       _futureCompleter?.complete(result);
     } catch (error) {
+      if (error is AssertionError) rethrow;
+
       _commandResult.value = CommandResult<TParam, TResult>(param,
           _includeLastResultInCommandResults ? value : null, error, false);
       if (_commandResult.listenerCount < 3 && !_thrownExceptions.hasListeners) {
@@ -600,18 +664,22 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
 }
 
 class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
-  Future<TResult> Function(TParam) _func;
+  final Future<TResult> Function(TParam)? _func;
+  final Future<TResult> Function()? _funcNoParam;
 
   CommandAsync(
-      Future<TResult> Function(TParam) func,
+      Future<TResult> Function(TParam)? func,
+      Future<TResult> Function()? funcNoParam,
       TResult initialValue,
-      ValueListenable<bool> restriction,
+      ValueListenable<bool>? restriction,
       bool includeLastResultInCommandResults,
       bool noResult,
-      bool catchAlways,
+      bool? catchAlways,
       bool notifyOnlyWhenValueChanges,
-      String debugName)
+      String? debugName,
+      bool noParamValue)
       : _func = func,
+        _funcNoParam = funcNoParam,
         super(
             initialValue,
             restriction,
@@ -619,10 +687,12 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
             noResult,
             catchAlways ?? Command.catchAlwaysDefault,
             notifyOnlyWhenValueChanges,
-            debugName);
+            debugName,
+            noParamValue);
 
   @override
-  void execute([TParam param]) async {
+  // ignore: avoid_void_async
+  void execute([TParam? param]) async {
     if (!_canExecute.value) {
       return;
     }
@@ -633,13 +703,22 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
       _isExecuting.value = true;
     }
 
-    _thrownExceptions.value = null;
+    _thrownExceptions.value = null; // this will not trigger the listeners
 
     _commandResult.value = CommandResult<TParam, TResult>(
         param, _includeLastResultInCommandResults ? value : null, null, true);
 
     try {
-      final result = await _func(param);
+      TResult result;
+      if (_noParamValue) {
+        assert(_funcNoParam != null);
+        result = await _funcNoParam!();
+      } else {
+        assert(_func != null);
+        assert(param != null || null is TParam,
+            'You passed a null value to the command ${_debugName ?? ''} that has a non-nullable type as TParam');
+        result = await _func!(param as TParam);
+      }
       _commandResult.value =
           CommandResult<TParam, TResult>(param, result, null, false);
       if (!_noReturnValue) {
@@ -649,6 +728,7 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
       }
       _futureCompleter?.complete(result);
     } catch (error) {
+      if (error is AssertionError) rethrow;
       _commandResult.value = CommandResult<TParam, TResult>(param,
           _includeLastResultInCommandResults ? value : null, error, false);
       if (_commandResult.listenerCount < 3 && !_thrownExceptions.hasListeners) {
@@ -670,41 +750,44 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
 
 /// `MockCommand` allows you to easily mock an Command for your Unit and UI tests
 /// Mocking a command with `mockito` https://pub.dartlang.org/packages/mockito has its limitations.
-class MockCommand<TParam, TResult> extends Command<TParam, TResult> {
-  List<CommandResult<TParam, TResult>> returnValuesForNextExecute;
+class MockCommand<TParam, TResult> extends Command<TParam, TResult?> {
+  List<CommandResult<TParam, TResult>>? returnValuesForNextExecute;
 
   /// the last value that was passed when execute or the command directly was called
-  TParam lastPassedValueToExecute;
+  TParam? lastPassedValueToExecute;
 
   /// Number of times execute or the command directly was called
   int executionCount = 0;
 
   /// constructor that can take an optional `ValueListenable` to control if the command can be execute
   /// if the wrapped function has `void` as return type [noResult] has to be `true`
-  MockCommand(
-      TResult initialValue,
-      ValueListenable<bool> restriction,
-      bool includeLastResultInCommandResults,
-      bool emitInitialCommandResult,
-      bool noResult,
-      bool catchAlways,
-      bool notifyOnlyWhenValueChanges,
-      String debugName)
-      : super(
+  MockCommand({
+    required TResult initialValue,
+    bool noParamValue = false,
+    bool noResult = false,
+    ValueListenable<bool>? restriction,
+    bool includeLastResultInCommandResult = false,
+    bool? catchAlways,
+    bool notifyOnlyWhenValueChanges = false,
+    String? debugName,
+  }) : super(
             initialValue,
             restriction,
-            includeLastResultInCommandResults,
+            includeLastResultInCommandResult,
             noResult,
             catchAlways ?? Command.catchAlwaysDefault,
             notifyOnlyWhenValueChanges,
-            debugName) {
+            debugName,
+            noParamValue) {
     _commandResult
         .where((result) => result.hasData)
         .listen((result, _) => value = result.data);
   }
 
+  // ignore: use_setters_to_change_properties
   /// to be able to simulate any output of the command when it is called you can here queue the output data for the next execution call
-  queueResultsForNextExecuteCall(List<CommandResult<TParam, TResult>> values) {
+  void queueResultsForNextExecuteCall(
+      List<CommandResult<TParam, TResult>> values) {
     returnValuesForNextExecute = values;
   }
 
@@ -713,7 +796,7 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult> {
   /// If you have queued a result with [queueResultsForNextExecuteCall] it will be copies tho the output stream.
   /// [isExecuting], [canExecute] and [results] will work as with a real command.
   @override
-  execute([TParam param]) {
+  void execute([TParam? param]) {
     if (!_canExecute.value) {
       return;
     }
@@ -721,9 +804,10 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult> {
     _isExecuting.value = true;
     executionCount++;
     lastPassedValueToExecute = param;
+    // ignore: avoid_print
     print("Called Execute");
     if (returnValuesForNextExecute != null) {
-      returnValuesForNextExecute.map(
+      returnValuesForNextExecute!.map(
         (entry) {
           if ((entry.isExecuting || entry.hasError) &&
               _includeLastResultInCommandResults) {
@@ -736,6 +820,7 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult> {
     } else if (_noReturnValue) {
       notifyListeners();
     } else {
+      // ignore: avoid_print
       print("No values for execution queued");
     }
     _isExecuting.value = false;
@@ -747,7 +832,7 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult> {
   /// data: null
   /// error: null
   /// isExecuting : true
-  void startExecution([TParam param]) {
+  void startExecution([TParam? param]) {
     lastPassedValueToExecute = param;
     _commandResult.value = CommandResult<TParam, TResult>(
         param, _includeLastResultInCommandResults ? value : null, null, true);
@@ -793,12 +878,15 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult> {
 }
 
 /// A [_ValueEqualityNotifier] which keeps a count of the no of its listeners.
-class _ListenerCountingValueNotifier<T> extends _ValueEqualityNotifier<T> {
+class _ListenerCountingValueNotifier<T> extends CustomValueNotifier<T> {
   int listenerCount = 0;
 
   _ListenerCountingValueNotifier(T value,
       {bool notifyOnlyWhenValueChanges = false})
-      : super(value, notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges);
+      : super(value,
+            mode: notifyOnlyWhenValueChanges
+                ? CustomNotifierMode.normal
+                : CustomNotifierMode.always);
 
   @override
   void addListener(void Function() listener) {
@@ -819,21 +907,21 @@ class _ListenerCountingValueNotifier<T> extends _ValueEqualityNotifier<T> {
   }
 }
 
-/// A custom [ValueNotifier] which calls [notifyListeners] even when the old
-/// value is equal to new value.
-///
-/// When the [notifyOnlyWhenValueChanges] is set to true, this acts like a normal
-/// [ValueNotifier] which notifies only when there is a change in the value it
-/// already holds.
-class _ValueEqualityNotifier<T> extends ValueNotifier<T> {
-  final bool notifyOnlyWhenValueChanges;
-  _ValueEqualityNotifier(T value, {this.notifyOnlyWhenValueChanges = false})
-      : super(value);
+// /// A custom [ValueNotifier] which calls [notifyListeners] even when the old
+// /// value is equal to new value.
+// ///
+// /// When the [notifyOnlyWhenValueChanges] is set to true, this acts like a normal
+// /// [ValueNotifier] which notifies only when there is a change in the value it
+// /// already holds.
+// class _ValueEqualityNotifier<T> extends ValueNotifier<T> {
+//   final bool notifyOnlyWhenValueChanges;
+//   _ValueEqualityNotifier(T value, {this.notifyOnlyWhenValueChanges = false})
+//       : super(value);
 
-  @override
-  set value(T newValue) {
-    final oldValue = super.value;
-    super.value = newValue;
-    if (oldValue == newValue && !notifyOnlyWhenValueChanges) notifyListeners();
-  }
-}
+//   @override
+//   set value(T newValue) {
+//     final oldValue = super.value;
+//     super.value = newValue;
+//     if (oldValue == newValue && !notifyOnlyWhenValueChanges) notifyListeners();
+//   }
+// }
