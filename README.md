@@ -8,11 +8,14 @@ It's not that easy to define what exactly state management is (see https://mediu
 
 >This readme might seem very long, but it will guide you easily step by step through all features of `flutter_command`.
 
+> **Breaking Change** A `Command` by default will always notify changes unlike, `ValueNotifier` which only notifies its liteners when the value it holds changes. For more details check this [section](#a-command-always-notifies-by-default).
+
 ## Why Commands
 When I started Flutter the most often recommended way to manage your state was `BLoC`. What never appealed to me was that in order to execute a process in your model layer you had to push an object into a `StreamController` which just didn't feel right. For me triggering a process should feel like calling a function.
 Coming from the .Net world I was used to use Commands for this, which had an additional nice feature that the Button that triggered the command would automatically disable for the duration, the command was running and by this, preventing a double execution at the same time. I also learned to love a special breed of .Net commands called `ReactiveCommands` which emitted the result of the called function on their own Stream interface (the ReactiveUI community might oversee that I don't talk of Observables here.) As I wanted to have something similar I ported `ReactiveCommands` to Dart with my [rx_command](https://pub.dev/packages/rx_command). But somehow they did not get much attention because 1. I didn't call them state management and 2. they had to do with `Streams` and even had that scary `rx` in the name and probably the readme wasn't as good to start as I thought.
 
 Remi Rousselet talked to me about that `ValueNotifier` and how much easier they are than using Streams. So what you have here is my second attempt to warm the hearts of the Flutter community for the `Command` metaphor absolutely free of `Streams`
+
 
 ## A first careful en*counter*
 
@@ -21,8 +24,13 @@ Let's start with the (in)famous counter example but by using a `Command`. As sai
 ```Dart
 Command<TParam,TResult>
 ```
-at which `TParam` is the type of the parameter which the wrapped function expects as argument and `TResult` is the type of the result of it, which means the `Command` behaves like a `ValueNotifier<TResult>`. In the included project `counter_example` the command is defined as:
+at which `TParam` is the type of the parameter which the wrapped function expects as argument and `TResult` is the type of the result of it, which means the `Command` behaves like a `ValueNotifier<TResult>`. 
 
+### A Command always notifies (by default)
+A `Command` by default will always notify changes unlike, `ValueNotifier` which only notifies its listeners when the value it holds changes. This behavior is opted to enable the widgets to always rebuild whenever a command is executed. If you prefer the Command to behave exactly like a `ValueNotifier` then the default behaviour can be turned of by setting the `notifyOnlyWhenValueChanges` parameter to `true`.
+
+
+In the included project `counter_example` the command is defined as:
 ```Dart
 class _MyHomePageState extends State<MyHomePage> {
   int counter = 0;
