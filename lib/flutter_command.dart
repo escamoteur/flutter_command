@@ -531,39 +531,6 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     return _futureCompleter!.future;
   }
 
-  /// Pipes one [Command]'s result [value] to another command as input and
-  /// returns the pipedCommand for further processing like adding another
-  /// [Command] as piped command.
-  ///
-  /// If the [pipedCommandTakesParam] is set to false then [pipedCommand] is
-  /// called without passing any parameters.
-  ///
-  /// If the [pipedCommandTakesParam] is set to true [pipedCommand] is called
-  /// with the resulting [value] of the previous command only if the
-  /// [pipedCommand] accepts parameters of the same type as [TPipedDefaultParam].
-  ///
-  /// As a fall back case, [pipedDefaultParam] will be used if the [value]
-  /// returned by the command doesn't match the parameter type of the
-  /// [pipedCommand]. This allows connecting non compatible commands if needed.
-  ///
-  Command pipeResult<TPipedDefaultParam>(
-    Command pipedCommand, {
-    required bool pipedCommandTakesParam,
-    TPipedDefaultParam? pipedDefaultParam,
-    Duration debounceDuration = const Duration(),
-  }) {
-    this.debounce(debounceDuration).listen((TResult resultValue, _) {
-      if (pipedCommandTakesParam && resultValue is TPipedDefaultParam) {
-        pipedCommand(resultValue);
-      } else if (pipedCommandTakesParam && pipedDefaultParam != null) {
-        pipedCommand(pipedDefaultParam);
-      } else {
-        pipedCommand();
-      }
-    });
-    return pipedCommand;
-  }
-
   /// Returns a the result of one of three builders depending on the current state
   /// of the Command. This function won't trigger a rebuild if the command changes states
   /// so it should be used together with get_it_mixin, provider, flutter_hooks and the like.
