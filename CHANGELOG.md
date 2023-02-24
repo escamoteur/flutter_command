@@ -1,3 +1,8 @@
+[3.0.0] - 24.02.2023
+
+* Breaking change: In the past the Command only triggered listeners when the resulting value of a Command execution changed. However in many case you
+want to always update your UI even if the result hasn't changed. Therefore Commands now always notify the listeners even if the result hasn't changed.
+you can change that behaviour by setting [notifyOnlyWhenValueChanges] to true when creating your Commands.
 ## [2.0.1] - 07.03.2021
 
 * Fixed small nullability bug in the signature of 

@@ -7,9 +7,16 @@ class CommandBuilder<TParam, TResult> extends StatelessWidget {
       onData;
   final Widget Function(BuildContext context, TParam? param)? onNullData;
   final Widget Function(
-      BuildContext context, TResult? lastValue, TParam? param)? whileExecuting;
+    BuildContext context,
+    TResult? lastValue,
+    TParam? param,
+  )? whileExecuting;
   final Widget Function(
-      BuildContext context, Object?, TResult? lastValue, TParam?)? onError;
+    BuildContext context,
+    Object?,
+    TResult? lastValue,
+    TParam?,
+  )? onError;
 
   const CommandBuilder({
     required this.command,
@@ -17,26 +24,28 @@ class CommandBuilder<TParam, TResult> extends StatelessWidget {
     this.onNullData,
     this.whileExecuting,
     this.onError,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<CommandResult<TParam?, TResult>>(
-        valueListenable: command.results,
-        builder: (context, result, _) {
-          return result.toWidget(
-              onData: (data, paramData) =>
-                  onData?.call(context, data, paramData) ?? const SizedBox(),
-              onNullData: (paramData) =>
-                  onNullData?.call(context, paramData) ?? const SizedBox(),
-              whileExecuting: (lastData, paramData) =>
-                  whileExecuting?.call(context, lastData, paramData) ??
-                  const SizedBox(),
-              onError: (lastData, error, paramData) =>
-                  onError?.call(context, lastData, error, paramData) ??
-                  const SizedBox());
-        });
+      valueListenable: command.results,
+      builder: (context, result, _) {
+        return result.toWidget(
+          onData: (data, paramData) =>
+              onData?.call(context, data, paramData) ?? const SizedBox(),
+          onNullData: (paramData) =>
+              onNullData?.call(context, paramData) ?? const SizedBox(),
+          whileExecuting: (lastData, paramData) =>
+              whileExecuting?.call(context, lastData, paramData) ??
+              const SizedBox(),
+          onError: (lastData, error, paramData) =>
+              onError?.call(context, lastData, error, paramData) ??
+              const SizedBox(),
+        );
+      },
+    );
   }
 }
 
@@ -55,7 +64,7 @@ extension ToWidgeCommandResult<TParam, TResult>
       return whileExecuting?.call(data, paramData) ?? const SizedBox();
     }
     if (data != null) {
-      return onData(data!, paramData);
+      return onData(data as TResult, paramData);
     } else {
       return onNullData?.call(paramData) ?? const SizedBox();
     }

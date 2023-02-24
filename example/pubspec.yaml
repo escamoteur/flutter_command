@@ -3,7 +3,7 @@ publish_to: none
 description: Demo project for flutter_command .
 version: 1.0.0+1
 environment:
-  sdk: '>=2.12.0 <3.0.0'
+  sdk: '>=2.18.0 <3.0.0'
 
 dependencies:
   flutter:

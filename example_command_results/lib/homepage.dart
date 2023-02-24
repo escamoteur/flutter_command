@@ -79,8 +79,8 @@ class _HomePageState extends State<HomePage> {
                       return ElevatedButton(
                         child: Text("Update"),
                         style: ElevatedButton.styleFrom(
-                            primary: Color.fromARGB(255, 33, 150, 243),
-                            onPrimary: Color.fromARGB(255, 255, 255, 255)),
+                            foregroundColor: Color.fromARGB(255, 255, 255, 255),
+                            backgroundColor: Color.fromARGB(255, 33, 150, 243)),
 
                         /// because of a current limitation of Dart
                         /// we have to use `?.execute` if the command is
