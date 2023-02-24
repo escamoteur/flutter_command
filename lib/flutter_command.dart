@@ -104,13 +104,14 @@ class CommandError<TParam> {
 /// where [TParam] is the type of data that is passed when calling [execute] and
 /// [TResult] denotes the return type of the handler function. To signal that
 /// a handler doesn't take a parameter or returns no value use the type `void`
-abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
+abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   Command(
       TResult initialValue,
       ValueListenable<bool>? restriction,
       bool includeLastResultInCommandResults,
       bool noReturnValue,
       bool catchAlways,
+      bool notifyOnlyWhenValueChanges,
       String? debugName,
       bool noParamValue)
       : _noReturnValue = noReturnValue,
@@ -118,10 +119,14 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
         _includeLastResultInCommandResults = includeLastResultInCommandResults,
         _catchAlways = catchAlways,
         _debugName = debugName,
-        super(initialValue) {
+        super(initialValue,
+            mode: notifyOnlyWhenValueChanges
+                ? CustomNotifierMode.normal
+                : CustomNotifierMode.always) {
     _commandResult =
         _ListenerCountingValueNotifier<CommandResult<TParam?, TResult>>(
-            CommandResult.data(null, initialValue));
+            CommandResult.data(null, initialValue),
+            notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges);
 
     /// forward error states to the `thrownExceptions` Listenable
     _commandResult.where((x) => x.hasError).listen((x, _) {
@@ -160,6 +165,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
   static Command<void, void> createSyncNoParamNoResult(void Function() action,
       {ValueListenable<bool>? restriction,
       bool? catchAlways,
+      bool notifyOnlyWhenValueChanges = false,
       String? debugName}) {
     return CommandSync<void, void>(
       null,
@@ -169,6 +175,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
       false,
       true,
       catchAlways,
+      notifyOnlyWhenValueChanges,
       debugName,
       true,
     );
@@ -193,6 +200,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
     void Function(TParam x) action, {
     ValueListenable<bool>? restriction,
     bool? catchAlways,
+    bool notifyOnlyWhenValueChanges = false,
     String? debugName,
   }) {
     return CommandSync<TParam, void>(
@@ -203,6 +211,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
       false,
       true,
       catchAlways,
+      notifyOnlyWhenValueChanges,
       debugName,
       false,
     );
@@ -229,6 +238,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
       {ValueListenable<bool>? restriction,
       bool includeLastResultInCommandResults = false,
       bool? catchAlways,
+      bool notifyOnlyWhenValueChanges = false,
       String? debugName}) {
     return CommandSync<void, TResult>(
       null,
@@ -238,6 +248,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
       includeLastResultInCommandResults,
       false,
       catchAlways,
+      notifyOnlyWhenValueChanges,
       debugName,
       true,
     );
@@ -264,6 +275,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
       {ValueListenable<bool>? restriction,
       bool includeLastResultInCommandResults = false,
       bool? catchAlways,
+      bool notifyOnlyWhenValueChanges = false,
       String? debugName}) {
     return CommandSync<TParam, TResult>(
         (x) => func(x),
@@ -273,6 +285,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
         includeLastResultInCommandResults,
         false,
         catchAlways,
+        notifyOnlyWhenValueChanges,
         debugName,
         false);
   }
@@ -295,6 +308,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
       Future Function() action,
       {ValueListenable<bool>? restriction,
       bool? catchAlways,
+      bool notifyOnlyWhenValueChanges = false,
       String? debugName}) {
     return CommandAsync<void, void>(
       null,
@@ -304,6 +318,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
       false,
       true,
       catchAlways,
+      notifyOnlyWhenValueChanges,
       debugName,
       true,
     );
@@ -325,6 +340,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
       Future Function(TParam x) action,
       {ValueListenable<bool>? restriction,
       bool? catchAlways,
+      bool notifyOnlyWhenValueChanges = false,
       String? debugName}) {
     return CommandAsync<TParam, void>(
       (x) async => action(x),
@@ -334,6 +350,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
       false,
       false,
       catchAlways,
+      notifyOnlyWhenValueChanges,
       debugName,
       false,
     );
@@ -355,6 +372,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
       {ValueListenable<bool>? restriction,
       bool includeLastResultInCommandResults = false,
       bool? catchAlways,
+      bool notifyOnlyWhenValueChanges = false,
       String? debugName}) {
     return CommandAsync<void, TResult>(
       null,
@@ -364,6 +382,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
       includeLastResultInCommandResults,
       false,
       catchAlways,
+      notifyOnlyWhenValueChanges,
       debugName,
       true,
     );
@@ -385,6 +404,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
       {ValueListenable<bool>? restriction,
       bool includeLastResultInCommandResults = false,
       bool? catchAlways,
+      bool notifyOnlyWhenValueChanges = false,
       String? debugName}) {
     return CommandAsync<TParam, TResult>(
         (x) async => func(x),
@@ -394,6 +414,7 @@ abstract class Command<TParam, TResult> extends ValueNotifier<TResult> {
         includeLastResultInCommandResults,
         false,
         catchAlways,
+        notifyOnlyWhenValueChanges,
         debugName,
         false);
   }
@@ -549,6 +570,7 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
     bool includeLastResultInCommandResults,
     bool noReturnValue,
     bool? catchAlways,
+    bool notifyOnlyWhenValueChanges,
     String? debugName,
     bool noParamValue,
   )   : _func = func,
@@ -559,6 +581,7 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
             includeLastResultInCommandResults,
             noReturnValue,
             catchAlways ?? Command.catchAlwaysDefault,
+            notifyOnlyWhenValueChanges,
             debugName,
             noParamValue);
 
@@ -619,6 +642,7 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
       bool includeLastResultInCommandResults,
       bool noResult,
       bool? catchAlways,
+      bool notifyOnlyWhenValueChanges,
       String? debugName,
       bool noParamValue)
       : _func = func,
@@ -629,6 +653,7 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
             includeLastResultInCommandResults,
             noResult,
             catchAlways ?? Command.catchAlwaysDefault,
+            notifyOnlyWhenValueChanges,
             debugName,
             noParamValue);
 
@@ -710,6 +735,7 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult?> {
     ValueListenable<bool>? restriction,
     bool includeLastResultInCommandResult = false,
     bool? catchAlways,
+    bool notifyOnlyWhenValueChanges = false,
     String? debugName,
   }) : super(
             initialValue,
@@ -717,6 +743,7 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult?> {
             includeLastResultInCommandResult,
             noResult,
             catchAlways ?? Command.catchAlwaysDefault,
+            notifyOnlyWhenValueChanges,
             debugName,
             noParamValue) {
     _commandResult
@@ -817,11 +844,16 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult?> {
   }
 }
 
-/// A [ValueNotifier] which keeps a count of the no of its listeners.
-class _ListenerCountingValueNotifier<T> extends ValueNotifier<T> {
+/// A [_ValueEqualityNotifier] which keeps a count of the no of its listeners.
+class _ListenerCountingValueNotifier<T> extends CustomValueNotifier<T> {
   int listenerCount = 0;
 
-  _ListenerCountingValueNotifier(T value) : super(value);
+  _ListenerCountingValueNotifier(T value,
+      {bool notifyOnlyWhenValueChanges = false})
+      : super(value,
+            mode: notifyOnlyWhenValueChanges
+                ? CustomNotifierMode.normal
+                : CustomNotifierMode.always);
 
   @override
   void addListener(void Function() listener) {
@@ -841,3 +873,22 @@ class _ListenerCountingValueNotifier<T> extends ValueNotifier<T> {
     listenerCount = 0;
   }
 }
+
+// /// A custom [ValueNotifier] which calls [notifyListeners] even when the old
+// /// value is equal to new value.
+// ///
+// /// When the [notifyOnlyWhenValueChanges] is set to true, this acts like a normal
+// /// [ValueNotifier] which notifies only when there is a change in the value it
+// /// already holds.
+// class _ValueEqualityNotifier<T> extends ValueNotifier<T> {
+//   final bool notifyOnlyWhenValueChanges;
+//   _ValueEqualityNotifier(T value, {this.notifyOnlyWhenValueChanges = false})
+//       : super(value);
+
+//   @override
+//   set value(T newValue) {
+//     final oldValue = super.value;
+//     super.value = newValue;
+//     if (oldValue == newValue && !notifyOnlyWhenValueChanges) notifyListeners();
+//   }
+// }

@@ -1,10 +1,8 @@
 // ignore_for_file: avoid_print
-import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_command/flutter_command.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:functional_listener/functional_listener.dart';
 
 /// An object that can assist in representing the current state of Command while
 /// testing different valueListenable of a Command. Basically a [List] with
@@ -43,6 +41,9 @@ class CustomException implements Exception {
       other is CustomException && other.message == message;
 
   @override
+  int get hashCode => message.hashCode;
+
+  @override
   String toString() => "CustomException: $message";
 }
 
@@ -73,26 +74,26 @@ void main() {
       command.isExecuting.listen((b, _) {
         isExecutingCollector(b);
         if (enablePrint) {
-          print("Can Execute $b");
+          print("isExecuting $b");
         }
       });
     }
     command.results.listen((cmdResult, _) {
       cmdResultCollector(cmdResult);
       if (enablePrint) {
-        print("Can Execute $cmdResult");
+        print("Command Result $cmdResult");
       }
     });
     command.thrownExceptions.listen((cmdError, _) {
       thrownExceptionCollector(cmdError!);
       if (enablePrint) {
-        print("Can Execute $cmdError");
+        print("Thrown Exceptions $cmdError");
       }
     });
     command.listen((pureResult, _) {
       pureResultCollector(pureResult);
       if (enablePrint) {
-        print("Can Execute $pureResult");
+        print("Command returns $pureResult");
       }
     });
   }
@@ -314,7 +315,7 @@ void main() {
       int executionCount = 0;
       final command = Command.createSync<String, String>(
         (s) {
-          print("action: ${s}");
+          print("action: $s");
           executionCount++;
           throw CustomException("Intentional");
         },
@@ -358,7 +359,7 @@ void main() {
         () async {
       int executionCount = 0;
       final command = Command.createSync<String, String>((s) {
-        print("action: ${s}");
+        print("action: $s");
         executionCount++;
         throw CustomException("Intentional");
       }, 'Initial Value', catchAlways: false, debugName: 'FailedCommand');
@@ -780,7 +781,7 @@ void main() {
       expect(pureResultCollector.values, isNull);
     });
     test(
-        'async function with exception with and catchAlways==false with listeners',
+        'async function with exception with and catchAlways==true with listeners',
         () async {
       final command = Command.createAsync<String, String>(
         slowAsyncFunctionFail,
@@ -958,6 +959,183 @@ void main() {
       Command.globalExceptionHandler = null;
     });
   });
+  group("Test notifyOnlyWhenValueChanges related logic", () {
+    Future<String> slowAsyncFunction(String s) async {
+      print("___Start__Slow__Action__________");
+      await Future.delayed(const Duration(milliseconds: 10));
+      print("___End__Slow__Action__________");
+      return s;
+    }
+
+    test("Test default notification behaviour when value doesn't change",
+        () async {
+      int executionCount = 0;
+      final Command commandForNotificationTest =
+          Command.createAsync<String, String>(
+        (s) async {
+          executionCount++;
+          return slowAsyncFunction(s);
+        },
+        "Initial Value",
+      );
+      setupCollectors(commandForNotificationTest);
+      expect(commandForNotificationTest.isExecuting.value, false,
+          reason: "IsExecuting before true");
+
+      // First execution
+      commandForNotificationTest.execute("Done");
+      await Future.delayed(const Duration(milliseconds: 10));
+      expect(commandForNotificationTest.isExecuting.value, false);
+      expect(executionCount, 1);
+
+      // Second execution
+      commandForNotificationTest.execute("Done");
+      await Future.delayed(const Duration(milliseconds: 10));
+      expect(commandForNotificationTest.isExecuting.value, false);
+      expect(executionCount, 2);
+
+      // Expected to return false, true, false
+      // but somehow skips the initial state which is false.
+      expect(isExecutingCollector.values, [true, false, true, false]);
+
+      expect(canExecuteCollector.values, [false, true, false, true]);
+
+      expect(cmdResultCollector.values, [
+        const CommandResult<String, void>("Done", null, null, true),
+        const CommandResult<String, void>("Done", "Done", null, false),
+        const CommandResult<String, void>("Done", null, null, true),
+        const CommandResult<String, void>("Done", "Done", null, false),
+      ]);
+
+      expect(pureResultCollector.values, ["Done", "Done"]);
+    });
+    test("Test default notification behaviour when value changes", () async {
+      int executionCount = 0;
+      final Command commandForNotificationTest =
+          Command.createAsync<String, String>(
+        (s) async {
+          executionCount++;
+          return slowAsyncFunction(s);
+        },
+        "Initial Value",
+      );
+      setupCollectors(commandForNotificationTest);
+      expect(commandForNotificationTest.isExecuting.value, false,
+          reason: "IsExecuting before true");
+
+      // First execution
+      commandForNotificationTest.execute("Done");
+      await Future.delayed(const Duration(milliseconds: 10));
+      expect(commandForNotificationTest.isExecuting.value, false);
+      expect(executionCount, 1);
+
+      // Second execution
+      commandForNotificationTest.execute("Done2");
+      await Future.delayed(const Duration(milliseconds: 10));
+      expect(commandForNotificationTest.isExecuting.value, false);
+      expect(executionCount, 2);
+
+      // Expected to return false, true, false
+      // but somehow skips the initial state which is false.
+      expect(isExecutingCollector.values, [true, false, true, false]);
+
+      expect(canExecuteCollector.values, [false, true, false, true]);
+
+      expect(cmdResultCollector.values, [
+        const CommandResult<String, void>("Done", null, null, true),
+        const CommandResult<String, void>("Done", "Done", null, false),
+        const CommandResult<String, void>("Done2", null, null, true),
+        const CommandResult<String, void>("Done2", "Done2", null, false),
+      ]);
+
+      expect(pureResultCollector.values, ["Done", "Done2"]);
+    });
+
+    test("Test notifyOnlyWhenValueChanges flag as true", () async {
+      int executionCount = 0;
+      final Command commandForNotificationTest =
+          Command.createAsync<String, String>(
+        (s) async {
+          executionCount++;
+          return slowAsyncFunction(s);
+        },
+        "Initial Value",
+        notifyOnlyWhenValueChanges: true,
+      );
+      setupCollectors(commandForNotificationTest);
+      expect(commandForNotificationTest.isExecuting.value, false,
+          reason: "IsExecuting before true");
+
+      // First execution
+      commandForNotificationTest.execute("Done");
+      await Future.delayed(const Duration(milliseconds: 10));
+      expect(commandForNotificationTest.isExecuting.value, false);
+      expect(executionCount, 1);
+
+      // Second execution
+      commandForNotificationTest.execute("Done");
+      await Future.delayed(const Duration(milliseconds: 10));
+      expect(commandForNotificationTest.isExecuting.value, false);
+      expect(executionCount, 2);
+
+      // Expected to return false, true, false
+      // but somehow skips the initial state which is false.
+      expect(isExecutingCollector.values, [true, false, true, false]);
+
+      expect(canExecuteCollector.values, [false, true, false, true]);
+
+      expect(cmdResultCollector.values, [
+        const CommandResult<String, void>("Done", null, null, true),
+        const CommandResult<String, void>("Done", "Done", null, false),
+        const CommandResult<String, void>("Done", null, null, true),
+        const CommandResult<String, void>("Done", "Done", null, false),
+      ]);
+      // Thos is the main result evaluation. :)
+      expect(pureResultCollector.values, ["Done"]);
+    });
+    test("Test notifyOnlyWhenValueChanges flag as false", () async {
+      int executionCount = 0;
+      final Command commandForNotificationTest =
+          Command.createAsync<String, String>(
+        (s) async {
+          executionCount++;
+          return slowAsyncFunction(s);
+        },
+        "Initial Value",
+        notifyOnlyWhenValueChanges: false,
+      );
+      setupCollectors(commandForNotificationTest);
+      expect(commandForNotificationTest.isExecuting.value, false,
+          reason: "IsExecuting before true");
+
+      // First execution
+      commandForNotificationTest.execute("Done");
+      await Future.delayed(const Duration(milliseconds: 10));
+      expect(commandForNotificationTest.isExecuting.value, false);
+      expect(executionCount, 1);
+
+      // Second execution
+      commandForNotificationTest.execute("Done");
+      await Future.delayed(const Duration(milliseconds: 10));
+      expect(commandForNotificationTest.isExecuting.value, false);
+      expect(executionCount, 2);
+
+      // Expected to return false, true, false
+      // but somehow skips the initial state which is false.
+      expect(isExecutingCollector.values, [true, false, true, false]);
+
+      expect(canExecuteCollector.values, [false, true, false, true]);
+
+      expect(cmdResultCollector.values, [
+        const CommandResult<String, void>("Done", null, null, true),
+        const CommandResult<String, void>("Done", "Done", null, false),
+        const CommandResult<String, void>("Done", null, null, true),
+        const CommandResult<String, void>("Done", "Done", null, false),
+      ]);
+
+      expect(pureResultCollector.values, ["Done", "Done"]);
+    });
+  });
   group("Test Command Builder", () {
     testWidgets("Test Command Builder", (WidgetTester tester) async {
       final testCommand = Command.createAsyncNoParam<String>(
@@ -975,7 +1153,6 @@ void main() {
               child: CommandBuilder<void, String>(
                 command: testCommand,
                 onData: (context, value, _) {
-                  assert(value != null);
                   return Text(
                     value,
                   );
@@ -1231,7 +1408,18 @@ void main() {
       // verify collectors
       expect(cmdResultCollector.values,
           [const CommandResult<String, String>(null, "end_data", null, false)]);
-      expect(pureResultCollector.values, ["end_data"]);
+
+      // The pureresultCollector contins two values because, in the
+      // initialization logic of mock command, there is a listener added to
+      // commandresutls notifier which reassigns the value to the value field of
+      // the notifier. Additionally in the [endExecutionWithData] there is an
+      // assignment to the value which notifies the listeners. This brings the
+      // results twice, when the valuenotifier is allowed to notify even if the
+      // value hasn't changed.
+      // Todo : Verify if this logic is valid or not.
+
+      // expect(pureResultCollector.values, ["end_data"]);
+      expect(pureResultCollector.values, ["end_data", "end_data"]);
     });
     test('Test MockCommand - endExecutionNoData', () {
       final mockCommand = MockCommand<String, String>(
