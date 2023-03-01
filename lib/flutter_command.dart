@@ -520,7 +520,8 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// properties we make them private and only publish their `ValueListenable`
   /// interface via getters.
   late CustomValueNotifier<CommandResult<TParam?, TResult>> _commandResult;
-  final ValueNotifier<bool> _isExecuting = ValueNotifier<bool>(false);
+  final CustomValueNotifier<bool> _isExecuting =
+      CustomValueNotifier<bool>(false, asyncNotification: true);
   late ValueNotifier<bool> _canExecute;
   final CustomValueNotifier<CommandError<TParam?>?> _thrownExceptions =
       CustomValueNotifier<CommandError<TParam?>?>(
@@ -736,6 +737,9 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
       true,
     );
 
+    /// give the async notifications a chance to propagate
+    await Future<void>.delayed(Duration.zero);
+
     try {
       TResult result;
       if (_noParamValue) {
@@ -777,6 +781,9 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
       }
     } finally {
       _isExecuting.value = false;
+
+      /// give the async notifications a chance to propagate
+      await Future<void>.delayed(Duration.zero);
       Command.loggingHandler?.call(_debugName, _commandResult.value);
     }
   }

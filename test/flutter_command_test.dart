@@ -1,5 +1,6 @@
 // ignore_for_file: avoid_print
 
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_command/flutter_command.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -436,7 +437,7 @@ void main() {
       return s!;
     }
 
-    test('Execute simple async function with no Parameter no Result', () async {
+    test('Execute simple async function with no Parameter no Result', () {
       var executionCount = 0;
 
       final command = Command.createAsyncNoParamNoResult(
@@ -458,25 +459,27 @@ void main() {
       );
 
       // Execute command.
-      command.execute();
+      fakeAsync((async) {
+        command.execute();
 
-      // Waiting till the async function has finished executing.
-      await Future.delayed(const Duration(milliseconds: 10));
+        // Waiting till the async function has finished executing.
+        async.elapse(const Duration(milliseconds: 10));
 
-      expect(command.isExecuting.value, false);
+        expect(command.isExecuting.value, false);
 
-      expect(executionCount, 1);
+        expect(executionCount, 1);
 
-      // Expected to return false, true, false
-      // but somehow skips the initial state which is false.
-      expect(isExecutingCollector.values, [true, false]);
+        // Expected to return false, true, false
+        // but somehow skips the initial state which is false.
+        expect(isExecutingCollector.values, [true, false]);
 
-      expect(canExecuteCollector.values, [false, true]);
+        expect(canExecuteCollector.values, [false, true]);
 
-      expect(cmdResultCollector.values, [
-        const CommandResult<void, void>(null, null, null, true),
-        const CommandResult<void, void>(null, null, null, false),
-      ]);
+        expect(cmdResultCollector.values, [
+          const CommandResult<void, void>(null, null, null, true),
+          const CommandResult<void, void>(null, null, null, false),
+        ]);
+      });
     });
 
     // test('Handle calling noParamFunctions being called with param', () async {
@@ -541,26 +544,28 @@ void main() {
         reason: "IsExecuting before true",
       );
 
-      // Execute command.
-      command.execute();
+      fakeAsync((async) {
+        // Execute command.
+        command.execute();
 
-      // Waiting till the async function has finished executing.
-      await Future.delayed(const Duration(milliseconds: 10));
+        // Waiting till the async function has finished executing.
+        async.elapse(const Duration(milliseconds: 10));
 
-      expect(command.isExecuting.value, false);
+        expect(command.isExecuting.value, false);
 
-      expect(executionCount, 1);
+        expect(executionCount, 1);
 
-      // Expected to return false, true, false
-      // but somehow skips the initial state which is false.
-      expect(isExecutingCollector.values, [true, false]);
+        // Expected to return false, true, false
+        // but somehow skips the initial state which is false.
+        expect(isExecutingCollector.values, [true, false]);
 
-      expect(canExecuteCollector.values, [false, true]);
+        expect(canExecuteCollector.values, [false, true]);
 
-      expect(cmdResultCollector.values, [
-        const CommandResult<void, String>(null, null, null, true),
-        const CommandResult<void, String>(null, "No Param", null, false),
-      ]);
+        expect(cmdResultCollector.values, [
+          const CommandResult<void, String>(null, null, null, true),
+          const CommandResult<void, String>(null, "No Param", null, false),
+        ]);
+      });
     });
     test('Execute simple async function with parameter', () async {
       var executionCount = 0;
@@ -583,26 +588,28 @@ void main() {
         reason: "IsExecuting before true",
       );
 
-      // Execute command.
-      command.execute("Done");
+      fakeAsync((async) {
+        // Execute command.
+        command.execute("Done");
 
-      // Waiting till the async function has finished executing.
-      await Future.delayed(const Duration(milliseconds: 10));
+        // Waiting till the async function has finished executing.
+        async.elapse(const Duration(milliseconds: 10));
 
-      expect(command.isExecuting.value, false);
+        expect(command.isExecuting.value, false);
 
-      expect(executionCount, 1);
+        expect(executionCount, 1);
 
-      // Expected to return false, true, false
-      // but somehow skips the initial state which is false.
-      expect(isExecutingCollector.values, [true, false]);
+        // Expected to return false, true, false
+        // but somehow skips the initial state which is false.
+        expect(isExecutingCollector.values, [true, false]);
 
-      expect(canExecuteCollector.values, [false, true]);
+        expect(canExecuteCollector.values, [false, true]);
 
-      expect(cmdResultCollector.values, [
-        const CommandResult<String, void>("Done", null, null, true),
-        const CommandResult<String, void>("Done", null, null, false),
-      ]);
+        expect(cmdResultCollector.values, [
+          const CommandResult<String, void>("Done", null, null, true),
+          const CommandResult<String, void>("Done", null, null, false),
+        ]);
+      });
     });
 
     test('Execute simple async function with parameter and return value',
@@ -625,25 +632,27 @@ void main() {
         reason: "IsExecuting before true",
       );
 
-      command.execute("Done");
+      fakeAsync((async) {
+        command.execute("Done");
 
-      // Waiting till the async function has finished executing.
-      await Future.delayed(const Duration(milliseconds: 10));
+        // Waiting till the async function has finished executing.
+        async.elapse(const Duration(milliseconds: 10));
 
-      expect(command.isExecuting.value, false);
+        expect(command.isExecuting.value, false);
 
-      expect(executionCount, 1);
+        expect(executionCount, 1);
 
-      // Expected to return false, true, false
-      // but somehow skips the initial state which is false.
-      expect(isExecutingCollector.values, [true, false]);
+        // Expected to return false, true, false
+        // but somehow skips the initial state which is false.
+        expect(isExecutingCollector.values, [true, false]);
 
-      expect(canExecuteCollector.values, [false, true]);
+        expect(canExecuteCollector.values, [false, true]);
 
-      expect(cmdResultCollector.values, [
-        const CommandResult<String, String>("Done", null, null, true),
-        const CommandResult<String, String>("Done", "Done", null, false),
-      ]);
+        expect(cmdResultCollector.values, [
+          const CommandResult<String, String>("Done", null, null, true),
+          const CommandResult<String, String>("Done", "Done", null, false),
+        ]);
+      });
     });
 
     test('Execute simple async function call while already running', () async {
@@ -881,31 +890,33 @@ void main() {
       expect(command.isExecuting.value, false);
 
       expect(command.thrownExceptions.value, isNull);
-      command.execute("Done");
+      fakeAsync((async) {
+        command.execute("Done");
 
-      await Future.delayed(Duration.zero);
+        async.elapse(Duration.zero);
 
-      expect(command.canExecute.value, true);
-      expect(command.isExecuting.value, false);
+        expect(command.canExecute.value, true);
+        expect(command.isExecuting.value, false);
 
-      // Verify nothing came through pure results from .
-      expect(pureResultCollector.values, isNull);
+        // Verify nothing came through pure results from .
+        expect(pureResultCollector.values, isNull);
 
-      expect(
-        thrownExceptionCollector.values,
-        [CommandError<String>("Done", CustomException("Intentionally"))],
-      );
+        expect(
+          thrownExceptionCollector.values,
+          [CommandError<String>("Done", CustomException("Intentionally"))],
+        );
 
-      // Verify the results collector.
-      expect(cmdResultCollector.values, [
-        const CommandResult<String, String>("Done", null, null, true),
-        CommandResult<String, String>(
-          "Done",
-          null,
-          CustomException("Intentionally"),
-          false,
-        ),
-      ]);
+        // Verify the results collector.
+        expect(cmdResultCollector.values, [
+          const CommandResult<String, String>("Done", null, null, true),
+          CommandResult<String, String>(
+            "Done",
+            null,
+            CustomException("Intentionally"),
+            false,
+          ),
+        ]);
+      });
     });
   });
 
@@ -953,10 +964,18 @@ void main() {
       setupCollectors(command);
 
       command("Done");
+      await Future.delayed(const Duration(milliseconds: 10));
+      await Future.delayed(const Duration(milliseconds: 10));
       await Future.delayed(Duration.zero);
+      await Future.delayed(Duration.zero);
+      await Future.delayed(const Duration(milliseconds: 10));
 
       // verify collectors
+
+      // the canExecuteCollector should not be empty because the isExecutingCollector isn't empty.
+      // maybe it is only happening inside the test environment.
       expect(canExecuteCollector.values, isNotEmpty);
+      expect(isExecutingCollector.values, isNotEmpty);
       expect(cmdResultCollector.values, [
         const CommandResult<String, String>("Done", null, null, true),
         CommandResult<String, String>(
@@ -1112,33 +1131,37 @@ void main() {
         reason: "IsExecuting before true",
       );
 
-      // First execution
-      commandForNotificationTest.execute("Done");
-      await Future.delayed(const Duration(milliseconds: 10));
-      expect(commandForNotificationTest.isExecuting.value, false);
-      expect(executionCount, 1);
+      fakeAsync((async) {
+        // First execution
+        commandForNotificationTest.execute("Done");
+        async.elapse(const Duration(milliseconds: 10));
+        expect(commandForNotificationTest.isExecuting.value, false);
+        expect(executionCount, 1);
 
-      // Second execution
-      commandForNotificationTest.execute("Done");
-      await Future.delayed(const Duration(milliseconds: 10));
-      expect(commandForNotificationTest.isExecuting.value, false);
-      expect(executionCount, 2);
+        // async.elapse(const Duration(milliseconds: 10));
+        // Second execution
+        commandForNotificationTest.execute("Done");
+        async.elapse(const Duration(milliseconds: 10));
+        expect(commandForNotificationTest.isExecuting.value, false);
+        expect(executionCount, 2);
 
-      // Expected to return false, true, false
-      // but somehow skips the initial state which is false.
-      expect(isExecutingCollector.values, [true, false, true, false]);
+        // Expected to return false, true, false
+        // but somehow skips the initial state which is false.
+        expect(isExecutingCollector.values, [true, false, true, false]);
 
-      expect(canExecuteCollector.values, [false, true, false, true]);
+        expect(canExecuteCollector.values, [false, true, false, true]);
 
-      expect(cmdResultCollector.values, [
-        const CommandResult<String, void>("Done", null, null, true),
-        const CommandResult<String, String>("Done", "Done", null, false),
-        const CommandResult<String, void>("Done", null, null, true),
-        const CommandResult<String, String>("Done", "Done", null, false),
-      ]);
+        expect(cmdResultCollector.values, [
+          const CommandResult<String, void>("Done", null, null, true),
+          const CommandResult<String, String>("Done", "Done", null, false),
+          const CommandResult<String, void>("Done", null, null, true),
+          const CommandResult<String, String>("Done", "Done", null, false),
+        ]);
 
-      expect(pureResultCollector.values, ["Done", "Done"]);
+        expect(pureResultCollector.values, ["Done", "Done"]);
+      });
     });
+
     test("Test default notification behaviour when value changes", () async {
       int executionCount = 0;
       final Command commandForNotificationTest =
@@ -1155,33 +1178,34 @@ void main() {
         false,
         reason: "IsExecuting before true",
       );
+      fakeAsync((async) {
+        // First execution
+        commandForNotificationTest.execute("Done");
+        async.elapse(const Duration(milliseconds: 10));
+        expect(commandForNotificationTest.isExecuting.value, false);
+        expect(executionCount, 1);
 
-      // First execution
-      commandForNotificationTest.execute("Done");
-      await Future.delayed(const Duration(milliseconds: 10));
-      expect(commandForNotificationTest.isExecuting.value, false);
-      expect(executionCount, 1);
+        // Second execution
+        commandForNotificationTest.execute("Done2");
+        async.elapse(const Duration(milliseconds: 10));
+        expect(commandForNotificationTest.isExecuting.value, false);
+        expect(executionCount, 2);
 
-      // Second execution
-      commandForNotificationTest.execute("Done2");
-      await Future.delayed(const Duration(milliseconds: 10));
-      expect(commandForNotificationTest.isExecuting.value, false);
-      expect(executionCount, 2);
+        // Expected to return false, true, false
+        // but somehow skips the initial state which is false.
+        expect(isExecutingCollector.values, [true, false, true, false]);
 
-      // Expected to return false, true, false
-      // but somehow skips the initial state which is false.
-      expect(isExecutingCollector.values, [true, false, true, false]);
+        expect(canExecuteCollector.values, [false, true, false, true]);
 
-      expect(canExecuteCollector.values, [false, true, false, true]);
+        expect(cmdResultCollector.values, [
+          const CommandResult<String, void>("Done", null, null, true),
+          const CommandResult<String, String>("Done", "Done", null, false),
+          const CommandResult<String, void>("Done2", null, null, true),
+          const CommandResult<String, String>("Done2", "Done2", null, false),
+        ]);
 
-      expect(cmdResultCollector.values, [
-        const CommandResult<String, void>("Done", null, null, true),
-        const CommandResult<String, String>("Done", "Done", null, false),
-        const CommandResult<String, void>("Done2", null, null, true),
-        const CommandResult<String, String>("Done2", "Done2", null, false),
-      ]);
-
-      expect(pureResultCollector.values, ["Done", "Done2"]);
+        expect(pureResultCollector.values, ["Done", "Done2"]);
+      });
     });
 
     test("Test notifyOnlyWhenValueChanges flag as true", () async {
@@ -1202,33 +1226,36 @@ void main() {
         reason: "IsExecuting before true",
       );
 
-      // First execution
-      commandForNotificationTest.execute("Done");
-      await Future.delayed(const Duration(milliseconds: 10));
-      expect(commandForNotificationTest.isExecuting.value, false);
-      expect(executionCount, 1);
+      fakeAsync((async) {
+        // First execution
+        commandForNotificationTest.execute("Done");
+        async.elapse(const Duration(milliseconds: 10));
+        expect(commandForNotificationTest.isExecuting.value, false);
+        expect(executionCount, 1);
 
-      // Second execution
-      commandForNotificationTest.execute("Done");
-      await Future.delayed(const Duration(milliseconds: 10));
-      expect(commandForNotificationTest.isExecuting.value, false);
-      expect(executionCount, 2);
+        // Second execution
+        commandForNotificationTest.execute("Done");
+        async.elapse(const Duration(milliseconds: 10));
+        expect(commandForNotificationTest.isExecuting.value, false);
+        expect(executionCount, 2);
 
-      // Expected to return false, true, false
-      // but somehow skips the initial state which is false.
-      expect(isExecutingCollector.values, [true, false, true, false]);
+        // Expected to return false, true, false
+        // but somehow skips the initial state which is false.
+        expect(isExecutingCollector.values, [true, false, true, false]);
 
-      expect(canExecuteCollector.values, [false, true, false, true]);
+        expect(canExecuteCollector.values, [false, true, false, true]);
 
-      expect(cmdResultCollector.values, [
-        const CommandResult<String, void>("Done", null, null, true),
-        const CommandResult<String, String>("Done", "Done", null, false),
-        const CommandResult<String, void>("Done", null, null, true),
-        const CommandResult<String, String>("Done", "Done", null, false),
-      ]);
-      // Thos is the main result evaluation. :)
-      expect(pureResultCollector.values, ["Done"]);
+        expect(cmdResultCollector.values, [
+          const CommandResult<String, void>("Done", null, null, true),
+          const CommandResult<String, String>("Done", "Done", null, false),
+          const CommandResult<String, void>("Done", null, null, true),
+          const CommandResult<String, String>("Done", "Done", null, false),
+        ]);
+        // Thos is the main result evaluation. :)
+        expect(pureResultCollector.values, ["Done"]);
+      });
     });
+
     test("Test notifyOnlyWhenValueChanges flag as false", () async {
       int executionCount = 0;
       final Command commandForNotificationTest =
@@ -1248,34 +1275,37 @@ void main() {
         reason: "IsExecuting before true",
       );
 
-      // First execution
-      commandForNotificationTest.execute("Done");
-      await Future.delayed(const Duration(milliseconds: 10));
-      expect(commandForNotificationTest.isExecuting.value, false);
-      expect(executionCount, 1);
+      fakeAsync((async) {
+        // First execution
+        commandForNotificationTest.execute("Done");
+        async.elapse(const Duration(milliseconds: 10));
+        expect(commandForNotificationTest.isExecuting.value, false);
+        expect(executionCount, 1);
 
-      // Second execution
-      commandForNotificationTest.execute("Done");
-      await Future.delayed(const Duration(milliseconds: 10));
-      expect(commandForNotificationTest.isExecuting.value, false);
-      expect(executionCount, 2);
+        // Second execution
+        commandForNotificationTest.execute("Done");
+        async.elapse(const Duration(milliseconds: 10));
+        expect(commandForNotificationTest.isExecuting.value, false);
+        expect(executionCount, 2);
 
-      // Expected to return false, true, false
-      // but somehow skips the initial state which is false.
-      expect(isExecutingCollector.values, [true, false, true, false]);
+        // Expected to return false, true, false
+        // but somehow skips the initial state which is false.
+        expect(isExecutingCollector.values, [true, false, true, false]);
 
-      expect(canExecuteCollector.values, [false, true, false, true]);
+        expect(canExecuteCollector.values, [false, true, false, true]);
 
-      expect(cmdResultCollector.values, [
-        const CommandResult<String, void>("Done", null, null, true),
-        const CommandResult<String, String>("Done", "Done", null, false),
-        const CommandResult<String, void>("Done", null, null, true),
-        const CommandResult<String, String>("Done", "Done", null, false),
-      ]);
+        expect(cmdResultCollector.values, [
+          const CommandResult<String, void>("Done", null, null, true),
+          const CommandResult<String, String>("Done", "Done", null, false),
+          const CommandResult<String, void>("Done", null, null, true),
+          const CommandResult<String, String>("Done", "Done", null, false),
+        ]);
 
-      expect(pureResultCollector.values, ["Done", "Done"]);
+        expect(pureResultCollector.values, ["Done", "Done"]);
+      });
     });
   });
+
   group("Test Command Builder", () {
     testWidgets("Test Command Builder", (WidgetTester tester) async {
       final testCommand = Command.createAsyncNoParam<String>(

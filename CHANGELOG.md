@@ -1,8 +1,13 @@
+[4.0.0] - 01.03.2023
+
+* Two breaking changes in two days :-) I know that is a lot but I encountered a problem in one of my projects, that you might encounter too if you are using flutter_command. If your UI would change depending on the state of `isExecuting` and that change was triggered from within the build function, you could get an exception telling you, that `setState` was called while a rebuild was already running. In this new version async Commands now wait a frame before notifying any listeners. I don't expect, that you will see any difference in your existing apps. If this latest change has any negative side effects, please open an issue immediately. As the philosophy of Commands is that your UI should always only react on state changes and not expect synchronous data, this shouldn't make any trouble.
+
 [3.0.0] - 24.02.2023
 
 * Breaking change: In the past the Command only triggered listeners when the resulting value of a Command execution changed. However in many case you
 want to always update your UI even if the result hasn't changed. Therefore Commands now always notify the listeners even if the result hasn't changed.
 you can change that behaviour by setting [notifyOnlyWhenValueChanges] to true when creating your Commands.
+
 ## [2.0.1] - 07.03.2021
 
 * Fixed small nullability bug in the signature of 
