@@ -19,7 +19,9 @@ class WeatherManager {
     updateWeatherCommand = Command.createAsync<String?, List<WeatherEntry>>(
       update, // Wrapped function
       [], // Initial value
-      restriction: setExecutionStateCommand,
+      /// as the switch is on when the command can be executed we need to invert the value
+      /// to make the command disabled when the switch is off
+      restriction: setExecutionStateCommand.map((switchState) => !switchState),
     );
 
     // Will be called on every change of the searchfield

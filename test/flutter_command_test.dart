@@ -130,10 +130,10 @@ void main() {
     });
 
     test('Execute simple sync action with canExecute restriction', () async {
-      // restriction true means command can execute
-      // if restriction is false, then command cannot execute.
+      // restriction false means command can execute
+      // if restriction is true, then command cannot execute.
       // We test both cases in this test
-      final restriction = ValueNotifier<bool>(true);
+      final restriction = ValueNotifier<bool>(false);
 
       var executionCount = 0;
       var insteadCalledCount = 0;
@@ -158,7 +158,7 @@ void main() {
 
       expect(command.canExecute.value, true);
 
-      restriction.value = false;
+      restriction.value = true;
 
       expect(command.canExecute.value, false);
 
@@ -171,10 +171,10 @@ void main() {
     test(
         'Execute simple async action with canExecute restriction with ifRestrictedInstead handler and param',
         () async {
-      // restriction true means command can execute
-      // if restriction is false, then command cannot execute.
+      // restriction false means command can execute
+      // if restriction is true, then command cannot execute.
       // We test both cases in this test
-      final restriction = ValueNotifier<bool>(true);
+      final restriction = ValueNotifier<bool>(false);
 
       var executionCount = 0;
       int? insteadCalledParam;
@@ -202,7 +202,7 @@ void main() {
 
       expect(command.canExecute.value, true);
 
-      restriction.value = false;
+      restriction.value = true;
 
       expect(command.canExecute.value, false);
 
@@ -1594,7 +1594,7 @@ void main() {
     test('Test MockCommand - execute', () {
       final mockCommand = MockCommand<void, String>(
         initialValue: "Initial Value",
-        restriction: ValueNotifier<bool>(true),
+        restriction: ValueNotifier<bool>(false),
         debugName: "MockingJay",
       );
       // Ensure mock command is executable.
@@ -1612,7 +1612,7 @@ void main() {
     test('Test MockCommand - startExecuting', () {
       final mockCommand = MockCommand<String, String>(
         initialValue: "Initial Value",
-        restriction: ValueNotifier<bool>(true),
+        restriction: ValueNotifier<bool>(false),
         debugName: "MockingJay",
       );
       // Ensure mock command is executable.
@@ -1633,7 +1633,7 @@ void main() {
     test('Test MockCommand - endExecutionWithData', () {
       final mockCommand = MockCommand<String, String>(
         initialValue: "Initial Value",
-        restriction: ValueNotifier<bool>(true),
+        restriction: ValueNotifier<bool>(false),
         debugName: "MockingJay",
       );
       // Ensure mock command is executable.
@@ -1663,7 +1663,7 @@ void main() {
     test('Test MockCommand - endExecutionNoData', () {
       final mockCommand = MockCommand<String, String>(
         initialValue: "Initial Value",
-        restriction: ValueNotifier<bool>(true),
+        restriction: ValueNotifier<bool>(false),
         debugName: "MockingJay",
       );
       // Ensure mock command is executable.
@@ -1683,7 +1683,7 @@ void main() {
     test('Test MockCommand - endExecutionWithError', () {
       final mockCommand = MockCommand<String, String>(
         initialValue: "Initial Value",
-        restriction: ValueNotifier<bool>(true),
+        restriction: ValueNotifier<bool>(false),
         debugName: "MockingJay",
       );
       // Ensure mock command is executable.
@@ -1703,7 +1703,7 @@ void main() {
     test('Test MockCommand - queueResultsForNextExecuteCall', () {
       final mockCommand = MockCommand<String, String>(
         initialValue: "Initial Value",
-        restriction: ValueNotifier<bool>(true),
+        restriction: ValueNotifier<bool>(false),
         debugName: "MockingJay",
       );
       mockCommand.queueResultsForNextExecuteCall([

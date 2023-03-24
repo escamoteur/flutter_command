@@ -193,7 +193,7 @@ child: TextField(
 ```
 
 ### Restricting command execution
-Sometimes it is desirable to make the execution of a `Command` depending on some other state. For this you can pass a `ValueListenable<bool>` as `restriction` parameter, when you create a command. If you do so the command will only be executed if the value of the passed listenable is `true`.
+Sometimes it is desirable to make the execution of a `Command` depending on some other state. For this you can pass a `ValueListenable<bool>` as `restriction` parameter, when you create a command. If you do so the command will only be executed if the value of the passed listenable is `false`.
 In the example app we can restrict the execution by changing the state of a `Switch`. To handle changes of the `Switch` we use..., you guessed it, another command in the `WeatherManager`:
 
 ```Dart
@@ -205,7 +205,9 @@ WeatherManager() {
     updateWeatherCommand = Command.createAsync<String, List<WeatherEntry>>(
     update, // Wrapped function
     [], // Initial value
-    restriction: setExecutionStateCommand,
+      /// as the switch is on when the command can be executed we need to invert the value
+      /// to make the command disabled when the switch is off
+      restriction: setExecutionStateCommand.map((switchState) => !switchState),
   );
 ...
 ```
@@ -407,70 +409,90 @@ return result.toWidget(
   /// for syncronous functions with no parameter and no result
   static Command<void, void> createSyncNoParamNoResult(
     void Function() action, {
-    ValueListenable<bool> restriction,
-    bool catchAlways,
-    String debugName
+    ValueListenable<bool>? restriction,
+    void Function()? ifRestrictedExecuteInstead,
+    bool? catchAlways,
+    bool notifyOnlyWhenValueChanges = false,
+    String? debugName,
   }) 
   /// for syncronous functions with one parameter and no result
   static Command<TParam, void> createSyncNoResult<TParam>(
     void Function(TParam x) action, {
-    ValueListenable<bool> restriction,
-    bool catchAlways,
-    String debugName
+    ValueListenable<bool>? restriction,
+    ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
+    bool? catchAlways,
+    bool notifyOnlyWhenValueChanges = false,
+    String? debugName,
   }) 
   /// for syncronous functions with no parameter and but a result
   static Command<void, TResult> createSyncNoParam<TResult>(
     TResult Function() func,
     TResult initialValue, {
-    ValueListenable<bool> restriction,
+    ValueListenable<bool>? restriction,
+    void Function()? ifRestrictedExecuteInstead,
     bool includeLastResultInCommandResults = false,
-    bool catchAlways,
-    String debugName
+    bool? catchAlways,
+    bool notifyOnlyWhenValueChanges = false,
+    String? debugName,
   })
   /// for syncronous functions with one parameter and result
   static Command<TParam, TResult> createSync<TParam, TResult>(
     TResult Function(TParam x) func,
     TResult initialValue, {
-    ValueListenable<bool> restriction,
+    ValueListenable<bool>? restriction,
+    ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
     bool includeLastResultInCommandResults = false,
-    bool catchAlways,
-    String debugName
+    bool? catchAlways,
+    bool notifyOnlyWhenValueChanges = false,
+    String? debugName,
   }) 
 
   /// and for Async functions:
   static Command<void, void> createAsyncNoParamNoResult(
     Future Function() action, {
-    ValueListenable<bool> restriction,
-    bool catchAlways,
-    String debugName
+    ValueListenable<bool>? restriction,
+    void Function()? ifRestrictedExecuteInstead,
+    bool? catchAlways,
+    bool notifyOnlyWhenValueChanges = false,
+    String? debugName,
   }) 
   static Command<TParam, void> createAsyncNoResult<TParam>(
     Future Function(TParam x) action, {
-    ValueListenable<bool> restriction,
-    bool catchAlways,
-    String debugName
+    ValueListenable<bool>? restriction,
+    ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
+    bool? catchAlways,
+    bool notifyOnlyWhenValueChanges = false,
+    String? debugName,
   }) 
   static Command<void, TResult> createAsyncNoParam<TResult>(
     Future<TResult> Function() func,
     TResult initialValue, {
-    ValueListenable<bool> restriction,
+    ValueListenable<bool>? restriction,
+    void Function()? ifRestrictedExecuteInstead,
     bool includeLastResultInCommandResults = false,
-    bool catchAlways,
-    String debugName
+    bool? catchAlways,
+    bool notifyOnlyWhenValueChanges = false,
+    String? debugName,
   })
   static Command<TParam, TResult> createAsync<TParam, TResult>(
     Future<TResult> Function(TParam x) func,
     TResult initialValue, {
-    ValueListenable<bool> restriction,
+    ValueListenable<bool>? restriction,
+    ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
     bool includeLastResultInCommandResults = false,
-    bool catchAlways,
-    String debugName
+    bool? catchAlways,
+    bool notifyOnlyWhenValueChanges = false,
+    String? debugName,
   })
   ```
   For detailed information on the parameters of these functions consult the API docs or the source code documentation.
 
-  ## Reacting on Functions with no results
+## Reacting on Functions with no results
   Even if your wrapped function doesn't return a value, you can react on the end of the function execution by registering a listener to the `Command`. The command Value will be void but your handler is ensured to be called.
+
+## Restricting Commands in Detail
+As described above you can pass in a `ValueListenable<bool>` named `restriction` this allows to control the executability of a Command from the outside. Typical example would be if a user is logged in. To allow you to declarative describe what should happen if the user tries to executed a restricted Command you can pass in an optional `ifRestrictedExecuteInstead` handler function that get the parameter of the command passed in if the command expects a parameter.
+This can be nicely used to push a login screen in the case described above.
 
 ## Logging
 If you are not sure what's going on in your App you can register an handler function to 

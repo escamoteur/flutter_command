@@ -149,7 +149,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
         ? _isExecuting.map((val) => !val) as ValueNotifier<bool>
         : _restriction!.combineLatest<bool, bool>(
             _isExecuting,
-            (restriction, isExecuting) => restriction && !isExecuting,
+            (restriction, isExecuting) => !restriction && !isExecuting,
           ) as ValueNotifier<bool>;
   }
 
@@ -157,9 +157,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// Creates  a Command for a synchronous handler function with no parameter and no return type
   /// [action]: handler function
   /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable
-  /// the command based on some other state change. `true` means that the Command can be executed.
+  /// the command based on some other state change. `true` means that the Command cannot be executed.
   /// If omitted the command can be executed always except it's already executing
-  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `false`
+  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `true`
   /// this function will be called instead of the wrapped function.
   /// This is useful if you want to execute a different function when the command
   /// is restricted. For example you could show a dialog to let the user logg in
@@ -207,9 +207,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// Creates  a Command for a synchronous handler function with one parameter and no return type
   /// [action]: handler function
   /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable
-  /// the command based on some other state change. `true` means that the Command can be executed.
+  /// the command based on some other state change. `true` means that the Command cannot be executed.
   /// If omitted the command can be executed always except it's already executing
-  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `false`
+  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `true`
   /// this function will be called instead of the wrapped function.
   /// This is useful if you want to execute a different function when the command
   /// is restricted. For example you could show a dialog to let the user logg in
@@ -256,9 +256,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// [func]: handler function
   /// [initialValue] sets the `.value` of the Command.
   /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable the command based on
-  /// some other state change. `true` means that the Command can be executed.
+  /// some other state change. `true` means that the Command cannot be executed.
   /// If omitted the command can be executed always except it's already executing
-  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `false`
+  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `true`
   /// this function will be called instead of the wrapped function.
   /// This is useful if you want to execute a different function when the command
   /// is restricted. For example you could show a dialog to let the user logg in
@@ -310,9 +310,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// [func]: handler function
   /// [initialValue] sets the `.value` of the Command.
   /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable the command based on
-  ///  some other state change. `true` means that the Command can be executed.
+  ///  some other state change. `true` means that the Command cannot be executed.
   /// If omitted the command can be executed always except it's already executing
-  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `false`
+  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `true`
   /// this function will be called instead of the wrapped function.
   /// This is useful if you want to execute a different function when the command
   /// is restricted. For example you could show a dialog to let the user logg in
@@ -365,9 +365,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value, but you can
   /// register a handler to wait for the completion of the wrapped function.
   /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable
-  /// the command based on some other state change. `true` means that the Command can be executed.
+  /// the command based on some other state change. `true` means that the Command cannot be executed.
   /// If omitted the command can be executed always except it's already executing
-  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `false`
+  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `true`
   /// this function will be called instead of the wrapped function.
   /// This is useful if you want to execute a different function when the command
   /// is restricted. For example you could show a dialog to let the user logg in
@@ -412,9 +412,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value but you can
   /// register a handler to wait for the completion of the wrapped function.
   /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable
-  /// the command based on some other state change. `true` means that the Command can be executed.
+  /// the command based on some other state change. `true` means that the Command cannot be executed.
   /// If omitted the command can be executed always except it's already executing
-  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `false`
+  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `true`
   /// this function will be called instead of the wrapped function.
   /// This is useful if you want to execute a different function when the command
   /// is restricted. For example you could show a dialog to let the user logg in
@@ -456,9 +456,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// [func]: handler function
   /// [initialValue] sets the `.value` of the Command.
   /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable the command based on
-  ///  some other state change. `true` means that the Command can be executed. If omitted the command
+  ///  some other state change. `true` means that the Command cannot be executed. If omitted the command
   /// can be executed always except it's already executing
-  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `false`
+  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `true`
   /// this function will be called instead of the wrapped function.
   /// This is useful if you want to execute a different function when the command
   /// is restricted. For example you could show a dialog to let the user logg in
@@ -507,9 +507,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// [func]: handler function
   /// [initialValue] sets the `.value` of the Command.
   /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable the command based on
-  ///  some other state change. `true` means that the Command can be executed.
+  ///  some other state change. `true` means that the Command cannot be executed.
   /// If omitted the command can be executed always except it's already executing
-  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `false`
+  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `true`
   /// this function will be called instead of the wrapped function.
   /// This is useful if you want to execute a different function when the command
   /// is restricted. For example you could show a dialog to let the user logg in
@@ -574,9 +574,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// `ValueListenable<bool>` that changes its value on any change of the current
   /// executability state of the command. Meaning if the command can be executed or not.
   /// This will issue `false` while the command executes, but also if the command
-  /// receives a false from the canExecute `ValueListenable` that you can pass when
+  /// receives a `true` from the [restriction] `ValueListenable` that you can pass when
   /// creating the Command.
-  /// its value is `restriction.value && !isExecuting.value`
+  /// its value is `!restriction.value && !isExecuting.value`
   ValueListenable<bool> get canExecute => _canExecute;
 
   /// `ValueListenable<CommandError>` that reflects the Error State of the command
@@ -614,7 +614,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   final CustomValueNotifier<bool> _isExecuting =
       CustomValueNotifier<bool>(false, asyncNotification: true);
   late ValueNotifier<bool> _canExecute;
-  late ValueListenable<bool>? _restriction;
+  late final ValueListenable<bool>? _restriction;
   final CustomValueNotifier<CommandError<TParam?>?> _thrownExceptions =
       CustomValueNotifier<CommandError<TParam?>?>(
     null,
@@ -732,7 +732,7 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
 
   @override
   void execute([TParam? param]) {
-    if (_restriction?.value == false) {
+    if (_restriction?.value == true) {
       _ifRestrictedExecuteInstead?.call(param);
       return;
     }
@@ -818,7 +818,7 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
   @override
   // ignore: avoid_void_async
   void execute([TParam? param]) async {
-    if (_restriction?.value == false) {
+    if (_restriction?.value == true) {
       _ifRestrictedExecuteInstead?.call(param);
       return;
     }
@@ -946,7 +946,7 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult?> {
   /// [isExecuting], [canExecute] and [results] will work as with a real command.
   @override
   void execute([TParam? param]) {
-    if (_restriction?.value == false) {
+    if (_restriction?.value == true) {
       _ifRestrictedExecuteInstead?.call(param);
       return;
     }
