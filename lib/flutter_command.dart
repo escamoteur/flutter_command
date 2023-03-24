@@ -87,6 +87,8 @@ class CommandError<TParam> {
   }
 }
 
+typedef ExecuteInsteadHandler<TParam> = void Function(TParam?);
+
 /// [Command] capsules a given handler function that can then be executed by its [execute] method.
 /// The result of this method is then published through its `ValueListenable` interface
 /// Additionally it offers other `ValueListenables` for it's current execution state,
@@ -108,13 +110,16 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   Command(
     TResult initialValue,
     ValueListenable<bool>? restriction,
+    ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
     bool includeLastResultInCommandResults,
     bool noReturnValue,
     bool catchAlways,
     bool notifyOnlyWhenValueChanges,
     String? debugName,
     bool noParamValue,
-  )   : _noReturnValue = noReturnValue,
+  )   : _restriction = restriction,
+        _ifRestrictedExecuteInstead = ifRestrictedExecuteInstead,
+        _noReturnValue = noReturnValue,
         _noParamValue = noParamValue,
         _includeLastResultInCommandResults = includeLastResultInCommandResults,
         _catchAlways = catchAlways,
@@ -140,9 +145,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
 
     /// Merge the external execution restricting with the internal
     /// isExecuting which also blocks execution if true
-    _canExecute = (restriction == null)
+    _canExecute = (_restriction == null)
         ? _isExecuting.map((val) => !val) as ValueNotifier<bool>
-        : restriction.combineLatest<bool, bool>(
+        : _restriction!.combineLatest<bool, bool>(
             _isExecuting,
             (restriction, isExecuting) => restriction && !isExecuting,
           ) as ValueNotifier<bool>;
@@ -152,8 +157,15 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// Creates  a Command for a synchronous handler function with no parameter and no return type
   /// [action]: handler function
   /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable
-  /// the command based on some other state change. If omitted the command can
-  /// be executed always except it's already executing
+  /// the command based on some other state change. `true` means that the Command can be executed.
+  /// If omitted the command can be executed always except it's already executing
+  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `false`
+  /// this function will be called instead of the wrapped function.
+  /// This is useful if you want to execute a different function when the command
+  /// is restricted. For example you could show a dialog to let the user logg in
+  /// if the restriction is because the user is not logged in.
+  /// If you don't set this function, the command will just do nothing when it's
+  /// restricted.
   /// As synchronous function doesn't give any the UI any chance to react on on a change of
   /// `.isExecuting`,isExecuting isn't supported for synchronous commands ans will throw an
   /// assert if you try to use it.
@@ -170,6 +182,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   static Command<void, void> createSyncNoParamNoResult(
     void Function() action, {
     ValueListenable<bool>? restriction,
+    void Function()? ifRestrictedExecuteInstead,
     bool? catchAlways,
     bool notifyOnlyWhenValueChanges = false,
     String? debugName,
@@ -179,6 +192,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       action,
       null,
       restriction,
+      ifRestrictedExecuteInstead != null
+          ? (_) => ifRestrictedExecuteInstead()
+          : null,
       false,
       true,
       catchAlways,
@@ -191,8 +207,15 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// Creates  a Command for a synchronous handler function with one parameter and no return type
   /// [action]: handler function
   /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable
-  /// the command based on some other state change. If omitted the command can
-  /// be executed always except it's already executing
+  /// the command based on some other state change. `true` means that the Command can be executed.
+  /// If omitted the command can be executed always except it's already executing
+  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `false`
+  /// this function will be called instead of the wrapped function.
+  /// This is useful if you want to execute a different function when the command
+  /// is restricted. For example you could show a dialog to let the user logg in
+  /// if the restriction is because the user is not logged in.
+  /// If you don't set this function, the command will just do nothing when it's
+  /// restricted.
   /// As synchronous function doesn't give the UI any chance to react on on a change of
   /// `.isExecuting`,isExecuting isn't supported for synchronous commands and will throw an
   /// assert if you try to use it.
@@ -209,6 +232,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   static Command<TParam, void> createSyncNoResult<TParam>(
     void Function(TParam x) action, {
     ValueListenable<bool>? restriction,
+    ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
     bool? catchAlways,
     bool notifyOnlyWhenValueChanges = false,
     String? debugName,
@@ -218,6 +242,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       null,
       null,
       restriction,
+      ifRestrictedExecuteInstead,
       false,
       true,
       catchAlways,
@@ -231,7 +256,15 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// [func]: handler function
   /// [initialValue] sets the `.value` of the Command.
   /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable the command based on
-  ///  some other state change. If omitted the command can be executed always except it's already executing
+  /// some other state change. `true` means that the Command can be executed.
+  /// If omitted the command can be executed always except it's already executing
+  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `false`
+  /// this function will be called instead of the wrapped function.
+  /// This is useful if you want to execute a different function when the command
+  /// is restricted. For example you could show a dialog to let the user logg in
+  /// if the restriction is because the user is not logged in.
+  /// If you don't set this function, the command will just do nothing when it's
+  /// restricted.
   /// [includeLastResultInCommandResults] will include the value of the last successful execution in
   /// all `CommandResult` values unless there is no result. This can be handy if you always want to be able
   /// to display something even when you got an error.
@@ -250,6 +283,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     TResult Function() func,
     TResult initialValue, {
     ValueListenable<bool>? restriction,
+    void Function()? ifRestrictedExecuteInstead,
     bool includeLastResultInCommandResults = false,
     bool? catchAlways,
     bool notifyOnlyWhenValueChanges = false,
@@ -260,6 +294,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       func,
       initialValue,
       restriction,
+      ifRestrictedExecuteInstead != null
+          ? (_) => ifRestrictedExecuteInstead()
+          : null,
       includeLastResultInCommandResults,
       false,
       catchAlways,
@@ -273,7 +310,15 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// [func]: handler function
   /// [initialValue] sets the `.value` of the Command.
   /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable the command based on
-  ///  some other state change. If omitted the command can be executed always except it's already executing
+  ///  some other state change. `true` means that the Command can be executed.
+  /// If omitted the command can be executed always except it's already executing
+  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `false`
+  /// this function will be called instead of the wrapped function.
+  /// This is useful if you want to execute a different function when the command
+  /// is restricted. For example you could show a dialog to let the user logg in
+  /// if the restriction is because the user is not logged in.
+  /// If you don't set this function, the command will just do nothing when it's
+  /// restricted.
   /// [includeLastResultInCommandResults] will include the value of the last successful execution in
   /// all `CommandResult` values unless there is no result. This can be handy if you always want to be able
   /// to display something even when you got an error.
@@ -292,6 +337,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     TResult Function(TParam x) func,
     TResult initialValue, {
     ValueListenable<bool>? restriction,
+    ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
     bool includeLastResultInCommandResults = false,
     bool? catchAlways,
     bool notifyOnlyWhenValueChanges = false,
@@ -302,6 +348,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       null,
       initialValue,
       restriction,
+      ifRestrictedExecuteInstead,
       includeLastResultInCommandResults,
       false,
       catchAlways,
@@ -315,11 +362,18 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
 
   /// Creates  a Command for an asynchronous handler function with no parameter and no return type
   /// [action]: handler function
-  /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable
-  /// the command based on some other state change. If omitted the command can
-  /// be executed always except it's already executing
   /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value, but you can
   /// register a handler to wait for the completion of the wrapped function.
+  /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable
+  /// the command based on some other state change. `true` means that the Command can be executed.
+  /// If omitted the command can be executed always except it's already executing
+  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `false`
+  /// this function will be called instead of the wrapped function.
+  /// This is useful if you want to execute a different function when the command
+  /// is restricted. For example you could show a dialog to let the user logg in
+  /// if the restriction is because the user is not logged in.
+  /// If you don't set this function, the command will just do nothing when it's
+  /// restricted.
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
@@ -331,6 +385,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   static Command<void, void> createAsyncNoParamNoResult(
     Future Function() action, {
     ValueListenable<bool>? restriction,
+    void Function()? ifRestrictedExecuteInstead,
     bool? catchAlways,
     bool notifyOnlyWhenValueChanges = false,
     String? debugName,
@@ -340,6 +395,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       action,
       null,
       restriction,
+      ifRestrictedExecuteInstead != null
+          ? (_) => ifRestrictedExecuteInstead()
+          : null,
       false,
       true,
       catchAlways,
@@ -351,11 +409,18 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
 
   /// Creates  a Command for an asynchronous handler function with one parameter and no return type
   /// [action]: handler function
-  /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable
-  /// the command based on some other state change. If omitted the command can
-  /// be executed always except it's already executing
   /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value but you can
   /// register a handler to wait for the completion of the wrapped function.
+  /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable
+  /// the command based on some other state change. `true` means that the Command can be executed.
+  /// If omitted the command can be executed always except it's already executing
+  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `false`
+  /// this function will be called instead of the wrapped function.
+  /// This is useful if you want to execute a different function when the command
+  /// is restricted. For example you could show a dialog to let the user logg in
+  /// if the restriction is because the user is not logged in.
+  /// If you don't set this function, the command will just do nothing when it's
+  /// restricted.
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [thrownExceptions] or [results].
@@ -367,6 +432,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   static Command<TParam, void> createAsyncNoResult<TParam>(
     Future Function(TParam x) action, {
     ValueListenable<bool>? restriction,
+    ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
     bool? catchAlways,
     bool notifyOnlyWhenValueChanges = false,
     String? debugName,
@@ -376,6 +442,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       null,
       null,
       restriction,
+      ifRestrictedExecuteInstead,
       false,
       false,
       catchAlways,
@@ -389,7 +456,15 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// [func]: handler function
   /// [initialValue] sets the `.value` of the Command.
   /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable the command based on
-  ///  some other state change. If omitted the command can be executed always except it's already executing
+  ///  some other state change. `true` means that the Command can be executed. If omitted the command
+  /// can be executed always except it's already executing
+  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `false`
+  /// this function will be called instead of the wrapped function.
+  /// This is useful if you want to execute a different function when the command
+  /// is restricted. For example you could show a dialog to let the user logg in
+  /// if the restriction is because the user is not logged in.
+  /// If you don't set this function, the command will just do nothing when it's
+  /// restricted.
   /// [includeLastResultInCommandResults] will include the value of the last successful execution in
   /// all `CommandResult` values unless there is no result. This can be handy if you always want to be able
   /// to display something even when you got an error or while the command is still running.
@@ -405,6 +480,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     Future<TResult> Function() func,
     TResult initialValue, {
     ValueListenable<bool>? restriction,
+    void Function()? ifRestrictedExecuteInstead,
     bool includeLastResultInCommandResults = false,
     bool? catchAlways,
     bool notifyOnlyWhenValueChanges = false,
@@ -415,6 +491,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       func,
       initialValue,
       restriction,
+      ifRestrictedExecuteInstead != null
+          ? (_) => ifRestrictedExecuteInstead()
+          : null,
       includeLastResultInCommandResults,
       false,
       catchAlways,
@@ -428,7 +507,15 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// [func]: handler function
   /// [initialValue] sets the `.value` of the Command.
   /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable the command based on
-  ///  some other state change. If omitted the command can be executed always except it's already executing
+  ///  some other state change. `true` means that the Command can be executed.
+  /// If omitted the command can be executed always except it's already executing
+  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `false`
+  /// this function will be called instead of the wrapped function.
+  /// This is useful if you want to execute a different function when the command
+  /// is restricted. For example you could show a dialog to let the user logg in
+  /// if the restriction is because the user is not logged in.
+  /// If you don't set this function, the command will just do nothing when it's
+  /// restricted.
   /// [includeLastResultInCommandResults] will include the value of the last successful execution in
   /// all `CommandResult` values unless there is no result. This can be handy if you always want to be able
   /// to display something even when you got an error or while the command is still running.
@@ -444,6 +531,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     Future<TResult> Function(TParam x) func,
     TResult initialValue, {
     ValueListenable<bool>? restriction,
+    ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
     bool includeLastResultInCommandResults = false,
     bool? catchAlways,
     bool notifyOnlyWhenValueChanges = false,
@@ -454,6 +542,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       null,
       initialValue,
       restriction,
+      ifRestrictedExecuteInstead,
       includeLastResultInCommandResults,
       false,
       catchAlways,
@@ -469,6 +558,8 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// This makes Command a callable class, so instead of `myCommand.execute()`
   /// you can write `myCommand()`
   void call([TParam? param]) => execute(param);
+
+  final ExecuteInsteadHandler<TParam>? _ifRestrictedExecuteInstead;
 
   /// emits [CommandResult<TResult>] the combined state of the command, which is
   /// often easier in combination with Flutter's `ValueListenableBuilder`
@@ -523,6 +614,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   final CustomValueNotifier<bool> _isExecuting =
       CustomValueNotifier<bool>(false, asyncNotification: true);
   late ValueNotifier<bool> _canExecute;
+  late ValueListenable<bool>? _restriction;
   final CustomValueNotifier<CommandError<TParam?>?> _thrownExceptions =
       CustomValueNotifier<CommandError<TParam?>?>(
     null,
@@ -617,6 +709,7 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
     TResult Function()? funcNoParam,
     TResult initialValue,
     ValueListenable<bool>? restriction,
+    ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
     bool includeLastResultInCommandResults,
     bool noReturnValue,
     bool? catchAlways,
@@ -628,6 +721,7 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
         super(
           initialValue,
           restriction,
+          ifRestrictedExecuteInstead,
           includeLastResultInCommandResults,
           noReturnValue,
           catchAlways ?? Command.catchAlwaysDefault,
@@ -638,6 +732,10 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
 
   @override
   void execute([TParam? param]) {
+    if (_restriction?.value == false) {
+      _ifRestrictedExecuteInstead?.call(param);
+      return;
+    }
     if (!_canExecute.value) {
       return;
     }
@@ -696,6 +794,7 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
     Future<TResult> Function()? funcNoParam,
     TResult initialValue,
     ValueListenable<bool>? restriction,
+    ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
     bool includeLastResultInCommandResults,
     bool noResult,
     bool? catchAlways,
@@ -707,6 +806,7 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
         super(
           initialValue,
           restriction,
+          ifRestrictedExecuteInstead,
           includeLastResultInCommandResults,
           noResult,
           catchAlways ?? Command.catchAlwaysDefault,
@@ -718,6 +818,10 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
   @override
   // ignore: avoid_void_async
   void execute([TParam? param]) async {
+    if (_restriction?.value == false) {
+      _ifRestrictedExecuteInstead?.call(param);
+      return;
+    }
     if (!_canExecute.value) {
       return;
     }
@@ -807,6 +911,7 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult?> {
     bool noParamValue = false,
     bool noResult = false,
     ValueListenable<bool>? restriction,
+    ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
     bool includeLastResultInCommandResult = false,
     bool? catchAlways,
     bool notifyOnlyWhenValueChanges = false,
@@ -814,6 +919,7 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult?> {
   }) : super(
           initialValue,
           restriction,
+          ifRestrictedExecuteInstead,
           includeLastResultInCommandResult,
           noResult,
           catchAlways ?? Command.catchAlwaysDefault,
@@ -840,6 +946,10 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult?> {
   /// [isExecuting], [canExecute] and [results] will work as with a real command.
   @override
   void execute([TParam? param]) {
+    if (_restriction?.value == false) {
+      _ifRestrictedExecuteInstead?.call(param);
+      return;
+    }
     if (!_canExecute.value) {
       return;
     }

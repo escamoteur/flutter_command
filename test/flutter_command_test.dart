@@ -136,10 +136,14 @@ void main() {
       final restriction = ValueNotifier<bool>(true);
 
       var executionCount = 0;
+      var insteadCalledCount = 0;
 
       final command = Command.createSyncNoParamNoResult(
         () => executionCount++,
         restriction: restriction,
+        ifRestrictedExecuteInstead: () {
+          insteadCalledCount++;
+        },
       );
 
       expect(command.canExecute.value, true);
@@ -150,6 +154,7 @@ void main() {
       command.execute();
 
       expect(executionCount, 1);
+      expect(insteadCalledCount, 0);
 
       expect(command.canExecute.value, true);
 
@@ -160,6 +165,52 @@ void main() {
       command.execute();
 
       expect(executionCount, 1);
+      expect(insteadCalledCount, 1);
+    });
+
+    test(
+        'Execute simple async action with canExecute restriction with ifRestrictedInstead handler and param',
+        () async {
+      // restriction true means command can execute
+      // if restriction is false, then command cannot execute.
+      // We test both cases in this test
+      final restriction = ValueNotifier<bool>(true);
+
+      var executionCount = 0;
+      int? insteadCalledParam;
+
+      final command = Command.createAsyncNoResult<int>(
+        (param) async {
+          executionCount++;
+        },
+        restriction: restriction,
+        ifRestrictedExecuteInstead: (param) {
+          insteadCalledParam = param;
+        },
+      );
+
+      expect(command.canExecute.value, true);
+
+      // Setup Collectors
+      setupCollectors(command);
+
+      command.execute(42);
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      expect(executionCount, 1);
+      expect(insteadCalledParam, null);
+
+      expect(command.canExecute.value, true);
+
+      restriction.value = false;
+
+      expect(command.canExecute.value, false);
+
+      command.execute(42);
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      expect(executionCount, 1);
+      expect(insteadCalledParam, 42);
     });
 
     test('Execute simple sync action with exception', () {
