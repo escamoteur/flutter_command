@@ -11,6 +11,8 @@ import 'package:quiver/core.dart';
 export 'package:flutter_command/command_builder.dart';
 export 'package:functional_listener/functional_listener.dart';
 
+part './undoable_command.dart';
+
 /// Combined execution state of a `Command` represented using four of its fields.
 /// A [CommandResult] will be issued for any state change of any of its fields
 /// During normal command execution you will get this items by listening at the command's [.results] ValueListenable.
@@ -155,7 +157,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
 
   ///
   /// Creates  a Command for a synchronous handler function with no parameter and no return type
-  /// [action]: handler function
+  /// [action] : handler function
   /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable
   /// the command based on some other state change. `true` means that the Command cannot be executed.
   /// If omitted the command can be executed always except it's already executing
@@ -205,7 +207,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   }
 
   /// Creates  a Command for a synchronous handler function with one parameter and no return type
-  /// [action]: handler function
+  /// [action] : handler function
   /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable
   /// the command based on some other state change. `true` means that the Command cannot be executed.
   /// If omitted the command can be executed always except it's already executing
@@ -253,7 +255,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   }
 
   /// Creates  a Command for a synchronous handler function with no parameter that returns a value
-  /// [func]: handler function
+  /// [func] : handler function
   /// [initialValue] sets the `.value` of the Command.
   /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable the command based on
   /// some other state change. `true` means that the Command cannot be executed.
@@ -307,7 +309,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   }
 
   /// Creates  a Command for a synchronous handler function with parameter that returns a value
-  /// [func]: handler function
+  /// [func] : handler function
   /// [initialValue] sets the `.value` of the Command.
   /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable the command based on
   ///  some other state change. `true` means that the Command cannot be executed.
@@ -361,7 +363,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   // Asynchronous
 
   /// Creates  a Command for an asynchronous handler function with no parameter and no return type
-  /// [action]: handler function
+  /// [action] : handler function
   /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value, but you can
   /// register a handler to wait for the completion of the wrapped function.
   /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable
@@ -408,7 +410,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   }
 
   /// Creates  a Command for an asynchronous handler function with one parameter and no return type
-  /// [action]: handler function
+  /// [action] : handler function
   /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value but you can
   /// register a handler to wait for the completion of the wrapped function.
   /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable
@@ -453,7 +455,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   }
 
   /// Creates  a Command for an asynchronous handler function with no parameter that returns a value
-  /// [func]: handler function
+  /// [func] : handler function
   /// [initialValue] sets the `.value` of the Command.
   /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable the command based on
   ///  some other state change. `true` means that the Command cannot be executed. If omitted the command
@@ -504,7 +506,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   }
 
   /// Creates  a Command for an asynchronous handler function with parameter that returns a value
-  /// [func]: handler function
+  /// [func] : handler function
   /// [initialValue] sets the `.value` of the Command.
   /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable the command based on
   ///  some other state change. `true` means that the Command cannot be executed.
@@ -549,6 +551,226 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       notifyOnlyWhenValueChanges,
       debugName,
       false,
+    );
+  }
+
+  /// Creates  an undoable Command for an asynchronous handler function with no parameter and no return type
+  /// [action] : handler function
+  /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value, but you can
+  /// register a handler to wait for the completion of the wrapped function.
+  /// [undo] : function that undoes the action.
+  /// [undoOnExecutionFailure] : if `true` the undo function will be executed automatically if the action
+  /// fails.
+  /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable
+  /// the command based on some other state change. `true` means that the Command cannot be executed.
+  /// If omitted the command can be executed always except it's already executing
+  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `true`
+  /// this function will be called instead of the wrapped function.
+  /// This is useful if you want to execute a different function when the command
+  /// is restricted. For example you could show a dialog to let the user logg in
+  /// if the restriction is because the user is not logged in.
+  /// If you don't set this function, the command will just do nothing when it's
+  /// restricted.
+  /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
+  /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
+  /// unless there is a listener on [thrownExceptions] or [results].
+  /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
+  /// if the value hasn't changed. If you set this to `true` the command will only notify
+  /// it's listeners if the value has changed.
+  /// [debugName] optional identifier that is included when you register a [globalExceptionHandler]
+  /// or a [loggingHandler]
+  static Command<void, void> createUndoableNoParamNoResult<TUndoState>(
+    Future Function(UndoStack<TUndoState>) action,
+    UndoFn<TUndoState, void> undo, {
+    bool undoOnExecutionFailure = false,
+    ValueListenable<bool>? restriction,
+    void Function()? ifRestrictedExecuteInstead,
+    bool? catchAlways,
+    bool notifyOnlyWhenValueChanges = false,
+    String? debugName,
+  }) {
+    return UndoableCommand<void, void, TUndoState>(
+      null,
+      action,
+      undo,
+      null,
+      restriction,
+      ifRestrictedExecuteInstead != null
+          ? (_) => ifRestrictedExecuteInstead()
+          : null,
+      undoOnExecutionFailure,
+      false,
+      true,
+      catchAlways,
+      notifyOnlyWhenValueChanges,
+      debugName,
+      true,
+    );
+  }
+
+  /// Creates  an undoable Command for an asynchronous handler function with one parameter and no return type
+  /// [action] : handler function
+  /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value, but you can
+  /// register a handler to wait for the completion of the wrapped function.
+  /// [undo] : function that undoes the action.
+  /// [undoOnExecutionFailure] : if `true` the undo function will be executed automatically if the action
+  /// fails.
+  /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable
+  /// the command based on some other state change. `true` means that the Command cannot be executed.
+  /// If omitted the command can be executed always except it's already executing
+  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `true`
+  /// this function will be called instead of the wrapped function.
+  /// This is useful if you want to execute a different function when the command
+  /// is restricted. For example you could show a dialog to let the user logg in
+  /// if the restriction is because the user is not logged in.
+  /// If you don't set this function, the command will just do nothing when it's
+  /// restricted.
+  /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
+  /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
+  /// unless there is a listener on [thrownExceptions] or [results].
+  /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
+  /// if the value hasn't changed. If you set this to `true` the command will only notify
+  /// it's listeners if the value has changed.
+  /// [debugName] optional identifier that is included when you register a [globalExceptionHandler]
+  /// or a [loggingHandler]
+  static Command<TParam, void> createUndoableNoResult<TParam, TUndoState>(
+    Future Function(TParam, UndoStack<TUndoState>) action,
+    UndoFn<TUndoState, void> undo, {
+    bool undoOnExecutionFailure = false,
+    ValueListenable<bool>? restriction,
+    void Function()? ifRestrictedExecuteInstead,
+    bool? catchAlways,
+    bool notifyOnlyWhenValueChanges = false,
+    String? debugName,
+  }) {
+    return UndoableCommand<TParam, void, TUndoState>(
+      action,
+      null,
+      undo,
+      null,
+      restriction,
+      ifRestrictedExecuteInstead != null
+          ? (_) => ifRestrictedExecuteInstead()
+          : null,
+      undoOnExecutionFailure,
+      false,
+      true,
+      catchAlways,
+      notifyOnlyWhenValueChanges,
+      debugName,
+      true,
+    );
+  }
+
+  /// Creates  a undoable Command for an asynchronous handler function with no parameter that returns a value
+  /// [func] : handler function
+  /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value, but you can
+  /// register a handler to wait for the completion of the wrapped function.
+  /// [undo] : function that undoes the action.
+  /// [initialValue] sets the `.value` of the Command.
+  /// [undoOnExecutionFailure] : if `true` the undo function will be executed automatically if the action
+  /// fails.
+  /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable
+  /// the command based on some other state change. `true` means that the Command cannot be executed.
+  /// If omitted the command can be executed always except it's already executing
+  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `true`
+  /// this function will be called instead of the wrapped function.
+  /// This is useful if you want to execute a different function when the command
+  /// is restricted. For example you could show a dialog to let the user logg in
+  /// if the restriction is because the user is not logged in.
+  /// If you don't set this function, the command will just do nothing when it's
+  /// restricted.
+  /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
+  /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
+  /// unless there is a listener on [thrownExceptions] or [results].
+  /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
+  /// if the value hasn't changed. If you set this to `true` the command will only notify
+  /// it's listeners if the value has changed.
+  /// [debugName] optional identifier that is included when you register a [globalExceptionHandler]
+  /// or a [loggingHandler]
+  static Command<void, TResult> createUndoableNoParam<TResult, TUndoState>(
+    Future<TResult> Function(UndoStack<TUndoState>) func,
+    UndoFn<TUndoState, TResult> undo,
+    TResult initialValue, {
+    bool undoOnExecutionFailure = false,
+    ValueListenable<bool>? restriction,
+    void Function()? ifRestrictedExecuteInstead,
+    bool? catchAlways,
+    bool notifyOnlyWhenValueChanges = false,
+    String? debugName,
+  }) {
+    return UndoableCommand<void, TResult, TUndoState>(
+      null,
+      func,
+      undo,
+      initialValue,
+      restriction,
+      ifRestrictedExecuteInstead != null
+          ? (_) => ifRestrictedExecuteInstead()
+          : null,
+      undoOnExecutionFailure,
+      false,
+      true,
+      catchAlways,
+      notifyOnlyWhenValueChanges,
+      debugName,
+      true,
+    );
+  }
+
+  /// Creates  a Command for an asynchronous handler function with parameter that returns a value
+  /// [func] : handler function
+  /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value, but you can
+  /// register a handler to wait for the completion of the wrapped function.
+  /// [undo] : function that undoes the action.
+  /// [initialValue] sets the `.value` of the Command.
+  /// [undoOnExecutionFailure] : if `true` the undo function will be executed automatically if the action
+  /// fails.
+  /// [restriction] : `ValueListenable<bool>` that can be used to enable/disable
+  /// the command based on some other state change. `true` means that the Command cannot be executed.
+  /// If omitted the command can be executed always except it's already executing
+  /// [ifRestrictedExecuteInstead] if  [restriction] is set for the command and its value is `true`
+  /// this function will be called instead of the wrapped function.
+  /// This is useful if you want to execute a different function when the command
+  /// is restricted. For example you could show a dialog to let the user logg in
+  /// if the restriction is because the user is not logged in.
+  /// If you don't set this function, the command will just do nothing when it's
+  /// restricted.
+  /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
+  /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
+  /// unless there is a listener on [thrownExceptions] or [results].
+  /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
+  /// if the value hasn't changed. If you set this to `true` the command will only notify
+  /// it's listeners if the value has changed.
+  /// [debugName] optional identifier that is included when you register a [globalExceptionHandler]
+  /// or a [loggingHandler]
+  static Command<TParam, TResult> createUndoable<TParam, TResult, TUndoState>(
+    Future<TResult> Function(TParam, UndoStack<TUndoState>) func,
+    UndoFn<TUndoState, TResult> undo,
+    TResult initialValue, {
+    bool undoOnExecutionFailure = false,
+    ValueListenable<bool>? restriction,
+    void Function()? ifRestrictedExecuteInstead,
+    bool? catchAlways,
+    bool notifyOnlyWhenValueChanges = false,
+    String? debugName,
+  }) {
+    return UndoableCommand<TParam, TResult, TUndoState>(
+      func,
+      null,
+      undo,
+      initialValue,
+      restriction,
+      ifRestrictedExecuteInstead != null
+          ? (_) => ifRestrictedExecuteInstead()
+          : null,
+      undoOnExecutionFailure,
+      false,
+      true,
+      catchAlways,
+      notifyOnlyWhenValueChanges,
+      debugName,
+      true,
     );
   }
 

@@ -1,3 +1,7 @@
+[5.0.0+1] - 28.03.2023
+
+* beta version of the new UndoableCommand
+
 [5.0.0] - 24.03.2023
 
 * Another breaking change but one that hopefully will be appreciated by most of you. When this package was originally written you could pass a `ValueListenable<bool> canExecute` when you created a Command that could decide if a Command could be executed at runtime. As the naming was am reminiscent of the .Net version of RxUIs Command but confusing because Commands have a property named `canExecute` too I renamed it to `restriction` but didn't change the meaning of its bool values. Which meant that `restriction==false` meant that the Command could be executed which absolutely isn't intuitive.
