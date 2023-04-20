@@ -658,7 +658,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       catchAlways,
       notifyOnlyWhenValueChanges,
       debugName,
-      true,
+      false,
     );
   }
 
@@ -766,11 +766,11 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
           : null,
       undoOnExecutionFailure,
       false,
-      true,
+      false,
       catchAlways,
       notifyOnlyWhenValueChanges,
       debugName,
-      true,
+      false,
     );
   }
 
