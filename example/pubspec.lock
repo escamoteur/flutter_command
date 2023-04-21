@@ -36,7 +36,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "5.0.0+1"
+    version: "5.0.0+2"
   functional_listener:
     dependency: "direct main"
     description:

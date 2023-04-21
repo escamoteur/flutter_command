@@ -1,3 +1,7 @@
+[5.0.0+2] - 21.04.2023
+
+* bug fix in the factory functions of UndoableCommand
+
 [5.0.0+1] - 28.03.2023
 
 * beta version of the new UndoableCommand
