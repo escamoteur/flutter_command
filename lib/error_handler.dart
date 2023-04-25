@@ -7,6 +7,7 @@ enum ErrorReaction {
   globalIfNoLocalHandler, // Errors are caught and passed to the global handler
   // if no local handler is present and no listeners on [results]
   globalHandlerAndThrowException,
+  throwIfNoLocalHandler, // Errors are caught and rethrown if no local handler
 }
 
 /// Instead of the current parameter `catchAlways` commands can get an optional
