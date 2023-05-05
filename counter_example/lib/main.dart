@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_command/flutter_command.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
@@ -18,13 +20,13 @@ class MyApp extends StatelessWidget {
         // closer together (more dense) than on mobile platforms.
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: MyHomePage('Flutter Demo Home Page'),
+      home: const MyHomePage('Flutter Demo Home Page'),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage(
+  const MyHomePage(
     this.title, {
     Key? key,
   }) : super(key: key);
@@ -45,9 +47,10 @@ class _MyHomePageState extends State<MyHomePage> {
     _incrementCounterCommand = Command.createSyncNoParam(() {
       counter++;
       return counter.toString();
-    }, '0');
+    }, initialValue: '0');
   }
 
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -57,7 +60,7 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Text(
+            const Text(
               'You have pushed the button this many times:',
             ),
             ValueListenableBuilder<String>(
@@ -74,7 +77,7 @@ class _MyHomePageState extends State<MyHomePage> {
       floatingActionButton: FloatingActionButton(
         onPressed: _incrementCounterCommand,
         tooltip: 'Increment',
-        child: Icon(Icons.add),
+        child: const Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }

@@ -280,8 +280,8 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// [debugName] optional identifier that is included when you register a [globalExceptionHandler]
   /// or a [loggingHandler]
   static Command<void, TResult> createSyncNoParam<TResult>(
-    TResult Function() func,
-    TResult initialValue, {
+    TResult Function() func, {
+    required TResult initialValue,
     ValueListenable<bool>? restriction,
     void Function()? ifRestrictedExecuteInstead,
     bool includeLastResultInCommandResults = false,
@@ -333,8 +333,8 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// [debugName] optional identifier that is included when you register a [globalExceptionHandler]
   /// or a [loggingHandler]
   static Command<TParam, TResult> createSync<TParam, TResult>(
-    TResult Function(TParam x) func,
-    TResult initialValue, {
+    TResult Function(TParam x) func, {
+    required TResult initialValue,
     ValueListenable<bool>? restriction,
     ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
     bool includeLastResultInCommandResults = false,
@@ -473,8 +473,8 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// [debugName] optional identifier that is included when you register a [globalExceptionHandler]
   /// or a [loggingHandler]
   static Command<void, TResult> createAsyncNoParam<TResult>(
-    Future<TResult> Function() func,
-    TResult initialValue, {
+    Future<TResult> Function() func, {
+    required TResult initialValue,
     ValueListenable<bool>? restriction,
     void Function()? ifRestrictedExecuteInstead,
     bool includeLastResultInCommandResults = false,
@@ -523,8 +523,8 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// [debugName] optional identifier that is included when you register a [globalExceptionHandler]
   /// or a [loggingHandler]
   static Command<TParam, TResult> createAsync<TParam, TResult>(
-    Future<TResult> Function(TParam x) func,
-    TResult initialValue, {
+    Future<TResult> Function(TParam x) func, {
+    required TResult initialValue,
     ValueListenable<bool>? restriction,
     ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
     bool includeLastResultInCommandResults = false,
@@ -677,8 +677,8 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// [debugName] optional identifier that is included when you register a [globalExceptionHandler]
   /// or a [loggingHandler]
   static Command<void, TResult> createUndoableNoParam<TResult, TUndoState>(
-    Future<TResult> Function(UndoStack<TUndoState>) func,
-    TResult initialValue, {
+    Future<TResult> Function(UndoStack<TUndoState>) func, {
+    required TResult initialValue,
     required UndoFn<TUndoState, TResult> undo,
     bool undoOnExecutionFailure = true,
     ValueListenable<bool>? restriction,
@@ -733,8 +733,8 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// [debugName] optional identifier that is included when you register a [globalExceptionHandler]
   /// or a [loggingHandler]
   static Command<TParam, TResult> createUndoable<TParam, TResult, TUndoState>(
-    Future<TResult> Function(TParam, UndoStack<TUndoState>) func,
-    TResult initialValue, {
+    Future<TResult> Function(TParam, UndoStack<TUndoState>) func, {
+    required TResult initialValue,
     required UndoFn<TUndoState, TResult> undo,
     bool undoOnExecutionFailure = true,
     ValueListenable<bool>? restriction,
@@ -1140,7 +1140,7 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult?> {
     executionCount++;
     lastPassedValueToExecute = param;
     // ignore: avoid_print
-    print("Called Execute");
+    print('Called Execute');
     if (returnValuesForNextExecute != null) {
       returnValuesForNextExecute!.map(
         (entry) {
@@ -1160,7 +1160,7 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult?> {
       notifyListeners();
     } else {
       // ignore: avoid_print
-      print("No values for execution queued");
+      print('No values for execution queued');
     }
     _isExecuting.value = false;
   }

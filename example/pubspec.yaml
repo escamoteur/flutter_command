@@ -13,5 +13,8 @@ dependencies:
     path: ../
   functional_listener: ^2.0.0
 
+dev_dependencies:
+  flutter_lints: ^2.0.1
+
 flutter:
   uses-material-design: true

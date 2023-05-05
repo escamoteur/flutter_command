@@ -36,7 +36,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("WeatherDemo")),
+      appBar: AppBar(title: Text('WeatherDemo')),
       body: Column(
         children: <Widget>[
           Padding(
@@ -44,7 +44,7 @@ class _HomePageState extends State<HomePage> {
             child: TextField(
               autocorrect: false,
               decoration: InputDecoration(
-                hintText: "Filter cities",
+                hintText: 'Filter cities',
                 hintStyle: TextStyle(color: Color.fromARGB(150, 0, 0, 0)),
               ),
               style: TextStyle(
@@ -89,7 +89,7 @@ class _HomePageState extends State<HomePage> {
                           ? weatherManager.updateWeatherCommand
                           : null;
                       return ElevatedButton(
-                        child: Text("Update"),
+                        child: Text('Update'),
                         style: ElevatedButton.styleFrom(
                             foregroundColor: Color.fromARGB(255, 255, 255, 255),
                             backgroundColor: Color.fromARGB(255, 33, 150, 243)),

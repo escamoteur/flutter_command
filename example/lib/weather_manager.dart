@@ -13,19 +13,20 @@ class WeatherManager {
 
   WeatherManager() {
     // Command expects a bool value when executed and sets it as its own value
-    setExecutionStateCommand = Command.createSync<bool, bool>((b) => b, true);
+    setExecutionStateCommand =
+        Command.createSync<bool, bool>((b) => b, initialValue: true);
 
     // We pass the result of switchChangedCommand as restrictions to the upDateWeatherCommand
     updateWeatherCommand = Command.createAsync<String?, List<WeatherEntry>>(
       update, // Wrapped function
-      [], // Initial value
+      initialValue: [], // Initial value
       /// as the switch is on when the command can be executed we need to invert the value
       /// to make the command disabled when the switch is off
       restriction: setExecutionStateCommand.map((switchState) => !switchState),
     );
 
     // Will be called on every change of the search-field
-    textChangedCommand = Command.createSync((s) => s, '');
+    textChangedCommand = Command.createSync((s) => s, initialValue: '');
 
     // handler for results
     // make sure we start processing only if the user make a short pause typing
@@ -46,7 +47,7 @@ class WeatherManager {
   // Async function that queries the REST API and converts the result into the form our ListViewBuilder can consume
   Future<List<WeatherEntry>> update(String? filtertext) {
     const url =
-        "https://api.openweathermap.org/data/2.5/box/city?bbox=12,32,15,37,10&appid=27ac337102cc4931c24ba0b50aca6bbd";
+        'https://api.openweathermap.org/data/2.5/box/city?bbox=12,32,15,37,10&appid=27ac337102cc4931c24ba0b50aca6bbd';
 
     var httpStream =
         http.get(Uri.parse(url)).timeout(const Duration(seconds: 5)).asStream();
@@ -85,7 +86,7 @@ class WeatherEntry {
   WeatherEntry(City city) {
     this.cityName = city.name;
     this.iconURL = city.weather[0].icon != null
-        ? "https://openweathermap.org/img/w/${city.weather[0].icon}.png"
+        ? 'https://openweathermap.org/img/w/${city.weather[0].icon}.png'
         : null;
     this.description = city.weather[0].description;
     this.wind = city.wind.speed.toDouble();
