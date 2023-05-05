@@ -52,36 +52,24 @@ class UndoableCommand<TParam, TResult, TUndoState>
   final UndoStack<TUndoState> _undoStack = UndoStack<TUndoState>();
   ListenableSubscription? _exceptionSubscription;
 
-  UndoableCommand(
+  UndoableCommand({
     Future<TResult> Function(TParam, UndoStack<TUndoState>)? func,
     Future<TResult> Function(UndoStack<TUndoState>)? funcNoParam,
-    UndoFn<TUndoState, TResult> undo,
-    TResult initialValue,
-    ValueListenable<bool>? restriction,
-    ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
-    // ignore: avoid_positional_boolean_parameters
-    bool undoOnExecutionFailure,
-    bool includeLastResultInCommandResults,
-    bool noResult,
-    bool? catchAlways,
-    bool notifyOnlyWhenValueChanges,
-    String? debugName,
-    bool noParamValue,
-  )   : _func = func,
+    required UndoFn<TUndoState, TResult> undo,
+    required super.initialValue,
+    required super.restriction,
+    required super.ifRestrictedExecuteInstead,
+    required bool undoOnExecutionFailure,
+    required super.includeLastResultInCommandResults,
+    required super.noReturnValue,
+    required super.catchAlways,
+    required super.notifyOnlyWhenValueChanges,
+    required super.debugName,
+    required super.noParamValue,
+  })  : _func = func,
         _funcNoParam = funcNoParam,
         _undo = undo,
-        _undoOnExecutionFailure = undoOnExecutionFailure,
-        super(
-          initialValue,
-          restriction,
-          ifRestrictedExecuteInstead,
-          includeLastResultInCommandResults,
-          noResult,
-          catchAlways ?? Command.catchAlwaysDefault,
-          notifyOnlyWhenValueChanges,
-          debugName,
-          noParamValue,
-        ) {
+        _undoOnExecutionFailure = undoOnExecutionFailure {
     if (undoOnExecutionFailure) {
       _exceptionSubscription =
           _thrownExceptions.where((ex) => ex is! UndoException).listen((ex, _) {

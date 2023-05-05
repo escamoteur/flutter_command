@@ -109,22 +109,22 @@ typedef ExecuteInsteadHandler<TParam> = void Function(TParam?);
 /// [TResult] denotes the return type of the handler function. To signal that
 /// a handler doesn't take a parameter or returns no value use the type `void`
 abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
-  Command(
-    TResult initialValue,
-    ValueListenable<bool>? restriction,
-    ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
-    bool includeLastResultInCommandResults,
-    bool noReturnValue,
-    bool catchAlways,
-    bool notifyOnlyWhenValueChanges,
-    String? debugName,
-    bool noParamValue,
-  )   : _restriction = restriction,
+  Command({
+    required TResult initialValue,
+    required ValueListenable<bool>? restriction,
+    required ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
+    required bool includeLastResultInCommandResults,
+    required bool noReturnValue,
+    required bool? catchAlways,
+    required bool notifyOnlyWhenValueChanges,
+    required String? debugName,
+    required bool noParamValue,
+  })  : _restriction = restriction,
         _ifRestrictedExecuteInstead = ifRestrictedExecuteInstead,
         _noReturnValue = noReturnValue,
         _noParamValue = noParamValue,
         _includeLastResultInCommandResults = includeLastResultInCommandResults,
-        _catchAlways = catchAlways,
+        _catchAlways = catchAlways ?? catchAlwaysDefault,
         _debugName = debugName,
         super(
           initialValue,
@@ -190,19 +190,18 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     String? debugName,
   }) {
     return CommandSync<void, void>(
-      null,
-      action,
-      null,
-      restriction,
-      ifRestrictedExecuteInstead != null
+      funcNoParam: action,
+      initialValue: null,
+      restriction: restriction,
+      ifRestrictedExecuteInstead: ifRestrictedExecuteInstead != null
           ? (_) => ifRestrictedExecuteInstead()
           : null,
-      false,
-      true,
-      catchAlways,
-      notifyOnlyWhenValueChanges,
-      debugName,
-      true,
+      includeLastResultInCommandResults: false,
+      noReturnValue: true,
+      catchAlways: catchAlways,
+      notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
+      debugName: debugName,
+      noParamValue: true,
     );
   }
 
@@ -240,17 +239,16 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     String? debugName,
   }) {
     return CommandSync<TParam, void>(
-      (x) => action(x),
-      null,
-      null,
-      restriction,
-      ifRestrictedExecuteInstead,
-      false,
-      true,
-      catchAlways,
-      notifyOnlyWhenValueChanges,
-      debugName,
-      false,
+      func: (x) => action(x),
+      initialValue: null,
+      restriction: restriction,
+      ifRestrictedExecuteInstead: ifRestrictedExecuteInstead,
+      includeLastResultInCommandResults: false,
+      noReturnValue: true,
+      catchAlways: catchAlways,
+      notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
+      debugName: debugName,
+      noParamValue: false,
     );
   }
 
@@ -292,19 +290,18 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     String? debugName,
   }) {
     return CommandSync<void, TResult>(
-      null,
-      func,
-      initialValue,
-      restriction,
-      ifRestrictedExecuteInstead != null
+      funcNoParam: func,
+      initialValue: initialValue,
+      restriction: restriction,
+      ifRestrictedExecuteInstead: ifRestrictedExecuteInstead != null
           ? (_) => ifRestrictedExecuteInstead()
           : null,
-      includeLastResultInCommandResults,
-      false,
-      catchAlways,
-      notifyOnlyWhenValueChanges,
-      debugName,
-      true,
+      includeLastResultInCommandResults: includeLastResultInCommandResults,
+      noReturnValue: false,
+      catchAlways: catchAlways,
+      notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
+      debugName: debugName,
+      noParamValue: true,
     );
   }
 
@@ -346,17 +343,16 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     String? debugName,
   }) {
     return CommandSync<TParam, TResult>(
-      (x) => func(x),
-      null,
-      initialValue,
-      restriction,
-      ifRestrictedExecuteInstead,
-      includeLastResultInCommandResults,
-      false,
-      catchAlways,
-      notifyOnlyWhenValueChanges,
-      debugName,
-      false,
+      func: func,
+      initialValue: initialValue,
+      restriction: restriction,
+      ifRestrictedExecuteInstead: ifRestrictedExecuteInstead,
+      includeLastResultInCommandResults: includeLastResultInCommandResults,
+      noReturnValue: false,
+      catchAlways: catchAlways,
+      notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
+      debugName: debugName,
+      noParamValue: false,
     );
   }
 
@@ -393,19 +389,18 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     String? debugName,
   }) {
     return CommandAsync<void, void>(
-      null,
-      action,
-      null,
-      restriction,
-      ifRestrictedExecuteInstead != null
+      funcNoParam: action,
+      initialValue: null,
+      restriction: restriction,
+      ifRestrictedExecuteInstead: ifRestrictedExecuteInstead != null
           ? (_) => ifRestrictedExecuteInstead()
           : null,
-      false,
-      true,
-      catchAlways,
-      notifyOnlyWhenValueChanges,
-      debugName,
-      true,
+      includeLastResultInCommandResults: false,
+      noReturnValue: true,
+      catchAlways: catchAlways,
+      notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
+      debugName: debugName,
+      noParamValue: true,
     );
   }
 
@@ -440,17 +435,16 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     String? debugName,
   }) {
     return CommandAsync<TParam, void>(
-      (x) async => action(x),
-      null,
-      null,
-      restriction,
-      ifRestrictedExecuteInstead,
-      false,
-      false,
-      catchAlways,
-      notifyOnlyWhenValueChanges,
-      debugName,
-      false,
+      func: action,
+      initialValue: null,
+      restriction: restriction,
+      ifRestrictedExecuteInstead: ifRestrictedExecuteInstead,
+      includeLastResultInCommandResults: false,
+      noReturnValue: true,
+      catchAlways: catchAlways,
+      notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
+      debugName: debugName,
+      noParamValue: false,
     );
   }
 
@@ -489,19 +483,18 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     String? debugName,
   }) {
     return CommandAsync<void, TResult>(
-      null,
-      func,
-      initialValue,
-      restriction,
-      ifRestrictedExecuteInstead != null
+      funcNoParam: func,
+      initialValue: initialValue,
+      restriction: restriction,
+      ifRestrictedExecuteInstead: ifRestrictedExecuteInstead != null
           ? (_) => ifRestrictedExecuteInstead()
           : null,
-      includeLastResultInCommandResults,
-      false,
-      catchAlways,
-      notifyOnlyWhenValueChanges,
-      debugName,
-      true,
+      includeLastResultInCommandResults: includeLastResultInCommandResults,
+      noReturnValue: false,
+      catchAlways: catchAlways,
+      notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
+      debugName: debugName,
+      noParamValue: true,
     );
   }
 
@@ -540,17 +533,16 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     String? debugName,
   }) {
     return CommandAsync<TParam, TResult>(
-      (x) async => func(x),
-      null,
-      initialValue,
-      restriction,
-      ifRestrictedExecuteInstead,
-      includeLastResultInCommandResults,
-      false,
-      catchAlways,
-      notifyOnlyWhenValueChanges,
-      debugName,
-      false,
+      func: func,
+      initialValue: initialValue,
+      restriction: restriction,
+      ifRestrictedExecuteInstead: ifRestrictedExecuteInstead,
+      includeLastResultInCommandResults: includeLastResultInCommandResults,
+      noReturnValue: false,
+      catchAlways: catchAlways,
+      notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
+      debugName: debugName,
+      noParamValue: false,
     );
   }
 
@@ -580,9 +572,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// [debugName] optional identifier that is included when you register a [globalExceptionHandler]
   /// or a [loggingHandler]
   static Command<void, void> createUndoableNoParamNoResult<TUndoState>(
-    Future Function(UndoStack<TUndoState>) action,
-    UndoFn<TUndoState, void> undo, {
-    bool undoOnExecutionFailure = false,
+    Future Function(UndoStack<TUndoState>) action, {
+    required UndoFn<TUndoState, void> undo,
+    bool undoOnExecutionFailure = true,
     ValueListenable<bool>? restriction,
     void Function()? ifRestrictedExecuteInstead,
     bool? catchAlways,
@@ -590,21 +582,20 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     String? debugName,
   }) {
     return UndoableCommand<void, void, TUndoState>(
-      null,
-      action,
-      undo,
-      null,
-      restriction,
-      ifRestrictedExecuteInstead != null
+      funcNoParam: action,
+      undo: undo,
+      initialValue: null,
+      restriction: restriction,
+      ifRestrictedExecuteInstead: ifRestrictedExecuteInstead != null
           ? (_) => ifRestrictedExecuteInstead()
           : null,
-      undoOnExecutionFailure,
-      false,
-      true,
-      catchAlways,
-      notifyOnlyWhenValueChanges,
-      debugName,
-      true,
+      undoOnExecutionFailure: undoOnExecutionFailure,
+      includeLastResultInCommandResults: false,
+      noReturnValue: true,
+      catchAlways: catchAlways,
+      notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
+      debugName: debugName,
+      noParamValue: true,
     );
   }
 
@@ -634,31 +625,28 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// [debugName] optional identifier that is included when you register a [globalExceptionHandler]
   /// or a [loggingHandler]
   static Command<TParam, void> createUndoableNoResult<TParam, TUndoState>(
-    Future Function(TParam, UndoStack<TUndoState>) action,
-    UndoFn<TUndoState, void> undo, {
-    bool undoOnExecutionFailure = false,
+    Future Function(TParam, UndoStack<TUndoState>) action, {
+    required UndoFn<TUndoState, void> undo,
+    bool undoOnExecutionFailure = true,
     ValueListenable<bool>? restriction,
-    void Function()? ifRestrictedExecuteInstead,
+    ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
     bool? catchAlways,
     bool notifyOnlyWhenValueChanges = false,
     String? debugName,
   }) {
     return UndoableCommand<TParam, void, TUndoState>(
-      action,
-      null,
-      undo,
-      null,
-      restriction,
-      ifRestrictedExecuteInstead != null
-          ? (_) => ifRestrictedExecuteInstead()
-          : null,
-      undoOnExecutionFailure,
-      false,
-      true,
-      catchAlways,
-      notifyOnlyWhenValueChanges,
-      debugName,
-      false,
+      func: action,
+      undo: undo,
+      undoOnExecutionFailure: undoOnExecutionFailure,
+      initialValue: null,
+      restriction: restriction,
+      ifRestrictedExecuteInstead: ifRestrictedExecuteInstead,
+      includeLastResultInCommandResults: false,
+      noReturnValue: true,
+      catchAlways: catchAlways,
+      notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
+      debugName: debugName,
+      noParamValue: false,
     );
   }
 
@@ -690,31 +678,31 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// or a [loggingHandler]
   static Command<void, TResult> createUndoableNoParam<TResult, TUndoState>(
     Future<TResult> Function(UndoStack<TUndoState>) func,
-    UndoFn<TUndoState, TResult> undo,
     TResult initialValue, {
-    bool undoOnExecutionFailure = false,
+    required UndoFn<TUndoState, TResult> undo,
+    bool undoOnExecutionFailure = true,
     ValueListenable<bool>? restriction,
     void Function()? ifRestrictedExecuteInstead,
+    bool includeLastResultInCommandResults = false,
     bool? catchAlways,
     bool notifyOnlyWhenValueChanges = false,
     String? debugName,
   }) {
     return UndoableCommand<void, TResult, TUndoState>(
-      null,
-      func,
-      undo,
-      initialValue,
-      restriction,
-      ifRestrictedExecuteInstead != null
+      funcNoParam: func,
+      undo: undo,
+      initialValue: initialValue,
+      undoOnExecutionFailure: undoOnExecutionFailure,
+      restriction: restriction,
+      ifRestrictedExecuteInstead: ifRestrictedExecuteInstead != null
           ? (_) => ifRestrictedExecuteInstead()
           : null,
-      undoOnExecutionFailure,
-      false,
-      true,
-      catchAlways,
-      notifyOnlyWhenValueChanges,
-      debugName,
-      true,
+      includeLastResultInCommandResults: includeLastResultInCommandResults,
+      noReturnValue: false,
+      catchAlways: catchAlways,
+      notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
+      debugName: debugName,
+      noParamValue: true,
     );
   }
 
@@ -746,31 +734,29 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// or a [loggingHandler]
   static Command<TParam, TResult> createUndoable<TParam, TResult, TUndoState>(
     Future<TResult> Function(TParam, UndoStack<TUndoState>) func,
-    UndoFn<TUndoState, TResult> undo,
     TResult initialValue, {
-    bool undoOnExecutionFailure = false,
+    required UndoFn<TUndoState, TResult> undo,
+    bool undoOnExecutionFailure = true,
     ValueListenable<bool>? restriction,
-    void Function()? ifRestrictedExecuteInstead,
+    ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
+    bool includeLastResultInCommandResults = false,
     bool? catchAlways,
     bool notifyOnlyWhenValueChanges = false,
     String? debugName,
   }) {
     return UndoableCommand<TParam, TResult, TUndoState>(
-      func,
-      null,
-      undo,
-      initialValue,
-      restriction,
-      ifRestrictedExecuteInstead != null
-          ? (_) => ifRestrictedExecuteInstead()
-          : null,
-      undoOnExecutionFailure,
-      false,
-      false,
-      catchAlways,
-      notifyOnlyWhenValueChanges,
-      debugName,
-      false,
+      func: func,
+      initialValue: initialValue,
+      undo: undo,
+      restriction: restriction,
+      ifRestrictedExecuteInstead: ifRestrictedExecuteInstead,
+      includeLastResultInCommandResults: includeLastResultInCommandResults,
+      noReturnValue: false,
+      catchAlways: catchAlways,
+      notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
+      debugName: debugName,
+      noParamValue: false,
+      undoOnExecutionFailure: undoOnExecutionFailure,
     );
   }
 
@@ -926,31 +912,20 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
     return ValueNotifier<bool>(false);
   }
 
-  CommandSync(
+  CommandSync({
     TResult Function(TParam)? func,
     TResult Function()? funcNoParam,
-    TResult initialValue,
-    ValueListenable<bool>? restriction,
-    ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
-    bool includeLastResultInCommandResults,
-    bool noReturnValue,
-    bool? catchAlways,
-    bool notifyOnlyWhenValueChanges,
-    String? debugName,
-    bool noParamValue,
-  )   : _func = func,
-        _funcNoParam = funcNoParam,
-        super(
-          initialValue,
-          restriction,
-          ifRestrictedExecuteInstead,
-          includeLastResultInCommandResults,
-          noReturnValue,
-          catchAlways ?? Command.catchAlwaysDefault,
-          notifyOnlyWhenValueChanges,
-          debugName,
-          noParamValue,
-        );
+    required super.initialValue,
+    required super.restriction,
+    required super.ifRestrictedExecuteInstead,
+    required super.includeLastResultInCommandResults,
+    required super.noReturnValue,
+    required super.catchAlways,
+    required super.notifyOnlyWhenValueChanges,
+    required super.debugName,
+    required super.noParamValue,
+  })  : _func = func,
+        _funcNoParam = funcNoParam;
 
   @override
   void execute([TParam? param]) {
@@ -1011,31 +986,20 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
   final Future<TResult> Function(TParam)? _func;
   final Future<TResult> Function()? _funcNoParam;
 
-  CommandAsync(
+  CommandAsync({
     Future<TResult> Function(TParam)? func,
     Future<TResult> Function()? funcNoParam,
-    TResult initialValue,
-    ValueListenable<bool>? restriction,
-    ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
-    bool includeLastResultInCommandResults,
-    bool noResult,
-    bool? catchAlways,
-    bool notifyOnlyWhenValueChanges,
-    String? debugName,
-    bool noParamValue,
-  )   : _func = func,
-        _funcNoParam = funcNoParam,
-        super(
-          initialValue,
-          restriction,
-          ifRestrictedExecuteInstead,
-          includeLastResultInCommandResults,
-          noResult,
-          catchAlways ?? Command.catchAlwaysDefault,
-          notifyOnlyWhenValueChanges,
-          debugName,
-          noParamValue,
-        );
+    required super.initialValue,
+    required super.restriction,
+    required super.ifRestrictedExecuteInstead,
+    required super.includeLastResultInCommandResults,
+    required super.noReturnValue,
+    required super.catchAlways,
+    required super.notifyOnlyWhenValueChanges,
+    required super.debugName,
+    required super.noParamValue,
+  })  : _func = func,
+        _funcNoParam = funcNoParam;
 
   @override
   // ignore: avoid_void_async
@@ -1129,26 +1093,16 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult?> {
   /// constructor that can take an optional `ValueListenable` to control if the command can be execute
   /// if the wrapped function has `void` as return type [noResult] has to be `true`
   MockCommand({
-    required TResult initialValue,
-    bool noParamValue = false,
-    bool noResult = false,
-    ValueListenable<bool>? restriction,
-    ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
-    bool includeLastResultInCommandResult = false,
-    bool? catchAlways,
-    bool notifyOnlyWhenValueChanges = false,
-    String? debugName,
-  }) : super(
-          initialValue,
-          restriction,
-          ifRestrictedExecuteInstead,
-          includeLastResultInCommandResult,
-          noResult,
-          catchAlways ?? Command.catchAlwaysDefault,
-          notifyOnlyWhenValueChanges,
-          debugName,
-          noParamValue,
-        ) {
+    required super.initialValue,
+    super.noParamValue = false,
+    super.noReturnValue = false,
+    super.restriction,
+    super.ifRestrictedExecuteInstead,
+    super.includeLastResultInCommandResults = false,
+    super.catchAlways,
+    super.notifyOnlyWhenValueChanges = false,
+    super.debugName,
+  }) {
     _commandResult
         .where((result) => result.hasData)
         .listen((result, _) => value = result.data);
