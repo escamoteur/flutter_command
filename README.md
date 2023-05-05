@@ -261,7 +261,7 @@ So to react on occurring error you can register your handler with `addListener` 
 void didChangeDependencies() {
   errorSubscription ??= weatherManager
       .updateWeatherCommand
-      .thrownExceptions
+      .errors
       .where((x) => x != null) // filter out the error value reset
       .listen((error, _) {
     showDialog(
@@ -277,14 +277,14 @@ void didChangeDependencies() {
 Unfortunately its not possible to reset the value of a `ValueNotifier` without triggering its listeners. So if you have registered a listener you will get it called at every start of a `Command` execution with a value of `null` and clear all previous errors. If you use `functional_listener` you can do it easily by using the `where` extension.
 
 ### Error handling the fine print
-You can tweak the behaviour of the error handling by passing a `catchAlways` parameter to the factory functions. If you pass `false` Exceptions will only be caught if there is a listener on `thrownExceptions` or on `results` (see next chapter). You can also change the default behaviour of all `Command` in your app by changing the value of the `catchAlwaysDefault` property. During development its a good idea to set it to `false` to find any non handled exception. In production, setting it to `true` might be the better decision to prevent hard crashes. Note that `catchAlwaysDefault` property will be implicitly ignored if the `catchAlways` parameter for a command is set.
+You can tweak the behaviour of the error handling by passing a `catchAlways` parameter to the factory functions. If you pass `false` Exceptions will only be caught if there is a listener on `errors` or on `results` (see next chapter). You can also change the default behaviour of all `Command` in your app by changing the value of the `catchAlwaysDefault` property. During development its a good idea to set it to `false` to find any non handled exception. In production, setting it to `true` might be the better decision to prevent hard crashes. Note that `catchAlwaysDefault` property will be implicitly ignored if the `catchAlways` parameter for a command is set.
 
 `Command` also offers a static global Exception handler:
 
 ```Dart
 static void Function(String commandName, CommandError<Object> error) globalExceptionHandler;
 ```
-If you assign a handler function to it, it will be called for all Exceptions thrown by any `Command` in your app independent of the value of `catchAlways` if the `Command` has no listeners on `thrownExceptions` or on `results`.
+If you assign a handler function to it, it will be called for all Exceptions thrown by any `Command` in your app independent of the value of `catchAlways` if the `Command` has no listeners on `errors` or on `results`.
 
 The overall work flow of exception handling in flutter_command is depicted in the following diagram.
 
@@ -293,7 +293,7 @@ The overall work flow of exception handling in flutter_command is depicted in th
 
 
 ## Getting all data at once
-`isExecuting` and `thrownExceptions` are great properties but what if you don't want to use separate `ValueListenableBuilders` for each of them plus one for the data?
+`isExecuting` and `errors` are great properties but what if you don't want to use separate `ValueListenableBuilders` for each of them plus one for the data?
 `Command` got you covered with the `results` property that is an `ValueListenable<CommandResult>` which combines all needed data and is updated several times during a `Command` execution.
 
 ```Dart
@@ -350,7 +350,7 @@ child: ValueListenableBuilder<
   },
 ),
 ```
-Even if you use `results` the other properties are updated as before, so you can mix both approaches as you need it. For instance use `results` as above but additionally listening to `thrownExceptions` for logging.
+Even if you use `results` the other properties are updated as before, so you can mix both approaches as you need it. For instance use `results` as above but additionally listening to `errors` for logging.
 
 If you want to be able to always display data (while loading or in case of an error) you can pass `includeLastResultInCommandResults=true`, the last successful result will be included as `data` unless a new result is available.
 

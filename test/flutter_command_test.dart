@@ -85,7 +85,7 @@ void main() {
         print("Command Result $cmdResult");
       }
     });
-    command.thrownExceptions.listen((cmdError, _) {
+    command.errors.listen((cmdError, _) {
       thrownExceptionCollector(cmdError!);
       if (enablePrint) {
         print("Thrown Exceptions $cmdError");
@@ -221,11 +221,11 @@ void main() {
       setupCollectors(command);
 
       expect(command.canExecute.value, true);
-      expect(command.thrownExceptions.value, null);
+      expect(command.errors.value, null);
 
       command.execute();
       expect(command.results.value.error, isA<CustomException>());
-      expect(command.thrownExceptions.value!.error, isA<CustomException>());
+      expect(command.errors.value!.error, isA<CustomException>());
 
       expect(command.canExecute.value, true);
 
@@ -256,7 +256,7 @@ void main() {
       expect(command.canExecute.value, true);
 
       command.execute("Parameter");
-      expect(command.thrownExceptions.value, null);
+      expect(command.errors.value, null);
       expect(executionCount, 1);
 
       expect(command.canExecute.value, true);
@@ -287,7 +287,7 @@ void main() {
         command.results.value,
         const CommandResult<void, String>(null, '4711', null, false),
       );
-      expect(command.thrownExceptions.value, null);
+      expect(command.errors.value, null);
       expect(executionCount, 1);
 
       expect(command.canExecute.value, true);
@@ -324,7 +324,7 @@ void main() {
         command.results.value,
         const CommandResult<String, String>('4711', '47114711', null, false),
       );
-      expect(command.thrownExceptions.value, null);
+      expect(command.errors.value, null);
       expect(executionCount, 1);
 
       expect(command.canExecute.value, true);
@@ -362,7 +362,7 @@ void main() {
         const CommandResult<String?, String?>(null, null, null, false),
       );
 
-      expect(command.thrownExceptions.value, null);
+      expect(command.errors.value, null);
       expect(executionCount, 1);
 
       expect(command.canExecute.value, true);
@@ -419,7 +419,7 @@ void main() {
       expect(command.value, "Initial Value");
 
       expect(
-        command.thrownExceptions.value,
+        command.errors.value,
         CommandError<String>("4711", CustomException("Intentional")),
       );
       expect(executionCount, 1);
@@ -473,7 +473,7 @@ void main() {
       // the initial value is still returned so expect ex
       expect(command.value, "Initial Value");
 
-      expect(command.thrownExceptions.value!.error, isA<CustomException>());
+      expect(command.errors.value!.error, isA<CustomException>());
       expect(executionCount, 1);
 
       expect(command.canExecute.value, true);
@@ -940,7 +940,7 @@ void main() {
       expect(command.canExecute.value, true);
       expect(command.isExecuting.value, false);
 
-      expect(command.thrownExceptions.value, isNull);
+      expect(command.errors.value, isNull);
       fakeAsync((async) {
         command.execute("Done");
 

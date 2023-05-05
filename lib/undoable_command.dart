@@ -72,7 +72,7 @@ class UndoableCommand<TParam, TResult, TUndoState>
         _undoOnExecutionFailure = undoOnExecutionFailure {
     if (undoOnExecutionFailure) {
       _exceptionSubscription =
-          _thrownExceptions.where((ex) => ex is! UndoException).listen((ex, _) {
+          _errors.where((ex) => ex is! UndoException).listen((ex, _) {
         _undo(_undoStack, ex);
       });
     }
@@ -103,7 +103,7 @@ class UndoableCommand<TParam, TResult, TUndoState>
       _isExecuting.value = true;
     }
 
-    _thrownExceptions.value = null; // this will not trigger the listeners
+    _errors.value = null; // this will not trigger the listeners
 
     _commandResult.value = CommandResult<TParam, TResult>(
       param,
@@ -144,8 +144,8 @@ class UndoableCommand<TParam, TResult, TUndoState>
         error,
         false,
       );
-      if (_commandResult.listenerCount < 3 && !_thrownExceptions.hasListeners) {
-        /// we have no external listeners on [results] or [thrownExceptions]
+      if (_commandResult.listenerCount < 3 && !_errors.hasListeners) {
+        /// we have no external listeners on [results] or [errors]
         Command.globalExceptionHandler
             ?.call(_debugName, CommandError(param, error));
         _futureCompleter?.completeError(error);
@@ -187,9 +187,9 @@ class UndoableCommand<TParam, TResult, TUndoState>
         UndoException(error),
         false,
       );
-      if (_commandResult.listenerCount < 3 && !_thrownExceptions.hasListeners ||
+      if (_commandResult.listenerCount < 3 && !_errors.hasListeners ||
           _undoOnExecutionFailure) {
-        /// we have no external listeners on [results] or [thrownExceptions]
+        /// we have no external listeners on [results] or [errors]
         /// if we undo automatically on execution failure, we also want to notify the global exception handler
         Command.globalExceptionHandler
             ?.call(_debugName, CommandError(null, UndoException(error)));

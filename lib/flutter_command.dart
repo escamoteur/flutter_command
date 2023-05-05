@@ -63,7 +63,7 @@ class CommandResult<TParam, TResult> {
 
 /// [CommandError] wraps an occurring error together with the argument that was
 /// passed when the command was called.
-/// This sort of objects are emitted on the `.thrownExceptions` ValueListenable
+/// This sort of objects are emitted on the `.errors` ValueListenable
 /// of the Command
 class CommandError<TParam> {
   final Object? error;
@@ -136,10 +136,10 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       CommandResult.data(null, initialValue),
     );
 
-    /// forward error states to the `thrownExceptions` Listenable
+    /// forward error states to the `errors` Listenable
     _commandResult.where((x) => x.hasError).listen((x, _) {
-      _thrownExceptions.value = CommandError<TParam>(x.paramData, x.error);
-      _thrownExceptions.notifyListeners();
+      _errors.value = CommandError<TParam>(x.paramData, x.error);
+      _errors.notifyListeners();
     });
 
     /// forward busy states to the `isExecuting` Listenable
@@ -175,7 +175,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// register a handler to wait for the completion of the wrapped function.
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
-  /// unless there is a listener on [thrownExceptions] or [results].
+  /// unless there is a listener on [errors] or [results].
   /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
   /// if the value hasn't changed. If you set this to `true` the command will only notify
   /// it's listeners if the value has changed.
@@ -224,7 +224,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// register a handler to wait for the completion of the wrapped function.
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
-  /// unless there is a listener on [thrownExceptions] or [results].
+  /// unless there is a listener on [errors] or [results].
   /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
   /// if the value hasn't changed. If you set this to `true` the command will only notify
   /// it's listeners if the value has changed.
@@ -273,7 +273,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// assert if you try to use it.
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
-  /// unless there is a listener on [thrownExceptions] or [results].
+  /// unless there is a listener on [errors] or [results].
   /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
   /// if the value hasn't changed. If you set this to `true` the command will only notify
   /// it's listeners if the value has changed.
@@ -326,7 +326,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// assert if you try to use it.
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
-  /// unless there is a listener on [thrownExceptions] or [results].
+  /// unless there is a listener on [errors] or [results].
   /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
   /// if the value hasn't changed. If you set this to `true` the command will only notify
   /// it's listeners if the value has changed.
@@ -374,7 +374,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// restricted.
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
-  /// unless there is a listener on [thrownExceptions] or [results].
+  /// unless there is a listener on [errors] or [results].
   /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
   /// if the value hasn't changed. If you set this to `true` the command will only notify
   /// it's listeners if the value has changed.
@@ -420,7 +420,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// restricted.
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
-  /// unless there is a listener on [thrownExceptions] or [results].
+  /// unless there is a listener on [errors] or [results].
   /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
   /// if the value hasn't changed. If you set this to `true` the command will only notify
   /// it's listeners if the value has changed.
@@ -466,7 +466,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// to display something even when you got an error or while the command is still running.
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
-  /// unless there is a listener on [thrownExceptions] or [results].
+  /// unless there is a listener on [errors] or [results].
   /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
   /// if the value hasn't changed. If you set this to `true` the command will only notify
   /// it's listeners if the value has changed.
@@ -516,7 +516,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// to display something even when you got an error or while the command is still running.
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
-  /// unless there is a listener on [thrownExceptions] or [results].
+  /// unless there is a listener on [errors] or [results].
   /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
   /// if the value hasn't changed. If you set this to `true` the command will only notify
   /// it's listeners if the value has changed.
@@ -565,7 +565,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// restricted.
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
-  /// unless there is a listener on [thrownExceptions] or [results].
+  /// unless there is a listener on [errors] or [results].
   /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
   /// if the value hasn't changed. If you set this to `true` the command will only notify
   /// it's listeners if the value has changed.
@@ -618,7 +618,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// restricted.
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
-  /// unless there is a listener on [thrownExceptions] or [results].
+  /// unless there is a listener on [errors] or [results].
   /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
   /// if the value hasn't changed. If you set this to `true` the command will only notify
   /// it's listeners if the value has changed.
@@ -670,7 +670,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// restricted.
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
-  /// unless there is a listener on [thrownExceptions] or [results].
+  /// unless there is a listener on [errors] or [results].
   /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
   /// if the value hasn't changed. If you set this to `true` the command will only notify
   /// it's listeners if the value has changed.
@@ -726,7 +726,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// restricted.
   /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
-  /// unless there is a listener on [thrownExceptions] or [results].
+  /// unless there is a listener on [errors] or [results].
   /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
   /// if the value hasn't changed. If you set this to `true` the command will only notify
   /// it's listeners if the value has changed.
@@ -788,11 +788,17 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   ValueListenable<bool> get canExecute => _canExecute;
 
   /// `ValueListenable<CommandError>` that reflects the Error State of the command
-  /// it value is reset to `null` at the beginning of every command execution
   /// if the wrapped function throws an error, its value is set to the error is
   /// wrapped in an `CommandError`
   ///
-  ValueListenable<CommandError?> get thrownExceptions => _thrownExceptions;
+  @Deprecated('use errors instead')
+  ValueListenable<CommandError?> get thrownExceptions => _errors;
+
+  /// `ValueListenable<CommandError>` that reflects the Error State of the command
+  /// if the wrapped function throws an error, its value is set to the error is
+  /// wrapped in an `CommandError`
+  ///
+  ValueListenable<CommandError?> get errors => _errors;
 
   /// optional hander that will get called on any exception that happens inside
   /// any Command of the app. Ideal for logging. [commandName]
@@ -802,10 +808,10 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
 
   /// if no individual value for `catchAlways` is passed to the factory methods,
   /// this variable defines the default.
-  /// `true` : independent if there are listeners at [thrownExceptions] or [results]
+  /// `true` : independent if there are listeners at [errors] or [results]
   ///          the Command will catch all Exceptions that might be thrown by the
   ///          wrapped function. They will still get reported to the [globalExceptionHandler]
-  /// `false`: unless no one listens on [thrownExceptions] or [results], exceptions
+  /// `false`: unless no one listens on [errors] or [results], exceptions
   ///          will be rethrown. This is can be very helpful while developing.
   ///          Before the Exception is rethrown [globalExeptionHandler] will be called.
   static bool catchAlwaysDefault = true;
@@ -823,7 +829,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       CustomValueNotifier<bool>(false, asyncNotification: true);
   late ValueNotifier<bool> _canExecute;
   late final ValueListenable<bool>? _restriction;
-  final CustomValueNotifier<CommandError<TParam?>?> _thrownExceptions =
+  final CustomValueNotifier<CommandError<TParam?>?> _errors =
       CustomValueNotifier<CommandError<TParam?>?>(
     null,
     mode: CustomNotifierMode.manual,
@@ -837,7 +843,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     _commandResult.dispose();
     _canExecute.dispose();
     _isExecuting.dispose();
-    _thrownExceptions.dispose();
+    _errors.dispose();
     if (!(_futureCompleter?.isCompleted ?? true)) {
       _futureCompleter!.complete(null);
     }
@@ -936,7 +942,7 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
     if (!_canExecute.value) {
       return;
     }
-    _thrownExceptions.value = null;
+    _errors.value = null;
     try {
       TResult result;
       if (_noParamValue) {
@@ -967,8 +973,8 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
         error,
         false,
       );
-      if (_commandResult.listenerCount < 3 && !_thrownExceptions.hasListeners) {
-        /// we have no external listeners on [results] or [thrownExceptions]
+      if (_commandResult.listenerCount < 3 && !_errors.hasListeners) {
+        /// we have no external listeners on [results] or [errors]
         Command.globalExceptionHandler
             ?.call(_debugName, CommandError(param, error));
         _futureCompleter?.completeError(error);
@@ -1018,7 +1024,7 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
       _isExecuting.value = true;
     }
 
-    _thrownExceptions.value = null; // this will not trigger the listeners
+    _errors.value = null; // this will not trigger the listeners
 
     _commandResult.value = CommandResult<TParam, TResult>(
       param,
@@ -1059,8 +1065,8 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
         error,
         false,
       );
-      if (_commandResult.listenerCount < 3 && !_thrownExceptions.hasListeners) {
-        /// we have no external listeners on [results] or [thrownExceptions]
+      if (_commandResult.listenerCount < 3 && !_errors.hasListeners) {
+        /// we have no external listeners on [results] or [errors]
         Command.globalExceptionHandler
             ?.call(_debugName, CommandError(param, error));
         _futureCompleter?.completeError(error);

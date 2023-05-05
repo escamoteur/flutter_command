@@ -14,7 +14,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void didChangeDependencies() {
-    errorSubscription ??= weatherManager.updateWeatherCommand.thrownExceptions
+    errorSubscription ??= weatherManager.updateWeatherCommand.errors
         .where((x) => x != null) // filter out the error value reset
         .listen((error, _) {
       showDialog(
