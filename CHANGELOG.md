@@ -1,3 +1,5 @@
+[5.0.0+4] - 18.05.2023
+* bug fix of a too arrow asssertion
 [5.0.0+2] - 21.04.2023
 
 * bug fix in the factory functions of UndoableCommand

@@ -876,7 +876,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// RefreshIndicator
   Future<TResult> executeWithFuture([TParam? param]) {
     assert(
-      this is CommandAsync,
+      this is CommandAsync || this is UndoableCommand,
       'executeWithFuture can\t be used with synchronous Commands',
     );
     _futureCompleter = Completer<TResult>();
