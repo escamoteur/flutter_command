@@ -115,8 +115,8 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     required ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
     required bool includeLastResultInCommandResults,
     required bool noReturnValue,
-    required bool? catchAlways,
     required bool notifyOnlyWhenValueChanges,
+    ErrorFilter? errorFilter,
     required String? debugName,
     required bool noParamValue,
   })  : _restriction = restriction,
@@ -124,7 +124,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
         _noReturnValue = noReturnValue,
         _noParamValue = noParamValue,
         _includeLastResultInCommandResults = includeLastResultInCommandResults,
-        _catchAlways = catchAlways ?? catchAlwaysDefault,
+        _errorFilter = errorFilter ?? errorFilterDefault,
         _debugName = debugName,
         super(
           initialValue,
@@ -174,7 +174,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// assert if you try to use it.
   /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value, but you can
   /// register a handler to wait for the completion of the wrapped function.
-  /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
+  /// [errorFilter] : overrides the default set by [errorFilterDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [errors] or [results].
   /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
@@ -186,7 +186,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     void Function() action, {
     ValueListenable<bool>? restriction,
     void Function()? ifRestrictedExecuteInstead,
-    bool? catchAlways,
+    ErrorFilter? errorFilter,
     bool notifyOnlyWhenValueChanges = false,
     String? debugName,
   }) {
@@ -199,7 +199,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
           : null,
       includeLastResultInCommandResults: false,
       noReturnValue: true,
-      catchAlways: catchAlways,
+      errorFilter: errorFilter,
       notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
       debugName: debugName,
       noParamValue: true,
@@ -223,7 +223,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// assert if you try to use it.
   /// Can't be used with an `ValueListenableBuilder` because it doesn't have a value, but you can
   /// register a handler to wait for the completion of the wrapped function.
-  /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
+  /// [errorFilter] : overrides the default set by [errorFilterDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [errors] or [results].
   /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
@@ -235,7 +235,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     void Function(TParam x) action, {
     ValueListenable<bool>? restriction,
     ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
-    bool? catchAlways,
+    ErrorFilter? errorFilter,
     bool notifyOnlyWhenValueChanges = false,
     String? debugName,
   }) {
@@ -246,7 +246,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       ifRestrictedExecuteInstead: ifRestrictedExecuteInstead,
       includeLastResultInCommandResults: false,
       noReturnValue: true,
-      catchAlways: catchAlways,
+      errorFilter: errorFilter,
       notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
       debugName: debugName,
       noParamValue: false,
@@ -272,7 +272,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// As synchronous function doesn't give any the UI any chance to react on on a change of
   /// `.isExecuting`,isExecuting isn't supported for synchronous commands and will throw an
   /// assert if you try to use it.
-  /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
+  /// [errorFilter] : overrides the default set by [errorFilterDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [errors] or [results].
   /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
@@ -286,7 +286,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     ValueListenable<bool>? restriction,
     void Function()? ifRestrictedExecuteInstead,
     bool includeLastResultInCommandResults = false,
-    bool? catchAlways,
+    ErrorFilter? errorFilter,
     bool notifyOnlyWhenValueChanges = false,
     String? debugName,
   }) {
@@ -299,7 +299,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
           : null,
       includeLastResultInCommandResults: includeLastResultInCommandResults,
       noReturnValue: false,
-      catchAlways: catchAlways,
+      errorFilter: errorFilter,
       notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
       debugName: debugName,
       noParamValue: true,
@@ -325,7 +325,8 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// As synchronous function doesn't give the UI any chance to react on on a change of
   /// `.isExecuting`,isExecuting isn't supported for synchronous commands and will throw an
   /// assert if you try to use it.
-  /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
+  /// [errorFilter] : overrides the default set by [errorFilterDefault].
+  /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [errors] or [results].
   /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
@@ -339,7 +340,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     ValueListenable<bool>? restriction,
     ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
     bool includeLastResultInCommandResults = false,
-    bool? catchAlways,
+    ErrorFilter? errorFilter,
     bool notifyOnlyWhenValueChanges = false,
     String? debugName,
   }) {
@@ -350,7 +351,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       ifRestrictedExecuteInstead: ifRestrictedExecuteInstead,
       includeLastResultInCommandResults: includeLastResultInCommandResults,
       noReturnValue: false,
-      catchAlways: catchAlways,
+      errorFilter: errorFilter,
       notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
       debugName: debugName,
       noParamValue: false,
@@ -373,7 +374,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// if the restriction is because the user is not logged in.
   /// If you don't set this function, the command will just do nothing when it's
   /// restricted.
-  /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
+  /// [errorFilter] : overrides the default set by [errorFilterDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [errors] or [results].
   /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
@@ -385,7 +386,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     Future Function() action, {
     ValueListenable<bool>? restriction,
     void Function()? ifRestrictedExecuteInstead,
-    bool? catchAlways,
+    ErrorFilter? errorFilter,
     bool notifyOnlyWhenValueChanges = false,
     String? debugName,
   }) {
@@ -398,7 +399,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
           : null,
       includeLastResultInCommandResults: false,
       noReturnValue: true,
-      catchAlways: catchAlways,
+      errorFilter: errorFilter,
       notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
       debugName: debugName,
       noParamValue: true,
@@ -419,7 +420,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// if the restriction is because the user is not logged in.
   /// If you don't set this function, the command will just do nothing when it's
   /// restricted.
-  /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
+  /// [errorFilter] : overrides the default set by [errorFilterDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [errors] or [results].
   /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
@@ -431,7 +432,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     Future Function(TParam x) action, {
     ValueListenable<bool>? restriction,
     ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
-    bool? catchAlways,
+    ErrorFilter? errorFilter,
     bool notifyOnlyWhenValueChanges = false,
     String? debugName,
   }) {
@@ -442,7 +443,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       ifRestrictedExecuteInstead: ifRestrictedExecuteInstead,
       includeLastResultInCommandResults: false,
       noReturnValue: true,
-      catchAlways: catchAlways,
+      errorFilter: errorFilter,
       notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
       debugName: debugName,
       noParamValue: false,
@@ -465,7 +466,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// [includeLastResultInCommandResults] will include the value of the last successful execution in
   /// all `CommandResult` values unless there is no result. This can be handy if you always want to be able
   /// to display something even when you got an error or while the command is still running.
-  /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
+  /// [errorFilter] : overrides the default set by [errorFilterDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [errors] or [results].
   /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
@@ -479,7 +480,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     ValueListenable<bool>? restriction,
     void Function()? ifRestrictedExecuteInstead,
     bool includeLastResultInCommandResults = false,
-    bool? catchAlways,
+    ErrorFilter? errorFilter,
     bool notifyOnlyWhenValueChanges = false,
     String? debugName,
   }) {
@@ -492,7 +493,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
           : null,
       includeLastResultInCommandResults: includeLastResultInCommandResults,
       noReturnValue: false,
-      catchAlways: catchAlways,
+      errorFilter: errorFilter,
       notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
       debugName: debugName,
       noParamValue: true,
@@ -515,7 +516,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// [includeLastResultInCommandResults] will include the value of the last successful execution in
   /// all `CommandResult` values unless there is no result. This can be handy if you always want to be able
   /// to display something even when you got an error or while the command is still running.
-  /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
+  /// [errorFilter] : overrides the default set by [errorFilterDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [errors] or [results].
   /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
@@ -529,7 +530,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     ValueListenable<bool>? restriction,
     ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
     bool includeLastResultInCommandResults = false,
-    bool? catchAlways,
+    ErrorFilter? errorFilter,
     bool notifyOnlyWhenValueChanges = false,
     String? debugName,
   }) {
@@ -540,7 +541,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       ifRestrictedExecuteInstead: ifRestrictedExecuteInstead,
       includeLastResultInCommandResults: includeLastResultInCommandResults,
       noReturnValue: false,
-      catchAlways: catchAlways,
+      errorFilter: errorFilter,
       notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
       debugName: debugName,
       noParamValue: false,
@@ -564,7 +565,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// if the restriction is because the user is not logged in.
   /// If you don't set this function, the command will just do nothing when it's
   /// restricted.
-  /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
+  /// [errorFilter] : overrides the default set by [errorFilterDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [errors] or [results].
   /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
@@ -578,7 +579,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     bool undoOnExecutionFailure = true,
     ValueListenable<bool>? restriction,
     void Function()? ifRestrictedExecuteInstead,
-    bool? catchAlways,
+    ErrorFilter? errorFilter = const ErrorHandlerLocal(),
     bool notifyOnlyWhenValueChanges = false,
     String? debugName,
   }) {
@@ -593,7 +594,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       undoOnExecutionFailure: undoOnExecutionFailure,
       includeLastResultInCommandResults: false,
       noReturnValue: true,
-      catchAlways: catchAlways,
+      errorFilter: errorFilter,
       notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
       debugName: debugName,
       noParamValue: true,
@@ -617,7 +618,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// if the restriction is because the user is not logged in.
   /// If you don't set this function, the command will just do nothing when it's
   /// restricted.
-  /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
+  /// [errorFilter] : overrides the default set by [errorFilterDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [errors] or [results].
   /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
@@ -631,7 +632,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     bool undoOnExecutionFailure = true,
     ValueListenable<bool>? restriction,
     ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
-    bool? catchAlways,
+    ErrorFilter? errorFilter,
     bool notifyOnlyWhenValueChanges = false,
     String? debugName,
   }) {
@@ -644,7 +645,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       ifRestrictedExecuteInstead: ifRestrictedExecuteInstead,
       includeLastResultInCommandResults: false,
       noReturnValue: true,
-      catchAlways: catchAlways,
+      errorFilter: errorFilter,
       notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
       debugName: debugName,
       noParamValue: false,
@@ -669,7 +670,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// if the restriction is because the user is not logged in.
   /// If you don't set this function, the command will just do nothing when it's
   /// restricted.
-  /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
+  /// [errorFilter] : overrides the default set by [errorFilterDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [errors] or [results].
   /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
@@ -685,7 +686,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     ValueListenable<bool>? restriction,
     void Function()? ifRestrictedExecuteInstead,
     bool includeLastResultInCommandResults = false,
-    bool? catchAlways,
+    ErrorFilter? errorFilter,
     bool notifyOnlyWhenValueChanges = false,
     String? debugName,
   }) {
@@ -700,7 +701,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
           : null,
       includeLastResultInCommandResults: includeLastResultInCommandResults,
       noReturnValue: false,
-      catchAlways: catchAlways,
+      errorFilter: errorFilter,
       notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
       debugName: debugName,
       noParamValue: true,
@@ -725,7 +726,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// if the restriction is because the user is not logged in.
   /// If you don't set this function, the command will just do nothing when it's
   /// restricted.
-  /// [catchAlways] : overrides the default set by [catchAlwaysDefault].
+  /// [errorFilter] : overrides the default set by [errorFilterDefault].
   /// If `false`, Exceptions thrown by the wrapped function won't be caught but rethrown
   /// unless there is a listener on [errors] or [results].
   /// [notifyOnlyWhenValueChanges] : the default is that the command notifies it's listeners even
@@ -741,7 +742,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     ValueListenable<bool>? restriction,
     ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
     bool includeLastResultInCommandResults = false,
-    bool? catchAlways,
+    ErrorFilter? errorFilter,
     bool notifyOnlyWhenValueChanges = false,
     String? debugName,
   }) {
@@ -753,7 +754,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       ifRestrictedExecuteInstead: ifRestrictedExecuteInstead,
       includeLastResultInCommandResults: includeLastResultInCommandResults,
       noReturnValue: false,
-      catchAlways: catchAlways,
+      errorFilter: errorFilter,
       notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
       debugName: debugName,
       noParamValue: false,
@@ -802,23 +803,23 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   ValueListenable<CommandError?> get errors => _errors;
 
   /// optional hander that will get called on any exception that happens inside
-  /// any Command of the app. Ideal for logging. [commandName]
-  /// the [debugName] of the Command
-  static void Function(CommandError<Object> error)? globalExceptionHandler;
+  /// any Command of the app. Ideal for logging.
+  /// the [debugName] of the Command that was responsible for the error is inside
+  /// the error object.
+  static void Function(CommandError<Object> error, StackTrace stackTrace)?
+      globalExceptionHandler;
 
   /// if no individual ErrorFilter is set when creating a Command
   /// this filter is used in case of an error
-  static ErrorFilter errorFilter = ErrorGlobalIfNoLocal();
+  static ErrorFilter errorFilterDefault = const ErrorHandlerGlobalIfNoLocal();
 
-  /// if no individual value for `catchAlways` is passed to the factory methods,
-  /// this variable defines the default.
-  /// `true` : independent if there are listeners at [errors] or [results]
-  ///          the Command will catch all Exceptions that might be thrown by the
-  ///          wrapped function. They will still get reported to the [globalExceptionHandler]
-  /// `false`: unless no one listens on [errors] or [results], exceptions
-  ///          will be rethrown. This is can be very helpful while developing.
-  ///          Before the Exception is rethrown [globalExeptionHandler] will be called.
-  static bool catchAlwaysDefault = true;
+  // if the function that is wrapped by the command throws an exception, it's
+  // it's sometime s not easy to understand where the execption originated,
+  // Escpecially if you used an Errrorfilter that swallows possible exceptions.
+  // by setting this to true, the Command will directly rethrow any exception
+  // so that you can get a helpfult stacktrace.
+  // works only in debug mode
+  static bool debugErrorsThrowAlways = false;
 
   /// optional handler that will get called on all `Command` executions if the Command
   /// has a set debugName. [commandName]
@@ -867,9 +868,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   ///Flag to signal the wrapped command expects not parameter value
   final bool _noParamValue;
 
-  /// if true all exception will be caught even if no one is listening at [thrownExecption]
-  /// or [results]
-  final bool _catchAlways;
+  final ErrorFilter _errorFilter;
 
   /// optional Name that is included in log messages.
   final String? _debugName;
@@ -912,22 +911,98 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     return onResult(value, _commandResult.value.paramData);
   }
 
-  void _handleError(TParam? param, Object error) {
-    _commandResult.value = CommandResult<TParam, TResult>(
-      param,
-      _includeLastResultInCommandResults ? value : null,
-      error,
-      false,
-    );
-    if (_commandResult.listenerCount < 3 && !_errors.hasListeners) {
-      /// we have no external listeners on [results] or [errors]
-      Command.globalExceptionHandler
-          ?.call(CommandError(param, error, commandName: _debugName));
-      _futureCompleter?.completeError(error);
-      if (!_catchAlways) {
+  void _handleError(TParam? param, Object error, StackTrace stackTrace) {
+    final errorReaction = _errorFilter.filter(error, stackTrace);
+    switch (errorReaction) {
+      case ErrorReaction.none:
+        break;
+      case ErrorReaction.throwException:
         throw error;
-      }
+      case ErrorReaction.globalHandler:
+        assert(globalExceptionHandler != null,
+            'Errorfilter returned ErrorReaction.globalHandler, but no global handler is registered');
+        globalExceptionHandler!(
+            CommandError(param, error, commandName: _debugName), stackTrace);
+        break;
+      case ErrorReaction.localHandler:
+        assert(_commandResult.listenerCount >= 3 || _errors.hasListeners,
+            'ErrorFilter returned ErrorReaction.localHandler, but there are no listeners on errors or .result');
+        _commandResult.value = CommandResult<TParam, TResult>(
+          param,
+          _includeLastResultInCommandResults ? value : null,
+          error,
+          false,
+        );
+        break;
+      case ErrorReaction.localAndGlobalHandler:
+        assert(
+          _commandResult.listenerCount >= 3 || _errors.hasListeners,
+          'ErrorFilter returned ErrorReaction.localAndGlobalHandler, but there are no listeners on errors or .result',
+        );
+        assert(
+          globalExceptionHandler != null,
+          'Errorfilter returned ErrorReaction.localAndgloBalHandler, but no global handler is registered',
+        );
+        _commandResult.value = CommandResult<TParam, TResult>(
+          param,
+          _includeLastResultInCommandResults ? value : null,
+          error,
+          false,
+        );
+        globalExceptionHandler!(
+            CommandError(param, error, commandName: _debugName), stackTrace);
+        break;
+      case ErrorReaction.globalIfNoLocalHandler:
+        if (_commandResult.listenerCount < 3 && !_errors.hasListeners) {
+          assert(
+            globalExceptionHandler != null,
+            'Errorfilter returned ErrorReaction.globalIfNoLocalHandler, but no global handler is registered',
+          );
+
+          /// we have no external listeners on [results] or [errors]
+          Command.globalExceptionHandler?.call(
+              CommandError(param, error, commandName: _debugName), stackTrace);
+        } else {
+          _commandResult.value = CommandResult<TParam, TResult>(
+            param,
+            _includeLastResultInCommandResults ? value : null,
+            error,
+            false,
+          );
+        }
+        break;
+      case ErrorReaction.noHandlersThrowException:
+        if (_commandResult.listenerCount < 3 &&
+            !_errors.hasListeners &&
+            globalExceptionHandler == null) {
+          throw error;
+        }
+        if (globalExceptionHandler != null) {
+          Command.globalExceptionHandler?.call(
+              CommandError(param, error, commandName: _debugName), stackTrace);
+        }
+        if (_commandResult.listenerCount >= 3 || _errors.hasListeners) {
+          _commandResult.value = CommandResult<TParam, TResult>(
+            param,
+            _includeLastResultInCommandResults ? value : null,
+            error,
+            false,
+          );
+        }
+        break;
+      case ErrorReaction.throwIfNoLocalHandler:
+        if (_commandResult.listenerCount < 3 && !_errors.hasListeners) {
+          throw error;
+        }
+        _commandResult.value = CommandResult<TParam, TResult>(
+          param,
+          _includeLastResultInCommandResults ? value : null,
+          error,
+          false,
+        );
+        break;
     }
+    _futureCompleter?.completeError(error);
   }
 }
 
@@ -949,7 +1024,7 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
     required super.ifRestrictedExecuteInstead,
     required super.includeLastResultInCommandResults,
     required super.noReturnValue,
-    required super.catchAlways,
+    required super.errorFilter,
     required super.notifyOnlyWhenValueChanges,
     required super.debugName,
     required super.noParamValue,
@@ -987,10 +1062,14 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
         notifyListeners();
       }
       _futureCompleter?.complete(result);
-    } catch (error) {
+    } catch (error, stacktrace) {
       if (error is AssertionError) rethrow;
 
-      _handleError(param, error);
+      if (kDebugMode && Command.debugErrorsThrowAlways) {
+        rethrow;
+      }
+
+      _handleError(param, error, stacktrace);
     } finally {
       if (_debugName != null) {
         Command.loggingHandler?.call(_debugName, _commandResult.value);
@@ -1011,7 +1090,7 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
     required super.ifRestrictedExecuteInstead,
     required super.includeLastResultInCommandResults,
     required super.noReturnValue,
-    required super.catchAlways,
+    required super.errorFilter,
     required super.notifyOnlyWhenValueChanges,
     required super.debugName,
     required super.noParamValue,
@@ -1068,10 +1147,13 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
         notifyListeners();
       }
       _futureCompleter?.complete(result);
-    } catch (error) {
+    } catch (error, stacktrace) {
       if (error is AssertionError) rethrow;
 
-      _handleError(param, error);
+      if (kDebugMode && Command.debugErrorsThrowAlways) {
+        rethrow;
+      }
+      _handleError(param, error, stacktrace);
     } finally {
       _isExecuting.value = false;
 
@@ -1102,7 +1184,7 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult?> {
     super.restriction,
     super.ifRestrictedExecuteInstead,
     super.includeLastResultInCommandResults = false,
-    super.catchAlways,
+    super.errorFilter,
     super.notifyOnlyWhenValueChanges = false,
     super.debugName,
   }) {
@@ -1202,7 +1284,8 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult?> {
   /// error: Exception([message])
   /// isExecuting : false
   void endExecutionWithError(String message) {
-    _handleError(lastPassedValueToExecute, Exception(message));
+    _handleError(
+        lastPassedValueToExecute, Exception(message), StackTrace.current);
     _isExecuting.value = false;
     if (_debugName != null) {
       Command.loggingHandler?.call(_debugName, _commandResult.value);

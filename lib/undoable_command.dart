@@ -62,21 +62,14 @@ class UndoableCommand<TParam, TResult, TUndoState>
     required bool undoOnExecutionFailure,
     required super.includeLastResultInCommandResults,
     required super.noReturnValue,
-    required super.catchAlways,
+    required super.errorFilter,
     required super.notifyOnlyWhenValueChanges,
     required super.debugName,
     required super.noParamValue,
   })  : _func = func,
         _funcNoParam = funcNoParam,
         _undofunc = undo,
-        _undoOnExecutionFailure = undoOnExecutionFailure {
-    if (undoOnExecutionFailure) {
-      _exceptionSubscription =
-          _errors.where((ex) => ex is! UndoException).listen((ex, _) {
-        _undo(ex);
-      });
-    }
-  }
+        _undoOnExecutionFailure = undoOnExecutionFailure {}
 
   final bool _undoOnExecutionFailure;
 
@@ -136,10 +129,17 @@ class UndoableCommand<TParam, TResult, TUndoState>
         notifyListeners();
       }
       _futureCompleter?.complete(result);
-    } catch (error) {
+    } catch (error, stacktrace) {
       if (error is AssertionError) rethrow;
 
-      _handleError(param, error);
+      if (kDebugMode && Command.debugErrorsThrowAlways) {
+        rethrow;
+      }
+      if (_undoOnExecutionFailure) {
+        _undo(error);
+      }
+
+      _handleError(param, error, stacktrace);
     } finally {
       _isExecuting.value = false;
 
@@ -172,9 +172,12 @@ class UndoableCommand<TParam, TResult, TUndoState>
       } else {
         notifyListeners();
       }
-    } catch (error) {
+    } catch (error, stacktrace) {
       if (error is AssertionError) rethrow;
-      _handleError(null, UndoException(error));
+      if (kDebugMode && Command.debugErrorsThrowAlways) {
+        rethrow;
+      }
+      _handleError(null, UndoException(error), stacktrace);
     }
     if (_debugName != null) {
       Command.loggingHandler?.call('undo + $_debugName', _commandResult.value);
