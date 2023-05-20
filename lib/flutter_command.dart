@@ -8,6 +8,8 @@ import 'package:flutter/foundation.dart';
 import 'package:functional_listener/functional_listener.dart';
 import 'package:quiver/core.dart';
 
+import 'error_handler.dart';
+
 export 'package:flutter_command/command_builder.dart';
 export 'package:functional_listener/functional_listener.dart';
 
@@ -68,11 +70,9 @@ class CommandResult<TParam, TResult> {
 class CommandError<TParam> {
   final Object? error;
   final TParam? paramData;
+  final String? commandName;
 
-  CommandError(
-    this.paramData,
-    this.error,
-  );
+  CommandError(this.paramData, this.error, {this.commandName});
 
   @override
   bool operator ==(Object other) =>
@@ -138,7 +138,8 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
 
     /// forward error states to the `errors` Listenable
     _commandResult.where((x) => x.hasError).listen((x, _) {
-      _errors.value = CommandError<TParam>(x.paramData, x.error);
+      _errors.value = CommandError<TParam>(x.paramData, x.error,
+          commandName: this._debugName);
       _errors.notifyListeners();
     });
 
@@ -803,8 +804,11 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// optional hander that will get called on any exception that happens inside
   /// any Command of the app. Ideal for logging. [commandName]
   /// the [debugName] of the Command
-  static void Function(String? commandName, CommandError<Object> error)?
-      globalExceptionHandler;
+  static void Function(CommandError<Object> error)? globalExceptionHandler;
+
+  /// if no individual ErrorFilter is set when creating a Command
+  /// this filter is used in case of an error
+  static ErrorFilter errorFilter = ErrorGlobalIfNoLocal();
 
   /// if no individual value for `catchAlways` is passed to the factory methods,
   /// this variable defines the default.
@@ -816,7 +820,8 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   ///          Before the Exception is rethrown [globalExeptionHandler] will be called.
   static bool catchAlwaysDefault = true;
 
-  /// optional handler that will get called on all `Command` executions. [commandName]
+  /// optional handler that will get called on all `Command` executions if the Command
+  /// has a set debugName. [commandName]
   /// the [debugName] of the Command
   static void Function(String? commandName, CommandResult result)?
       loggingHandler;
@@ -906,6 +911,24 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     }
     return onResult(value, _commandResult.value.paramData);
   }
+
+  void _handleError(TParam? param, Object error) {
+    _commandResult.value = CommandResult<TParam, TResult>(
+      param,
+      _includeLastResultInCommandResults ? value : null,
+      error,
+      false,
+    );
+    if (_commandResult.listenerCount < 3 && !_errors.hasListeners) {
+      /// we have no external listeners on [results] or [errors]
+      Command.globalExceptionHandler
+          ?.call(CommandError(param, error, commandName: _debugName));
+      _futureCompleter?.completeError(error);
+      if (!_catchAlways) {
+        throw error;
+      }
+    }
+  }
 }
 
 class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
@@ -967,23 +990,11 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
     } catch (error) {
       if (error is AssertionError) rethrow;
 
-      _commandResult.value = CommandResult<TParam, TResult>(
-        param,
-        _includeLastResultInCommandResults ? value : null,
-        error,
-        false,
-      );
-      if (_commandResult.listenerCount < 3 && !_errors.hasListeners) {
-        /// we have no external listeners on [results] or [errors]
-        Command.globalExceptionHandler
-            ?.call(_debugName, CommandError(param, error));
-        _futureCompleter?.completeError(error);
-        if (!_catchAlways) {
-          rethrow;
-        }
-      }
+      _handleError(param, error);
     } finally {
-      Command.loggingHandler?.call(_debugName, _commandResult.value);
+      if (_debugName != null) {
+        Command.loggingHandler?.call(_debugName, _commandResult.value);
+      }
     }
   }
 }
@@ -1059,22 +1070,8 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
       _futureCompleter?.complete(result);
     } catch (error) {
       if (error is AssertionError) rethrow;
-      _commandResult.value = CommandResult<TParam, TResult>(
-        param,
-        _includeLastResultInCommandResults ? value : null,
-        error,
-        false,
-      );
-      if (_commandResult.listenerCount < 3 && !_errors.hasListeners) {
-        /// we have no external listeners on [results] or [errors]
-        Command.globalExceptionHandler
-            ?.call(_debugName, CommandError(param, error));
-        _futureCompleter?.completeError(error);
 
-        if (!_catchAlways) {
-          rethrow;
-        }
-      }
+      _handleError(param, error);
     } finally {
       _isExecuting.value = false;
 
@@ -1194,6 +1191,9 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult?> {
       null,
       false,
     );
+    if (_debugName != null) {
+      Command.loggingHandler?.call(_debugName, _commandResult.value);
+    }
     _isExecuting.value = false;
   }
 
@@ -1202,13 +1202,11 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult?> {
   /// error: Exception([message])
   /// isExecuting : false
   void endExecutionWithError(String message) {
-    _commandResult.value = CommandResult<TParam, TResult>(
-      lastPassedValueToExecute,
-      _includeLastResultInCommandResults ? value : null,
-      CommandError(lastPassedValueToExecute, Exception(message)),
-      false,
-    );
+    _handleError(lastPassedValueToExecute, Exception(message));
     _isExecuting.value = false;
+    if (_debugName != null) {
+      Command.loggingHandler?.call(_debugName, _commandResult.value);
+    }
   }
 
   /// `endExecutionNoData` will issue a [CommandResult] with
@@ -1222,6 +1220,9 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult?> {
       null,
       false,
     );
+    if (_debugName != null) {
+      Command.loggingHandler?.call(_debugName, _commandResult.value);
+    }
     _isExecuting.value = false;
   }
 }

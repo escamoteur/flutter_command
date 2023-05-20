@@ -19,7 +19,7 @@ abstract class ErrorFilter {
   ErrorReaction filter(Object error, StackTrace stackTrace);
 }
 
-class DefaultErrorFilter implements ErrorFilter {
+class ErrorGlobalIfNoLocal implements ErrorFilter {
   @override
   ErrorReaction filter(Object error, StackTrace stackTrace) {
     return ErrorReaction.globalIfNoLocalHandler;

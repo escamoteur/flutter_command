@@ -48,7 +48,7 @@ class UndoableCommand<TParam, TResult, TUndoState>
     extends Command<TParam, TResult> {
   final Future<TResult> Function(TParam, UndoStack<TUndoState>)? _func;
   final Future<TResult> Function(UndoStack<TUndoState>)? _funcNoParam;
-  final UndoFn<TUndoState, TResult> _undo;
+  final UndoFn<TUndoState, TResult> _undofunc;
   final UndoStack<TUndoState> _undoStack = UndoStack<TUndoState>();
   ListenableSubscription? _exceptionSubscription;
 
@@ -68,12 +68,12 @@ class UndoableCommand<TParam, TResult, TUndoState>
     required super.noParamValue,
   })  : _func = func,
         _funcNoParam = funcNoParam,
-        _undo = undo,
+        _undofunc = undo,
         _undoOnExecutionFailure = undoOnExecutionFailure {
     if (undoOnExecutionFailure) {
       _exceptionSubscription =
           _errors.where((ex) => ex is! UndoException).listen((ex, _) {
-        _undo(_undoStack, ex);
+        _undo(ex);
       });
     }
   }
@@ -138,42 +138,35 @@ class UndoableCommand<TParam, TResult, TUndoState>
       _futureCompleter?.complete(result);
     } catch (error) {
       if (error is AssertionError) rethrow;
-      _commandResult.value = CommandResult<TParam, TResult>(
-        param,
-        _includeLastResultInCommandResults ? value : null,
-        error,
-        false,
-      );
-      if (_commandResult.listenerCount < 3 && !_errors.hasListeners) {
-        /// we have no external listeners on [results] or [errors]
-        Command.globalExceptionHandler
-            ?.call(_debugName, CommandError(param, error));
-        _futureCompleter?.completeError(error);
 
-        if (!_catchAlways) {
-          rethrow;
-        }
-      }
+      _handleError(param, error);
     } finally {
       _isExecuting.value = false;
 
       /// give the async notifications a chance to propagate
       await Future<void>.delayed(Duration.zero);
-      Command.loggingHandler?.call(_debugName, _commandResult.value);
+      if (_debugName != null) {
+        Command.loggingHandler?.call(_debugName, _commandResult.value);
+      }
     }
   }
 
-  /// Undoes the last execution of this command.
-  /// If [reason] is not `null`, the command is being undone because of an Execption in the
-  /// command function given that [undoOnFailure] is `true`.
-  FutureOr undo() async {
+  /// Undoes the last execution of this command.By calling the
+  /// undo function that was passed when creating the command
+  void undo() => _undo();
+
+  FutureOr _undo([Object? reason]) async {
     assert(_undoStack.isNotEmpty);
     try {
       TResult result;
-      result = await _funcNoParam!(_undoStack);
+      result = await _undofunc(_undoStack, reason);
 
-      _commandResult.value =
-          CommandResult<TParam, TResult>(null, result, null, false);
+      _commandResult.value = CommandResult<TParam, TResult>(
+        null,
+        result,
+        UndoException("manual undo"),
+        false,
+      );
       if (!_noReturnValue) {
         value = result;
       } else {
@@ -181,24 +174,10 @@ class UndoableCommand<TParam, TResult, TUndoState>
       }
     } catch (error) {
       if (error is AssertionError) rethrow;
-      _commandResult.value = CommandResult<TParam, TResult>(
-        null,
-        _includeLastResultInCommandResults ? value : null,
-        UndoException(error),
-        false,
-      );
-      if (_commandResult.listenerCount < 3 && !_errors.hasListeners ||
-          _undoOnExecutionFailure) {
-        /// we have no external listeners on [results] or [errors]
-        /// if we undo automatically on execution failure, we also want to notify the global exception handler
-        Command.globalExceptionHandler
-            ?.call(_debugName, CommandError(null, UndoException(error)));
-        _futureCompleter?.completeError(UndoException(error));
-
-        if (!_catchAlways) {
-          throw UndoException(error);
-        }
-      }
+      _handleError(null, UndoException(error));
+    }
+    if (_debugName != null) {
+      Command.loggingHandler?.call('undo + $_debugName', _commandResult.value);
     }
   }
 }

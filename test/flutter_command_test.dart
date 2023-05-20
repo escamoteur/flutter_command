@@ -409,7 +409,7 @@ void main() {
       setupCollectors(command);
       int globalExceptionHandlerCallCount = 0;
 
-      Command.globalExceptionHandler = (commandName, error) {
+      Command.globalExceptionHandler = (error) {
         globalExceptionHandlerCallCount++;
       };
       command.execute('4711');
@@ -459,8 +459,8 @@ void main() {
       String? name = '';
       late CommandError commandError;
 
-      Command.globalExceptionHandler = (commandName, error) {
-        name = commandName;
+      Command.globalExceptionHandler = (error) {
+        name = error.commandName;
         commandError = error;
       };
 
@@ -867,8 +867,8 @@ void main() {
       String? name = '';
       late CommandError commandError;
 
-      Command.globalExceptionHandler = (commandName, error) {
-        name = commandName;
+      Command.globalExceptionHandler = (error) {
+        name = error.commandName;
         commandError = error;
       };
 
@@ -904,8 +904,8 @@ void main() {
       String? name = '';
       late CommandError commandError;
 
-      Command.globalExceptionHandler = (commandName, error) {
-        name = commandName;
+      Command.globalExceptionHandler = (error) {
+        name = error.commandName;
         commandError = error;
       };
 
@@ -1077,10 +1077,9 @@ void main() {
         debugName: 'globalHandler',
       );
 
-      Command.globalExceptionHandler =
-          expectAsync2<void, String?, CommandError<Object>>(
-        (debugName, ce) {
-          expect(debugName, 'globalHandler');
+      Command.globalExceptionHandler = expectAsync1<void, CommandError<Object>>(
+        (ce) {
+          expect(ce.commandName, 'globalHandler');
           expect(ce, isA<CommandError>());
           expect(
             ce,
@@ -1101,10 +1100,9 @@ void main() {
         catchAlways: false,
       );
 
-      Command.globalExceptionHandler =
-          expectAsync2<void, String?, CommandError<Object>>(
-        (debugName, ce) {
-          expect(debugName, 'globalHandler');
+      Command.globalExceptionHandler = expectAsync1<void, CommandError<Object>>(
+        (ce) {
+          expect(ce.commandName, 'globalHandler');
           expect(ce, isA<CommandError>());
           expect(
             ce,
@@ -1695,7 +1693,7 @@ void main() {
       // verify collectors
       expect(
         mockCommand.results.value.error.toString(),
-        'Exception: Test Mock Error - for param: null',
+        'Exception: Test Mock Error',
       );
       expect(pureResultCollector.values, isNull);
       // expect(isExecutingCollector.values, [true, false]);
