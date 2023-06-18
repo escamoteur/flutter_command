@@ -2,6 +2,7 @@
 
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_command/error_handler.dart';
 import 'package:flutter_command/flutter_command.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -391,93 +392,6 @@ void main() {
       setupCollectors(command);
       expect(() => command.execute(null), throwsA(isA<AssertionError>()));
     });
-    test('Execute simple sync function with catchAlways == false and listeners',
-        () async {
-      int executionCount = 0;
-      final command = Command.createSync<String, String>(
-        (s) {
-          print('action: $s');
-          executionCount++;
-          throw CustomException('Intentional');
-        },
-        initialValue: 'Initial Value',
-        catchAlways: false,
-      );
-
-      expect(command.canExecute.value, true);
-      // Setup Collectors
-      setupCollectors(command);
-      int globalExceptionHandlerCallCount = 0;
-
-      Command.globalExceptionHandler = (error) {
-        globalExceptionHandlerCallCount++;
-      };
-      command.execute('4711');
-
-      await Future.delayed(const Duration(milliseconds: 100));
-      // the initial value is still returned so expect ex
-      expect(command.value, 'Initial Value');
-
-      expect(
-        command.errors.value,
-        CommandError<String>('4711', CustomException('Intentional')),
-      );
-      expect(executionCount, 1);
-      expect(globalExceptionHandlerCallCount, 0);
-
-      expect(command.canExecute.value, true);
-
-      // verify collectors
-      expect(thrownExceptionCollector.values, [
-        CommandError('4711', CustomException('Intentional')),
-      ]);
-      expect(pureResultCollector.values, isNull);
-      expect(cmdResultCollector.values, [
-        CommandResult<String, String>(
-          '4711',
-          null,
-          CustomException('Intentional'),
-          false,
-        )
-      ]);
-    });
-    test(
-        'Execute simple sync function with catchAlways == false and no listeners',
-        () async {
-      int executionCount = 0;
-      final command = Command.createSync<String, String>(
-        (s) {
-          print('action: $s');
-          executionCount++;
-          throw CustomException('Intentional');
-        },
-        initialValue: 'Initial Value',
-        catchAlways: false,
-        debugName: 'FailedCommand',
-      );
-
-      String? name = '';
-      late CommandError commandError;
-
-      Command.globalExceptionHandler = (error) {
-        name = error.commandName;
-        commandError = error;
-      };
-
-      expect(command.canExecute.value, true);
-      expect(() => command.execute('4711'), throwsA(isA<CustomException>()));
-      await Future.delayed(const Duration(milliseconds: 100));
-
-      expect(name, 'FailedCommand');
-      expect(commandError.error, isA<CustomException>());
-      // the initial value is still returned so expect ex
-      expect(command.value, 'Initial Value');
-
-      expect(command.errors.value!.error, isA<CustomException>());
-      expect(executionCount, 1);
-
-      expect(command.canExecute.value, true);
-    });
   });
 
   group('Asynchronous Command Testing', () {
@@ -854,86 +768,11 @@ void main() {
     }
 
     test(
-        'async function with exception and catchAlways==false with no listeners',
+        'async function with exception with firstLocalThenGlobal and listeners',
         () async {
-      final Command<String, String> command =
-          Command.createAsync<String, String>(
-        slowAsyncFunctionFail,
-        initialValue: 'Initial Value',
-        catchAlways: false,
-        debugName: 'FailedCommand',
-      );
-
-      String? name = '';
-      late CommandError commandError;
-
-      Command.globalExceptionHandler = (error) {
-        name = error.commandName;
-        commandError = error;
-      };
-
-      expect(command.canExecute.value, true);
-      expect(command.isExecuting.value, false);
-
-      expect(() => command('Done'), throwsA(isA<CustomException>()));
-      await Future.delayed(const Duration(milliseconds: 100));
-
-      expect(name, 'FailedCommand');
-      expect(commandError.error, isA<CustomException>());
-
-      expect(command.canExecute.value, true);
-      expect(command.isExecuting.value, false);
-
-      await Future.delayed(const Duration(milliseconds: 100));
-
-      // Verify nothing came through pure results from .
-      expect(pureResultCollector.values, isNull);
-    });
-
-    test(
-        'async function with exception and catchAlways==false with no listeners',
-        () async {
-      final Command<String, String> command =
-          Command.createAsync<String, String>(
-        slowAsyncFunctionFail,
-        initialValue: 'Initial Value',
-        catchAlways: false,
-        debugName: 'FailedCommand',
-      );
-
-      String? name = '';
-      late CommandError commandError;
-
-      Command.globalExceptionHandler = (error) {
-        name = error.commandName;
-        commandError = error;
-      };
-
-      expect(command.canExecute.value, true);
-      expect(command.isExecuting.value, false);
-
-      expect(() => command('Done'), throwsA(isA<CustomException>()));
-      await Future.delayed(const Duration(milliseconds: 100));
-
-      expect(name, 'FailedCommand');
-      expect(commandError.error, isA<CustomException>());
-
-      expect(command.canExecute.value, true);
-      expect(command.isExecuting.value, false);
-
-      await Future.delayed(const Duration(milliseconds: 100));
-
-      // Verify nothing came through pure results from .
-      expect(pureResultCollector.values, isNull);
-    });
-    test(
-        'async function with exception with and catchAlways==true with listeners',
-        () async {
-      final command = Command.createAsync<String, String>(
-        slowAsyncFunctionFail,
-        initialValue: 'Initial Value',
-        catchAlways: true,
-      );
+      final command = Command.createAsync<String, String>(slowAsyncFunctionFail,
+          initialValue: 'Initial Value',
+          errorFilter: const ErrorHandlerGlobalIfNoLocal());
 
       setupCollectors(command);
 
@@ -978,7 +817,6 @@ void main() {
           return s;
         },
         initialValue: 'Initial Value',
-        catchAlways: false,
       );
       // Setup collectors. Note: This indirectly sets listeners.
       setupCollectors(command);
@@ -990,7 +828,7 @@ void main() {
       command.dispose();
 
       // Check valid exception is raised trying to use disposed value notifiers.
-      expect(() => command('Done'), throwsFlutterError);
+      expect(() => command('Done'), throwsA(isA<AssertionError>()));
 
       // verify collectors
       expect(canExecuteCollector.values, isNull);
@@ -1007,9 +845,9 @@ void main() {
         },
         initialValue: 'Initial Value',
       );
-      // Set Global catchAlwaysDefault to false.
-      // It defaults to true.
-      Command.catchAlwaysDefault = false;
+      Command.errorFilterDefault = PredicatesErrorFilter([
+        (error, s) => ErrorReaction.throwException,
+      ]);
 
       // Setup collectors.
       setupCollectors(command);
@@ -1043,7 +881,7 @@ void main() {
       expect(isExecutingCollector.values, isNotEmpty);
 
       /// set default back to standard
-      Command.catchAlwaysDefault = true;
+      Command.errorFilterDefault = const ErrorHandlerGlobalIfNoLocal();
     });
 
     test('Test excecuteWithFuture', () async {
@@ -1077,8 +915,8 @@ void main() {
         debugName: 'globalHandler',
       );
 
-      Command.globalExceptionHandler = expectAsync1<void, CommandError<Object>>(
-        (ce) {
+      Command.globalExceptionHandler = expectAsync2(
+        (ce, s) {
           expect(ce.commandName, 'globalHandler');
           expect(ce, isA<CommandError>());
           expect(
@@ -1091,27 +929,16 @@ void main() {
       command('Done');
 
       await Future.delayed(const Duration(milliseconds: 100));
-      final command2 = Command.createSync<String, String>(
-        (s) {
-          throw CustomException('Intentional');
-        },
-        initialValue: 'Initial Value',
-        debugName: 'globalHandler',
-        catchAlways: false,
-      );
+      final command2 = Command.createSync<String, String>((s) {
+        throw CustomException('Intentional');
+      },
+          initialValue: 'Initial Value',
+          debugName: 'globalHandler',
+          errorFilter: PredicatesErrorFilter([
+            (error, s) => ErrorReaction.throwException,
+          ]));
 
-      Command.globalExceptionHandler = expectAsync1<void, CommandError<Object>>(
-        (ce) {
-          expect(ce.commandName, 'globalHandler');
-          expect(ce, isA<CommandError>());
-          expect(
-            ce,
-            CommandError<Object>('Done', CustomException('Intentional')),
-          );
-        },
-      );
-
-      expect(() => command2('Done'), throwsA(isA<CustomException>()));
+      expectLater(() => command2('Done'), throwsA(isA<CustomException>()));
     });
 
     test('Check logging Handler is called in Sync/Async command', () async {
