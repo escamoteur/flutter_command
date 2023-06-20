@@ -60,6 +60,22 @@ void main() {
         ErrorReaction.defaultHandler,
       );
     });
+    test('ExemptionFilterTest', () {
+      final filter = ErrorFilterExcemption<Error>(ErrorReaction.none);
+
+      expect(
+        filter.filter(Error(), StackTrace.current),
+        ErrorReaction.none,
+      );
+      expect(
+        filter.filter(Exception(), StackTrace.current),
+        ErrorReaction.defaultHandler,
+      );
+      expect(
+        filter.filter('this is not in the filer', StackTrace.current),
+        ErrorReaction.defaultHandler,
+      );
+    });
   });
   group('ErrorRection.none', () {
     test('throws an assertion although there is a filter for it (as intended))',

@@ -1,3 +1,5 @@
+[5.0.0+6] - 20.06.2023
+* added two more ErrorFilter types
 [5.0.0+5] - 18.06.2023
 * release candidate but missing docs
 [5.0.0+4] - 18.05.2023

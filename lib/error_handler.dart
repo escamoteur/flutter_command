@@ -63,6 +63,26 @@ class ErrorHandlerLocal implements ErrorFilter {
   }
 }
 
+class ErrorHandlerLocalAndGlobal implements ErrorFilter {
+  const ErrorHandlerLocalAndGlobal();
+  @override
+  ErrorReaction filter(Object error, StackTrace stackTrace) {
+    return ErrorReaction.localAndGlobalHandler;
+  }
+}
+
+class ErrorFilterExcemption<T> implements ErrorFilter {
+  ErrorFilterExcemption(this.excemptionReaction);
+  ErrorReaction excemptionReaction;
+  @override
+  ErrorReaction filter(Object error, StackTrace stackTrace) {
+    if (error is T) {
+      return excemptionReaction;
+    }
+    return ErrorReaction.defaultHandler;
+  }
+}
+
 /// This filter allows to pass a table of error types and the corresponding
 /// [ErrorReaction]s. Attention, the table can only compare the runtime type
 /// of the error on equality, not the type hierarchy.
