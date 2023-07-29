@@ -1,3 +1,6 @@
+[5.0.0+7] - 29.07.2023
+* added `clearErrors` method to the `Command` class which resets the `errors` property to null without notifying listeners
+* fix for Exception `Bad state: Future already completed` 
 [5.0.0+6] - 20.06.2023
 * added two more ErrorFilter types
 [5.0.0+5] - 18.06.2023
@@ -14,7 +17,7 @@
 
 [5.0.0] - 24.03.2023
 
-* Another breaking change but one that hopefully will be appreciated by most of you. When this package was originally written you could pass a `ValueListenable<bool> canExecute` when you created a Command that could decide if a Command could be executed at runtime. As the naming was am reminiscent of the .Net version of RxUIs Command but confusing because Commands have a property named `canExecute` too I renamed it to `restriction` but didn't change the meaning of its bool values. Which meant that `restriction==false` meant that the Command could be executed which absolutely isn't intuitive.
+* Another breaking change but one that hopefully will be appreciated by most of you. When this package was originally written you could pass a `ValueListenable<bool> canExecute` when you created a Command that could decide if a Command could be executed at runtime. As the naming was am reminiscent of the .Net version of RxUIs Command but confusing because Commands have a property named `canExecute` too I renamed it to `restriction` but didn't change the meaning of its bool values. Which meant that `restriction==false` meant that the Command couldn't be executed which absolutely isn't intuitive.
 After falling myself for this illogic use of bool values I know inverted the meaning so that `restriction==true` means 
 that you cannot execute the Command.
 

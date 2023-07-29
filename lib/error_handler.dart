@@ -143,9 +143,10 @@ class PredicatesErrorFilter implements ErrorFilter {
 
   @override
   ErrorReaction filter(Object error, StackTrace stackTrace) {
-    final reaction = _filters
-        .map((filter) => filter(error, stackTrace))
-        .firstWhere((element) => element != null, orElse: () => null);
-    return reaction ?? ErrorReaction.defaultHandler;
+    for (final filter in _filters) {
+      final reaction = filter(error, stackTrace);
+      if (reaction != null) return reaction;
+    }
+    return ErrorReaction.defaultHandler;
   }
 }

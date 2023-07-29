@@ -129,6 +129,7 @@ class UndoableCommand<TParam, TResult, TUndoState>
         notifyListeners();
       }
       _futureCompleter?.complete(result);
+      _futureCompleter = null;
     } catch (error, stacktrace) {
       if (error is AssertionError) rethrow;
 

@@ -805,6 +805,11 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   ///
   ValueListenable<CommandError?> get errors => _errors;
 
+  /// clears the error state of the command. This will not trigger any listeners
+  void clearErrors() {
+    _errors.value = null;
+  }
+
   /// optional hander that will get called on any exception that happens inside
   /// any Command of the app. Ideal for logging.
   /// the [debugName] of the Command that was responsible for the error is inside
@@ -861,6 +866,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     _errors.dispose();
     if (!(_futureCompleter?.isCompleted ?? true)) {
       _futureCompleter!.complete(null);
+      _futureCompleter = null;
     }
 
     super.dispose();
@@ -892,6 +898,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       this is CommandAsync || this is UndoableCommand,
       'executeWithFuture can\t be used with synchronous Commands',
     );
+    if (_futureCompleter != null && !_futureCompleter!.isCompleted) {
+      return _futureCompleter!.future;
+    }
     _futureCompleter = Completer<TResult>();
 
     execute(param);
@@ -1030,6 +1039,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
             'ErrorReaction.defaultHandler is not a valid return for the DefaultErrorFilter');
     }
     _futureCompleter?.completeError(error, stackTrace);
+    _futureCompleter = null;
   }
 }
 
@@ -1089,6 +1099,7 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
         notifyListeners();
       }
       _futureCompleter?.complete(result);
+      _futureCompleter = null;
     } catch (error, stacktrace) {
       if (Command.assertionsAlwaysThrow && error is AssertionError) rethrow;
 
@@ -1174,6 +1185,7 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
         notifyListeners();
       }
       _futureCompleter?.complete(result);
+      _futureCompleter = null;
     } catch (error, stacktrace) {
       if (Command.assertionsAlwaysThrow && error is AssertionError) rethrow;
 
