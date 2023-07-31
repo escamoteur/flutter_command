@@ -1,3 +1,5 @@
+[5.0.0+8] - 31.07.2023
+* made sure that while undo is running `isExecuting` is true and will block any parallel call of the command
 [5.0.0+7] - 29.07.2023
 * added `clearErrors` method to the `Command` class which resets the `errors` property to null without notifying listeners
 * fix for Exception `Bad state: Future already completed` 

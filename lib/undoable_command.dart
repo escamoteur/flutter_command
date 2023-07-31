@@ -160,12 +160,13 @@ class UndoableCommand<TParam, TResult, TUndoState>
     assert(_undoStack.isNotEmpty);
     try {
       TResult result;
+      _isExecuting.value = true;
       result = await _undofunc(_undoStack, reason);
 
       _commandResult.value = CommandResult<TParam, TResult>(
         null,
         result,
-        UndoException("manual undo"),
+        reason ?? UndoException("manual undo"),
         false,
       );
       if (!_noReturnValue) {
@@ -179,9 +180,12 @@ class UndoableCommand<TParam, TResult, TUndoState>
         rethrow;
       }
       _handleError(null, UndoException(error), stacktrace);
-    }
-    if (_debugName != null) {
-      Command.loggingHandler?.call('undo + $_debugName', _commandResult.value);
+    } finally {
+      _isExecuting.value = false;
+      if (_debugName != null) {
+        Command.loggingHandler
+            ?.call('undo + $_debugName', _commandResult.value);
+      }
     }
   }
 }
