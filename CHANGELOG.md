@@ -1,3 +1,5 @@
+[5.0.0+9] - 02.08.2023
+* `clearErrors()` will now notify its listeners with a `null` value.
 [5.0.0+8] - 31.07.2023
 * made sure that while undo is running `isExecuting` is true and will block any parallel call of the command
 [5.0.0+7] - 29.07.2023

@@ -808,6 +808,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// clears the error state of the command. This will not trigger any listeners
   void clearErrors() {
     _errors.value = null;
+    _errors.notifyListeners();
   }
 
   /// optional hander that will get called on any exception that happens inside
