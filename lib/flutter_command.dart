@@ -201,6 +201,13 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     try {
       await _execute(param);
     } catch (error, stacktrace) {
+      var trace = Trace.from(stacktrace);
+      final chain = Chain([
+        trace,
+        _traceBeforeExecute!,
+      ]);
+      // final trace2 = chain.toTrace();
+      print(chain.toString());
       if (Command.assertionsAlwaysThrow && error is AssertionError) rethrow;
 
       if (kDebugMode && Command.debugErrorsThrowAlways) {
