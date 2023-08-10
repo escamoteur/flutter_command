@@ -8,11 +8,15 @@ import 'package:flutter/foundation.dart';
 import 'package:functional_listener/functional_listener.dart';
 import 'package:quiver/core.dart';
 
-import 'error_handler.dart';
+import 'error_filters.dart';
 
 export 'package:flutter_command/command_builder.dart';
 export 'package:functional_listener/functional_listener.dart';
+export 'package:flutter_command/error_filters.dart';
 
+part './async_command.dart';
+part './mock_command.dart';
+part './sync_command.dart';
 part './undoable_command.dart';
 
 /// Combined execution state of a `Command` represented using four of its fields.
@@ -158,6 +162,286 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
             (restriction, isExecuting) => !restriction && !isExecuting,
           ) as ValueNotifier<bool>;
   }
+
+  /// Calls the wrapped handler function with an optional input parameter
+  void execute([TParam? param]);
+
+  /// This makes Command a callable class, so instead of `myCommand.execute()`
+  /// you can write `myCommand()`
+  void call([TParam? param]) => execute(param);
+
+  final ExecuteInsteadHandler<TParam>? _ifRestrictedExecuteInstead;
+
+  /// emits [CommandResult<TResult>] the combined state of the command, which is
+  /// often easier in combination with Flutter's `ValueListenableBuilder`
+  /// because you have all state information at one place.
+  ValueListenable<CommandResult<TParam?, TResult>> get results =>
+      _commandResult;
+
+  /// `ValueListenable`  that changes its value on any change of the execution
+  /// state change of the command
+  ValueListenable<bool> get isExecuting => _isExecuting;
+
+  /// `ValueListenable<bool>` that changes its value on any change of the current
+  /// executability state of the command. Meaning if the command can be executed or not.
+  /// This will issue `false` while the command executes, but also if the command
+  /// receives a `true` from the [restriction] `ValueListenable` that you can pass when
+  /// creating the Command.
+  /// its value is `!restriction.value && !isExecuting.value`
+  ValueListenable<bool> get canExecute => _canExecute;
+
+  /// `ValueListenable<CommandError>` that reflects the Error State of the command
+  /// if the wrapped function throws an error, its value is set to the error is
+  /// wrapped in an `CommandError`
+  ///
+  @Deprecated('use errors instead')
+  ValueListenable<CommandError?> get thrownExceptions => _errors;
+
+  /// `ValueListenable<CommandError>` that reflects the Error State of the command
+  /// if the wrapped function throws an error, its value is set to the error is
+  /// wrapped in an `CommandError`
+  ///
+  ValueListenable<CommandError?> get errors => _errors;
+
+  /// clears the error state of the command. This will not trigger any listeners
+  void clearErrors() {
+    _errors.value = null;
+    _errors.notifyListeners();
+  }
+
+  /// optional hander that will get called on any exception that happens inside
+  /// any Command of the app. Ideal for logging.
+  /// the [debugName] of the Command that was responsible for the error is inside
+  /// the error object.
+  static void Function(CommandError<Object> error, StackTrace stackTrace)?
+      globalExceptionHandler;
+
+  /// if no individual ErrorFilter is set when creating a Command
+  /// this filter is used in case of an error
+  static ErrorFilter errorFilterDefault = const ErrorHandlerGlobalIfNoLocal();
+
+  /// `AssertionErrors` are almost never wanted in production, so by default
+  /// they will dirextly be rethrown, so that they are found early in development
+  /// In case you want them to be handled like any other error, meaning
+  /// an ErrorFilter will decide what should happen, set this to false.
+  static bool assertionsAlwaysThrow = true;
+
+  // if the function that is wrapped by the command throws an exception, it's
+  // it's sometime s not easy to understand where the execption originated,
+  // Escpecially if you used an Errrorfilter that swallows possible exceptions.
+  // by setting this to true, the Command will directly rethrow any exception
+  // so that you can get a helpfult stacktrace.
+  // works only in debug mode
+  static bool debugErrorsThrowAlways = false;
+
+  /// optional handler that will get called on all `Command` executions if the Command
+  /// has a set debugName.
+  /// [commandName] the [debugName] of the Command
+  static void Function(String? commandName, CommandResult result)?
+      loggingHandler;
+
+  /// as we don't want that anyone changes the values of these ValueNotifiers
+  /// properties we make them private and only publish their `ValueListenable`
+  /// interface via getters.
+  late CustomValueNotifier<CommandResult<TParam?, TResult>> _commandResult;
+  final CustomValueNotifier<bool> _isExecuting =
+      CustomValueNotifier<bool>(false, asyncNotification: true);
+  late ValueNotifier<bool> _canExecute;
+  late final ValueListenable<bool>? _restriction;
+  final CustomValueNotifier<CommandError<TParam?>?> _errors =
+      CustomValueNotifier<CommandError<TParam?>?>(
+    null,
+    mode: CustomNotifierMode.manual,
+  );
+
+  /// If you don't need a command any longer it is a good practise to
+  /// dispose it to make sure all registered notification handlers are remove to
+  /// prevent memory leaks
+  @override
+  void dispose() {
+    _commandResult.dispose();
+    _canExecute.dispose();
+    _isExecuting.dispose();
+    _errors.dispose();
+    if (!(_futureCompleter?.isCompleted ?? true)) {
+      _futureCompleter!.complete(null);
+      _futureCompleter = null;
+    }
+
+    super.dispose();
+  }
+
+  /// Flag that we always should include the last successful value in `CommandResult`
+  /// for isExecuting or error states
+  final bool _includeLastResultInCommandResults;
+
+  ///Flag to signal the wrapped command has no return value which means
+  ///`notifyListener` has to be called directly
+  final bool _noReturnValue;
+
+  ///Flag to signal the wrapped command expects not parameter value
+  final bool _noParamValue;
+
+  final ErrorFilter _errorFilter;
+
+  /// optional Name that is included in log messages.
+  final String? _debugName;
+
+  Completer<TResult>? _futureCompleter;
+
+  /// Executes an async Command and returns a Future that completes as soon as
+  /// the Command completes. This is especially useful if you use a
+  /// RefreshIndicator
+  Future<TResult> executeWithFuture([TParam? param]) {
+    assert(
+      this is CommandAsync || this is UndoableCommand,
+      'executeWithFuture can\t be used with synchronous Commands',
+    );
+    if (_futureCompleter != null && !_futureCompleter!.isCompleted) {
+      return _futureCompleter!.future;
+    }
+    _futureCompleter = Completer<TResult>();
+
+    execute(param);
+    return _futureCompleter!.future;
+  }
+
+  /// Returns a the result of one of three builders depending on the current state
+  /// of the Command. This function won't trigger a rebuild if the command changes states
+  /// so it should be used together with get_it_mixin, provider, flutter_hooks and the like.
+  Widget toWidget({
+    required Widget Function(TResult lastResult, TParam? param) onResult,
+    Widget Function(TResult lastResult, TParam? param)? whileExecuting,
+    Widget Function(Object? error, TParam? param)? onError,
+  }) {
+    if (_commandResult.value.hasError) {
+      return onError?.call(
+            _commandResult.value.error,
+            _commandResult.value.paramData,
+          ) ??
+          const SizedBox();
+    }
+    if (isExecuting.value) {
+      return whileExecuting?.call(value, _commandResult.value.paramData) ??
+          const SizedBox();
+    }
+    return onResult(value, _commandResult.value.paramData);
+  }
+
+  void _handleError(TParam? param, Object error, StackTrace stackTrace) {
+    var errorReaction = _errorFilter.filter(error, stackTrace);
+    if (errorReaction == ErrorReaction.defaultHandler) {
+      errorReaction = errorFilterDefault.filter(error, stackTrace);
+    }
+    switch (errorReaction) {
+      case ErrorReaction.none:
+        return;
+      case ErrorReaction.throwException:
+        Error.throwWithStackTrace(error, stackTrace);
+      case ErrorReaction.globalHandler:
+        assert(
+          globalExceptionHandler != null,
+          'Errorfilter returned ErrorReaction.globalHandler, but no global handler is registered',
+        );
+        globalExceptionHandler!(
+          CommandError(param, error, commandName: _debugName),
+          stackTrace,
+        );
+        break;
+      case ErrorReaction.localHandler:
+        assert(
+          _commandResult.listenerCount >= 3 || _errors.hasListeners,
+          'ErrorFilter returned ErrorReaction.localHandler, but there are no listeners on errors or .result',
+        );
+        _commandResult.value = CommandResult<TParam, TResult>(
+          param,
+          _includeLastResultInCommandResults ? value : null,
+          error,
+          false,
+        );
+        break;
+      case ErrorReaction.localAndGlobalHandler:
+        assert(
+          _commandResult.listenerCount >= 3 || _errors.hasListeners,
+          'ErrorFilter returned ErrorReaction.localAndGlobalHandler, but there are no listeners on errors or .result',
+        );
+        assert(
+          globalExceptionHandler != null,
+          'Errorfilter returned ErrorReaction.localAndgloBalHandler, but no global handler is registered',
+        );
+        _commandResult.value = CommandResult<TParam, TResult>(
+          param,
+          _includeLastResultInCommandResults ? value : null,
+          error,
+          false,
+        );
+        globalExceptionHandler!(
+          CommandError(param, error, commandName: _debugName),
+          stackTrace,
+        );
+        break;
+      case ErrorReaction.firstLocalThenGlobalHandler:
+        if (_commandResult.listenerCount < 3 && !_errors.hasListeners) {
+          assert(
+            globalExceptionHandler != null,
+            'Errorfilter returned ErrorReaction.globalIfNoLocalHandler, but no global handler is registered',
+          );
+
+          /// we have no external listeners on [results] or [errors]
+          Command.globalExceptionHandler?.call(
+            CommandError(param, error, commandName: _debugName),
+            stackTrace,
+          );
+        } else {
+          _commandResult.value = CommandResult<TParam, TResult>(
+            param,
+            _includeLastResultInCommandResults ? value : null,
+            error,
+            false,
+          );
+        }
+        break;
+      case ErrorReaction.noHandlersThrowException:
+        if (_commandResult.listenerCount < 3 &&
+            !_errors.hasListeners &&
+            globalExceptionHandler == null) {
+          Error.throwWithStackTrace(error, stackTrace);
+        }
+        if (globalExceptionHandler != null) {
+          Command.globalExceptionHandler?.call(
+            CommandError(param, error, commandName: _debugName),
+            stackTrace,
+          );
+        }
+        if (_commandResult.listenerCount >= 3 || _errors.hasListeners) {
+          _commandResult.value = CommandResult<TParam, TResult>(
+            param,
+            _includeLastResultInCommandResults ? value : null,
+            error,
+            false,
+          );
+        }
+        break;
+      case ErrorReaction.throwIfNoLocalHandler:
+        if (_commandResult.listenerCount < 3 && !_errors.hasListeners) {
+          Error.throwWithStackTrace(error, stackTrace);
+        }
+        _commandResult.value = CommandResult<TParam, TResult>(
+          param,
+          _includeLastResultInCommandResults ? value : null,
+          error,
+          false,
+        );
+        break;
+      case ErrorReaction.defaultHandler:
+        assert(false,
+            'ErrorReaction.defaultHandler is not a valid return for the DefaultErrorFilter');
+    }
+    _futureCompleter?.completeError(error, stackTrace);
+    _futureCompleter = null;
+  }
+
+///////////////////////// Factory functions from here on //////////////////////
 
   ///
   /// Creates  a Command for a synchronous handler function with no parameter and no return type
@@ -763,592 +1047,5 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       noParamValue: false,
       undoOnExecutionFailure: undoOnExecutionFailure,
     );
-  }
-
-  /// Calls the wrapped handler function with an optional input parameter
-  void execute([TParam? param]);
-
-  /// This makes Command a callable class, so instead of `myCommand.execute()`
-  /// you can write `myCommand()`
-  void call([TParam? param]) => execute(param);
-
-  final ExecuteInsteadHandler<TParam>? _ifRestrictedExecuteInstead;
-
-  /// emits [CommandResult<TResult>] the combined state of the command, which is
-  /// often easier in combination with Flutter's `ValueListenableBuilder`
-  /// because you have all state information at one place.
-  ValueListenable<CommandResult<TParam?, TResult>> get results =>
-      _commandResult;
-
-  /// `ValueListenable`  that changes its value on any change of the execution
-  /// state change of the command
-  ValueListenable<bool> get isExecuting => _isExecuting;
-
-  /// `ValueListenable<bool>` that changes its value on any change of the current
-  /// executability state of the command. Meaning if the command can be executed or not.
-  /// This will issue `false` while the command executes, but also if the command
-  /// receives a `true` from the [restriction] `ValueListenable` that you can pass when
-  /// creating the Command.
-  /// its value is `!restriction.value && !isExecuting.value`
-  ValueListenable<bool> get canExecute => _canExecute;
-
-  /// `ValueListenable<CommandError>` that reflects the Error State of the command
-  /// if the wrapped function throws an error, its value is set to the error is
-  /// wrapped in an `CommandError`
-  ///
-  @Deprecated('use errors instead')
-  ValueListenable<CommandError?> get thrownExceptions => _errors;
-
-  /// `ValueListenable<CommandError>` that reflects the Error State of the command
-  /// if the wrapped function throws an error, its value is set to the error is
-  /// wrapped in an `CommandError`
-  ///
-  ValueListenable<CommandError?> get errors => _errors;
-
-  /// clears the error state of the command. This will not trigger any listeners
-  void clearErrors() {
-    _errors.value = null;
-    _errors.notifyListeners();
-  }
-
-  /// optional hander that will get called on any exception that happens inside
-  /// any Command of the app. Ideal for logging.
-  /// the [debugName] of the Command that was responsible for the error is inside
-  /// the error object.
-  static void Function(CommandError<Object> error, StackTrace stackTrace)?
-      globalExceptionHandler;
-
-  /// if no individual ErrorFilter is set when creating a Command
-  /// this filter is used in case of an error
-  static ErrorFilter errorFilterDefault = const ErrorHandlerGlobalIfNoLocal();
-
-  /// `AssertionErrors` are almost never wanted in production, so by default
-  /// they will dirextly be rethrown, so that they are found early in development
-  /// In case you want them to be handled like any other error, meaning
-  /// an ErrorFilter will decide what should happen, set this to false.
-  static bool assertionsAlwaysThrow = true;
-
-  // if the function that is wrapped by the command throws an exception, it's
-  // it's sometime s not easy to understand where the execption originated,
-  // Escpecially if you used an Errrorfilter that swallows possible exceptions.
-  // by setting this to true, the Command will directly rethrow any exception
-  // so that you can get a helpfult stacktrace.
-  // works only in debug mode
-  static bool debugErrorsThrowAlways = false;
-
-  /// optional handler that will get called on all `Command` executions if the Command
-  /// has a set debugName.
-  /// [commandName] the [debugName] of the Command
-  static void Function(String? commandName, CommandResult result)?
-      loggingHandler;
-
-  /// as we don't want that anyone changes the values of these ValueNotifiers
-  /// properties we make them private and only publish their `ValueListenable`
-  /// interface via getters.
-  late CustomValueNotifier<CommandResult<TParam?, TResult>> _commandResult;
-  final CustomValueNotifier<bool> _isExecuting =
-      CustomValueNotifier<bool>(false, asyncNotification: true);
-  late ValueNotifier<bool> _canExecute;
-  late final ValueListenable<bool>? _restriction;
-  final CustomValueNotifier<CommandError<TParam?>?> _errors =
-      CustomValueNotifier<CommandError<TParam?>?>(
-    null,
-    mode: CustomNotifierMode.manual,
-  );
-
-  /// If you don't need a command any longer it is a good practise to
-  /// dispose it to make sure all registered notification handlers are remove to
-  /// prevent memory leaks
-  @override
-  void dispose() {
-    _commandResult.dispose();
-    _canExecute.dispose();
-    _isExecuting.dispose();
-    _errors.dispose();
-    if (!(_futureCompleter?.isCompleted ?? true)) {
-      _futureCompleter!.complete(null);
-      _futureCompleter = null;
-    }
-
-    super.dispose();
-  }
-
-  /// Flag that we always should include the last successful value in `CommandResult`
-  /// for isExecuting or error states
-  final bool _includeLastResultInCommandResults;
-
-  ///Flag to signal the wrapped command has no return value which means
-  ///`notifyListener` has to be called directly
-  final bool _noReturnValue;
-
-  ///Flag to signal the wrapped command expects not parameter value
-  final bool _noParamValue;
-
-  final ErrorFilter _errorFilter;
-
-  /// optional Name that is included in log messages.
-  final String? _debugName;
-
-  Completer<TResult>? _futureCompleter;
-
-  /// Executes an async Command and returns a Future that completes as soon as
-  /// the Command completes. This is especially useful if you use a
-  /// RefreshIndicator
-  Future<TResult> executeWithFuture([TParam? param]) {
-    assert(
-      this is CommandAsync || this is UndoableCommand,
-      'executeWithFuture can\t be used with synchronous Commands',
-    );
-    if (_futureCompleter != null && !_futureCompleter!.isCompleted) {
-      return _futureCompleter!.future;
-    }
-    _futureCompleter = Completer<TResult>();
-
-    execute(param);
-    return _futureCompleter!.future;
-  }
-
-  /// Returns a the result of one of three builders depending on the current state
-  /// of the Command. This function won't trigger a rebuild if the command changes states
-  /// so it should be used together with get_it_mixin, provider, flutter_hooks and the like.
-  Widget toWidget({
-    required Widget Function(TResult lastResult, TParam? param) onResult,
-    Widget Function(TResult lastResult, TParam? param)? whileExecuting,
-    Widget Function(Object? error, TParam? param)? onError,
-  }) {
-    if (_commandResult.value.hasError) {
-      return onError?.call(
-            _commandResult.value.error,
-            _commandResult.value.paramData,
-          ) ??
-          const SizedBox();
-    }
-    if (isExecuting.value) {
-      return whileExecuting?.call(value, _commandResult.value.paramData) ??
-          const SizedBox();
-    }
-    return onResult(value, _commandResult.value.paramData);
-  }
-
-  void _handleError(TParam? param, Object error, StackTrace stackTrace) {
-    var errorReaction = _errorFilter.filter(error, stackTrace);
-    if (errorReaction == ErrorReaction.defaultHandler) {
-      errorReaction = errorFilterDefault.filter(error, stackTrace);
-    }
-    switch (errorReaction) {
-      case ErrorReaction.none:
-        return;
-      case ErrorReaction.throwException:
-        Error.throwWithStackTrace(error, stackTrace);
-      case ErrorReaction.globalHandler:
-        assert(
-          globalExceptionHandler != null,
-          'Errorfilter returned ErrorReaction.globalHandler, but no global handler is registered',
-        );
-        globalExceptionHandler!(
-          CommandError(param, error, commandName: _debugName),
-          stackTrace,
-        );
-        break;
-      case ErrorReaction.localHandler:
-        assert(
-          _commandResult.listenerCount >= 3 || _errors.hasListeners,
-          'ErrorFilter returned ErrorReaction.localHandler, but there are no listeners on errors or .result',
-        );
-        _commandResult.value = CommandResult<TParam, TResult>(
-          param,
-          _includeLastResultInCommandResults ? value : null,
-          error,
-          false,
-        );
-        break;
-      case ErrorReaction.localAndGlobalHandler:
-        assert(
-          _commandResult.listenerCount >= 3 || _errors.hasListeners,
-          'ErrorFilter returned ErrorReaction.localAndGlobalHandler, but there are no listeners on errors or .result',
-        );
-        assert(
-          globalExceptionHandler != null,
-          'Errorfilter returned ErrorReaction.localAndgloBalHandler, but no global handler is registered',
-        );
-        _commandResult.value = CommandResult<TParam, TResult>(
-          param,
-          _includeLastResultInCommandResults ? value : null,
-          error,
-          false,
-        );
-        globalExceptionHandler!(
-          CommandError(param, error, commandName: _debugName),
-          stackTrace,
-        );
-        break;
-      case ErrorReaction.firstLocalThenGlobalHandler:
-        if (_commandResult.listenerCount < 3 && !_errors.hasListeners) {
-          assert(
-            globalExceptionHandler != null,
-            'Errorfilter returned ErrorReaction.globalIfNoLocalHandler, but no global handler is registered',
-          );
-
-          /// we have no external listeners on [results] or [errors]
-          Command.globalExceptionHandler?.call(
-            CommandError(param, error, commandName: _debugName),
-            stackTrace,
-          );
-        } else {
-          _commandResult.value = CommandResult<TParam, TResult>(
-            param,
-            _includeLastResultInCommandResults ? value : null,
-            error,
-            false,
-          );
-        }
-        break;
-      case ErrorReaction.noHandlersThrowException:
-        if (_commandResult.listenerCount < 3 &&
-            !_errors.hasListeners &&
-            globalExceptionHandler == null) {
-          Error.throwWithStackTrace(error, stackTrace);
-        }
-        if (globalExceptionHandler != null) {
-          Command.globalExceptionHandler?.call(
-            CommandError(param, error, commandName: _debugName),
-            stackTrace,
-          );
-        }
-        if (_commandResult.listenerCount >= 3 || _errors.hasListeners) {
-          _commandResult.value = CommandResult<TParam, TResult>(
-            param,
-            _includeLastResultInCommandResults ? value : null,
-            error,
-            false,
-          );
-        }
-        break;
-      case ErrorReaction.throwIfNoLocalHandler:
-        if (_commandResult.listenerCount < 3 && !_errors.hasListeners) {
-          Error.throwWithStackTrace(error, stackTrace);
-        }
-        _commandResult.value = CommandResult<TParam, TResult>(
-          param,
-          _includeLastResultInCommandResults ? value : null,
-          error,
-          false,
-        );
-        break;
-      case ErrorReaction.defaultHandler:
-        assert(false,
-            'ErrorReaction.defaultHandler is not a valid return for the DefaultErrorFilter');
-    }
-    _futureCompleter?.completeError(error, stackTrace);
-    _futureCompleter = null;
-  }
-}
-
-class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
-  final TResult Function(TParam)? _func;
-  final TResult Function()? _funcNoParam;
-
-  @override
-  ValueListenable<bool> get isExecuting {
-    assert(false, "isExecuting isn't supported by synchronous commands");
-    return ValueNotifier<bool>(false);
-  }
-
-  CommandSync({
-    TResult Function(TParam)? func,
-    TResult Function()? funcNoParam,
-    required super.initialValue,
-    required super.restriction,
-    required super.ifRestrictedExecuteInstead,
-    required super.includeLastResultInCommandResults,
-    required super.noReturnValue,
-    required super.errorFilter,
-    required super.notifyOnlyWhenValueChanges,
-    required super.debugName,
-    required super.noParamValue,
-  })  : _func = func,
-        _funcNoParam = funcNoParam;
-
-  @override
-  void execute([TParam? param]) {
-    if (_restriction?.value == true) {
-      _ifRestrictedExecuteInstead?.call(param);
-      return;
-    }
-    if (!_canExecute.value) {
-      return;
-    }
-    _errors.value = null;
-    try {
-      TResult result;
-      if (_noParamValue) {
-        assert(_funcNoParam != null);
-        result = _funcNoParam!();
-      } else {
-        assert(_func != null);
-        assert(
-          param != null || null is TParam,
-          'You passed a null value to the command ${_debugName ?? ''} that has a non-nullable type as TParam',
-        );
-        result = _func!(param as TParam);
-      }
-      if (!_noReturnValue) {
-        _commandResult.value =
-            CommandResult<TParam, TResult>(param, result, null, false);
-        value = result;
-      } else {
-        notifyListeners();
-      }
-      _futureCompleter?.complete(result);
-      _futureCompleter = null;
-    } catch (error, stacktrace) {
-      if (Command.assertionsAlwaysThrow && error is AssertionError) rethrow;
-
-      if (kDebugMode && Command.debugErrorsThrowAlways) {
-        rethrow;
-      }
-
-      _handleError(param, error, stacktrace);
-    } finally {
-      if (_debugName != null) {
-        Command.loggingHandler?.call(_debugName, _commandResult.value);
-      }
-    }
-  }
-}
-
-class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
-  final Future<TResult> Function(TParam)? _func;
-  final Future<TResult> Function()? _funcNoParam;
-
-  CommandAsync({
-    Future<TResult> Function(TParam)? func,
-    Future<TResult> Function()? funcNoParam,
-    required super.initialValue,
-    required super.restriction,
-    required super.ifRestrictedExecuteInstead,
-    required super.includeLastResultInCommandResults,
-    required super.noReturnValue,
-    required super.errorFilter,
-    required super.notifyOnlyWhenValueChanges,
-    required super.debugName,
-    required super.noParamValue,
-  })  : _func = func,
-        _funcNoParam = funcNoParam;
-
-  @override
-  // ignore: avoid_void_async
-  void execute([TParam? param]) async {
-    if (_restriction?.value == true) {
-      _ifRestrictedExecuteInstead?.call(param);
-      return;
-    }
-    if (!_canExecute.value) {
-      return;
-    }
-
-    if (_isExecuting.value) {
-      return;
-    } else {
-      _isExecuting.value = true;
-    }
-
-    _errors.value = null; // this will not trigger the listeners
-
-    _commandResult.value = CommandResult<TParam, TResult>(
-      param,
-      _includeLastResultInCommandResults ? value : null,
-      null,
-      true,
-    );
-
-    /// give the async notifications a chance to propagate
-    await Future<void>.delayed(Duration.zero);
-
-    try {
-      TResult result;
-      if (_noParamValue) {
-        assert(_funcNoParam != null);
-        result = await _funcNoParam!();
-      } else {
-        assert(_func != null);
-        assert(
-          param != null || null is TParam,
-          'You passed a null value to the command ${_debugName ?? ''} that has a non-nullable type as TParam',
-        );
-        result = await _func!(param as TParam);
-      }
-      _commandResult.value =
-          CommandResult<TParam, TResult>(param, result, null, false);
-      if (!_noReturnValue) {
-        value = result;
-      } else {
-        notifyListeners();
-      }
-      _futureCompleter?.complete(result);
-      _futureCompleter = null;
-    } catch (error, stacktrace) {
-      if (Command.assertionsAlwaysThrow && error is AssertionError) rethrow;
-
-      if (kDebugMode && Command.debugErrorsThrowAlways) {
-        rethrow;
-      }
-      _handleError(param, error, stacktrace);
-    } finally {
-      _isExecuting.value = false;
-
-      /// give the async notifications a chance to propagate
-      await Future<void>.delayed(Duration.zero);
-      Command.loggingHandler?.call(_debugName, _commandResult.value);
-    }
-  }
-}
-
-/// `MockCommand` allows you to easily mock an Command for your Unit and UI tests
-/// Mocking a command with `mockito` https://pub.dartlang.org/packages/mockito has its limitations.
-class MockCommand<TParam, TResult> extends Command<TParam, TResult?> {
-  List<CommandResult<TParam, TResult>>? returnValuesForNextExecute;
-
-  /// the last value that was passed when execute or the command directly was called
-  TParam? lastPassedValueToExecute;
-
-  /// Number of times execute or the command directly was called
-  int executionCount = 0;
-
-  /// constructor that can take an optional `ValueListenable` to control if the command can be execute
-  /// if the wrapped function has `void` as return type [noResult] has to be `true`
-  MockCommand({
-    required super.initialValue,
-    super.noParamValue = false,
-    super.noReturnValue = false,
-    super.restriction,
-    super.ifRestrictedExecuteInstead,
-    super.includeLastResultInCommandResults = false,
-    super.errorFilter,
-    super.notifyOnlyWhenValueChanges = false,
-    super.debugName,
-  }) {
-    _commandResult
-        .where((result) => result.hasData)
-        .listen((result, _) => value = result.data);
-  }
-
-  /// to be able to simulate any output of the command when it is called you can here queue the output data for the next execution call
-  // ignore: use_setters_to_change_properties
-  void queueResultsForNextExecuteCall(
-    List<CommandResult<TParam, TResult>> values,
-  ) {
-    returnValuesForNextExecute = values;
-  }
-
-  /// Can either be called directly or by calling the object itself because Commands are callable classes
-  /// Will increase [executionCount] and assign [lastPassedValueToExecute] the value of [param]
-  /// If you have queued a result with [queueResultsForNextExecuteCall] it will be copies tho the output stream.
-  /// [isExecuting], [canExecute] and [results] will work as with a real command.
-  @override
-  void execute([TParam? param]) {
-    if (_restriction?.value == true) {
-      _ifRestrictedExecuteInstead?.call(param);
-      return;
-    }
-    if (!_canExecute.value) {
-      return;
-    }
-
-    _isExecuting.value = true;
-    executionCount++;
-    lastPassedValueToExecute = param;
-    // ignore: avoid_print
-    print('Called Execute');
-    if (returnValuesForNextExecute != null) {
-      returnValuesForNextExecute!.map(
-        (entry) {
-          if ((entry.isExecuting || entry.hasError) &&
-              _includeLastResultInCommandResults) {
-            return CommandResult<TParam, TResult>(
-              param,
-              value,
-              entry.error,
-              entry.isExecuting,
-            );
-          }
-          return entry;
-        },
-      ).forEach((x) => _commandResult.value = x);
-    } else if (_noReturnValue) {
-      notifyListeners();
-    } else {
-      // ignore: avoid_print
-      print('No values for execution queued');
-    }
-    _isExecuting.value = false;
-  }
-
-  /// For a more fine grained control to simulate the different states of an [Command]
-  /// there are these functions
-  /// `startExecution` will issue a [CommandResult] with
-  /// data: null
-  /// error: null
-  /// isExecuting : true
-  void startExecution([TParam? param]) {
-    lastPassedValueToExecute = param;
-    _commandResult.value = CommandResult<TParam, TResult>(
-      param,
-      _includeLastResultInCommandResults ? value : null,
-      null,
-      true,
-    );
-    _isExecuting.value = true;
-  }
-
-  /// `endExecutionWithData` will issue a [CommandResult] with
-  /// data: [data]
-  /// error: null
-  /// isExecuting : false
-  void endExecutionWithData(TResult data) {
-    value = data;
-    _commandResult.value = CommandResult<TParam, TResult>(
-      lastPassedValueToExecute,
-      data,
-      null,
-      false,
-    );
-    if (_debugName != null) {
-      Command.loggingHandler?.call(_debugName, _commandResult.value);
-    }
-    _isExecuting.value = false;
-  }
-
-  /// `endExecutionWithData` will issue a [CommandResult] with
-  /// data: null
-  /// error: Exception([message])
-  /// isExecuting : false
-  void endExecutionWithError(String message) {
-    _handleError(
-      lastPassedValueToExecute,
-      Exception(message),
-      StackTrace.current,
-    );
-    _isExecuting.value = false;
-    if (_debugName != null) {
-      Command.loggingHandler?.call(_debugName, _commandResult.value);
-    }
-  }
-
-  /// `endExecutionNoData` will issue a [CommandResult] with
-  /// data: null
-  /// error: null
-  /// isExecuting : false
-  void endExecutionNoData() {
-    _commandResult.value = CommandResult<TParam, TResult>(
-      lastPassedValueToExecute,
-      _includeLastResultInCommandResults ? value : null,
-      null,
-      false,
-    );
-    if (_debugName != null) {
-      Command.loggingHandler?.call(_debugName, _commandResult.value);
-    }
-    _isExecuting.value = false;
   }
 }

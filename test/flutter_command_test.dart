@@ -2,7 +2,7 @@
 
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_command/error_handler.dart';
+import 'package:flutter_command/error_filters.dart';
 import 'package:flutter_command/flutter_command.dart';
 import 'package:flutter_test/flutter_test.dart';
 

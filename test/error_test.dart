@@ -1,4 +1,4 @@
-import 'package:flutter_command/error_handler.dart';
+import 'package:flutter_command/error_filters.dart';
 import 'package:flutter_command/flutter_command.dart';
 import 'package:test/test.dart';
 
