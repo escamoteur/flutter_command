@@ -7,12 +7,13 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:functional_listener/functional_listener.dart';
 import 'package:quiver/core.dart';
+import 'package:stack_trace/stack_trace.dart';
 
 import 'error_filters.dart';
 
 export 'package:flutter_command/command_builder.dart';
-export 'package:functional_listener/functional_listener.dart';
 export 'package:flutter_command/error_filters.dart';
+export 'package:functional_listener/functional_listener.dart';
 
 part './async_command.dart';
 part './mock_command.dart';
@@ -164,7 +165,68 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   }
 
   /// Calls the wrapped handler function with an optional input parameter
-  void execute([TParam? param]);
+  void execute([TParam? param]) async {
+    assert(!_isDisposed,
+        'You are trying to dispose a Command that was already disposed. This is not allowed.');
+    _traceBeforeExecute = Trace.current();
+
+    if (_restriction?.value == true) {
+      _ifRestrictedExecuteInstead?.call(param);
+      return;
+    }
+    if (!_canExecute.value) {
+      return;
+    }
+
+    if (_isExecuting.value) {
+      return;
+    } else {
+      _isExecuting.value = true;
+    }
+
+    _errors.value = null; // this will not trigger the listeners
+
+    if (this is! CommandSync<TParam, TResult>) {
+      _commandResult.value = CommandResult<TParam, TResult>(
+        param,
+        _includeLastResultInCommandResults ? value : null,
+        null,
+        true,
+      );
+
+      /// give the async notifications a chance to propagate
+      await Future<void>.delayed(Duration.zero);
+    }
+
+    try {
+      await _execute(param);
+    } catch (error, stacktrace) {
+      if (Command.assertionsAlwaysThrow && error is AssertionError) rethrow;
+
+      if (kDebugMode && Command.debugErrorsThrowAlways) {
+        rethrow;
+      }
+      if (this is UndoableCommand) {
+        final undoAble = this as UndoableCommand;
+        if (undoAble._undoOnExecutionFailure) {
+          undoAble._undo(error);
+        }
+      }
+
+      _handleError(param, error, stacktrace);
+    } finally {
+      _isExecuting.value = false;
+
+      /// give the async notifications a chance to propagate
+      await Future<void>.delayed(Duration.zero);
+      if (_debugName != null) {
+        Command.loggingHandler?.call(_debugName, _commandResult.value);
+      }
+    }
+  }
+
+  /// override this method to implement the actual command logic
+  Future<void> _execute([TParam? param]);
 
   /// This makes Command a callable class, so instead of `myCommand.execute()`
   /// you can write `myCommand()`
@@ -200,10 +262,12 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// `ValueListenable<CommandError>` that reflects the Error State of the command
   /// if the wrapped function throws an error, its value is set to the error is
   /// wrapped in an `CommandError`
-  ///
   ValueListenable<CommandError?> get errors => _errors;
 
-  /// clears the error state of the command. This will not trigger any listeners
+  /// clears the error state of the command. This will trigger any listeners
+  /// especially useful if you use `watch_it` to watch the errors property.
+  /// However the prefered way to handle thd [errors] property is either user
+  /// `registerHandler` or `listen` in `initState` of a `StatefulWidget`
   void clearErrors() {
     _errors.value = null;
     _errors.notifyListeners();
@@ -259,6 +323,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// prevent memory leaks
   @override
   void dispose() {
+    assert(!_isDisposed,
+        'You are trying to dispose a Command that was already disposed. This is not allowed.');
+
     _commandResult.dispose();
     _canExecute.dispose();
     _isExecuting.dispose();
@@ -269,6 +336,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     }
 
     super.dispose();
+    _isDisposed = true;
   }
 
   /// Flag that we always should include the last successful value in `CommandResult`
@@ -288,6 +356,10 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   final String? _debugName;
 
   Completer<TResult>? _futureCompleter;
+
+  Trace? _traceBeforeExecute;
+
+  bool _isDisposed = false;
 
   /// Executes an async Command and returns a Future that completes as soon as
   /// the Command completes. This is especially useful if you use a

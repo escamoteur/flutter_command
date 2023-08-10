@@ -147,4 +147,9 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult?> {
     }
     _isExecuting.value = false;
   }
+
+  @override
+  Future<void> _execute([TParam? param]) async {
+    // TODO: implement _execute
+  }
 }

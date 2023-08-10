@@ -81,75 +81,28 @@ class UndoableCommand<TParam, TResult, TUndoState>
 
   @override
   // ignore: avoid_void_async
-  void execute([TParam? param]) async {
-    if (_restriction?.value == true) {
-      _ifRestrictedExecuteInstead?.call(param);
-      return;
-    }
-    if (!_canExecute.value) {
-      return;
-    }
-
-    if (_isExecuting.value) {
-      return;
+  Future<void> _execute([TParam? param]) async {
+    TResult result;
+    if (_noParamValue) {
+      assert(_funcNoParam != null);
+      result = await _funcNoParam!(_undoStack);
     } else {
-      _isExecuting.value = true;
+      assert(_func != null);
+      assert(
+        param != null || null is TParam,
+        'You passed a null value to the command ${_debugName ?? ''} that has a non-nullable type as TParam',
+      );
+      result = await _func!(param as TParam, _undoStack);
     }
-
-    _errors.value = null; // this will not trigger the listeners
-
-    _commandResult.value = CommandResult<TParam, TResult>(
-      param,
-      _includeLastResultInCommandResults ? value : null,
-      null,
-      true,
-    );
-
-    /// give the async notifications a chance to propagate
-    await Future<void>.delayed(Duration.zero);
-
-    try {
-      TResult result;
-      if (_noParamValue) {
-        assert(_funcNoParam != null);
-        result = await _funcNoParam!(_undoStack);
-      } else {
-        assert(_func != null);
-        assert(
-          param != null || null is TParam,
-          'You passed a null value to the command ${_debugName ?? ''} that has a non-nullable type as TParam',
-        );
-        result = await _func!(param as TParam, _undoStack);
-      }
-      _commandResult.value =
-          CommandResult<TParam, TResult>(param, result, null, false);
-      if (!_noReturnValue) {
-        value = result;
-      } else {
-        notifyListeners();
-      }
-      _futureCompleter?.complete(result);
-      _futureCompleter = null;
-    } catch (error, stacktrace) {
-      if (error is AssertionError) rethrow;
-
-      if (kDebugMode && Command.debugErrorsThrowAlways) {
-        rethrow;
-      }
-      if (_undoOnExecutionFailure) {
-        _undo(error);
-      }
-
-      _handleError(param, error, stacktrace);
-    } finally {
-      _isExecuting.value = false;
-
-      /// give the async notifications a chance to propagate
-      await Future<void>.delayed(Duration.zero);
-      if (_debugName != null) {
-        Command.loggingHandler?.call(_debugName, _commandResult.value);
-      }
+    _commandResult.value =
+        CommandResult<TParam, TResult>(param, result, null, false);
+    if (!_noReturnValue) {
+      value = result;
+    } else {
+      notifyListeners();
     }
+    _futureCompleter?.complete(result);
+    _futureCompleter = null;
   }
 
   /// Undoes the last execution of this command.By calling the
