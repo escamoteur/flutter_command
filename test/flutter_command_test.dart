@@ -240,7 +240,12 @@ void main() {
       ]);
       expect(
         thrownExceptionCollector.values,
-        [CommandError<void>(null, CustomException('Intentional'))],
+        [
+          CommandError<void>(
+            null,
+            CustomException('Intentional'),
+          )
+        ],
       );
     });
 

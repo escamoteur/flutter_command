@@ -76,8 +76,9 @@ class CommandError<TParam> {
   final Object? error;
   final TParam? paramData;
   final String? commandName;
+  final Command? command;
 
-  CommandError(this.paramData, this.error, {this.commandName});
+  CommandError(this.paramData, this.error, {this.command, this.commandName});
 
   @override
   bool operator ==(Object other) =>
@@ -146,6 +147,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       _errors.value = CommandError<TParam>(
         x.paramData,
         x.error,
+        command: this,
         commandName: this._debugName,
       );
       _errors.notifyListeners();
@@ -166,9 +168,11 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
 
   /// Calls the wrapped handler function with an optional input parameter
   void execute([TParam? param]) async {
+    if (Command.detailedStackTraces) {
+      _traceBeforeExecute = Trace.current();
+    }
     assert(!_isDisposed,
-        'You are trying to dispose a Command that was already disposed. This is not allowed.');
-    _traceBeforeExecute = Trace.current();
+        'You are trying to use a Command that was already disposed. This is not allowed.');
 
     if (_restriction?.value == true) {
       _ifRestrictedExecuteInstead?.call(param);
@@ -201,18 +205,26 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     try {
       await _execute(param);
     } catch (error, stacktrace) {
-      var trace = Trace.from(stacktrace);
-      final chain = Chain([
-        trace,
-        _traceBeforeExecute!,
-      ]);
-      // final trace2 = chain.toTrace();
-      print(chain.toString());
-      if (Command.assertionsAlwaysThrow && error is AssertionError) rethrow;
+      StackTrace chain = Command.detailedStackTraces
+          ? _improveStacktrace(stacktrace).terse
+          : stacktrace;
 
-      if (kDebugMode && Command.debugErrorsThrowAlways) {
-        rethrow;
+      if (Command.assertionsAlwaysThrow && error is AssertionError) {
+        Error.throwWithStackTrace(error, chain);
       }
+
+      // ignore: deprecated_member_use_from_same_package
+      if (kDebugMode && Command.debugErrorsThrowAlways) {
+        Error.throwWithStackTrace(error, chain);
+      }
+
+      if (Command.reportAllExceptions) {
+        Command.globalExceptionHandler?.call(
+          CommandError(param, error, command: this, commandName: _debugName),
+          chain,
+        );
+      }
+
       if (this is UndoableCommand) {
         final undoAble = this as UndoableCommand;
         if (undoAble._undoOnExecutionFailure) {
@@ -220,7 +232,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
         }
       }
 
-      _handleError(param, error, stacktrace);
+      _handleError(param, error, chain);
     } finally {
       _isExecuting.value = false;
 
@@ -303,7 +315,18 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   // by setting this to true, the Command will directly rethrow any exception
   // so that you can get a helpfult stacktrace.
   // works only in debug mode
+  @Deprecated(
+      'use reportAllExeceptions instead, it turned out that throwing does not help as much as expected')
   static bool debugErrorsThrowAlways = false;
+
+  /// overrides any ErrorFilter that is set for a Command and will call the global exception handler
+  /// for any error that occurs in any Command of the app.
+  /// Together with the [detailledStackTraces] this gives detailed information what's going on in the app
+  static bool reportAllExceptions = false;
+
+  /// Will capture detailed stacktraces for any Command execution. If this has negative impact on performance
+  /// you can set this to false. This is a global setting for all Commands in the app.
+  static bool detailedStackTraces = true;
 
   /// optional handler that will get called on all `Command` executions if the Command
   /// has a set debugName.
@@ -423,7 +446,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
           'Errorfilter returned ErrorReaction.globalHandler, but no global handler is registered',
         );
         globalExceptionHandler!(
-          CommandError(param, error, commandName: _debugName),
+          CommandError(param, error, command: this, commandName: _debugName),
           stackTrace,
         );
         break;
@@ -455,7 +478,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
           false,
         );
         globalExceptionHandler!(
-          CommandError(param, error, commandName: _debugName),
+          CommandError(param, error, command: this, commandName: _debugName),
           stackTrace,
         );
         break;
@@ -468,7 +491,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
 
           /// we have no external listeners on [results] or [errors]
           Command.globalExceptionHandler?.call(
-            CommandError(param, error, commandName: _debugName),
+            CommandError(param, error, command: this, commandName: _debugName),
             stackTrace,
           );
         } else {
@@ -488,7 +511,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
         }
         if (globalExceptionHandler != null) {
           Command.globalExceptionHandler?.call(
-            CommandError(param, error, commandName: _debugName),
+            CommandError(param, error, command: this, commandName: _debugName),
             stackTrace,
           );
         }
@@ -518,6 +541,50 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     }
     _futureCompleter?.completeError(error, stackTrace);
     _futureCompleter = null;
+  }
+
+  Chain _improveStacktrace(
+    StackTrace stacktrace,
+  ) {
+    var trace = Trace.from(stacktrace);
+
+    final strippedFrames = trace.frames.where((frame) {
+      if (frame.package == 'stack_trace') {
+        return false;
+      }
+      if (frame.member?.contains('Zone') == true) {
+        return false;
+      }
+      if (frame.member?.contains('_rootRun') == true) {
+        return false;
+      }
+      if (frame.package == 'flutter_command' &&
+          frame.member!.contains('_execute')) {
+        return false;
+      }
+      return true;
+    }).toList();
+    final commandFrame = strippedFrames.removeLast();
+    strippedFrames.add(Frame(
+      commandFrame.uri,
+      commandFrame.line,
+      commandFrame.column,
+      _debugName != null
+          ? '${commandFrame.member} ($_debugName)'
+          : commandFrame.member,
+    ));
+    trace = Trace(strippedFrames);
+
+    final framesBefore = _traceBeforeExecute?.frames
+            .where((frame) => frame.package != 'flutter_command') ??
+        [];
+
+    final chain = Chain([
+      trace,
+      Trace(framesBefore),
+    ]);
+
+    return chain.terse;
   }
 
 ///////////////////////// Factory functions from here on //////////////////////

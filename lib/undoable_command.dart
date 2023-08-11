@@ -85,13 +85,26 @@ class UndoableCommand<TParam, TResult, TUndoState>
     TResult result;
     if (_noParamValue) {
       assert(_funcNoParam != null);
-      result = await _funcNoParam!(_undoStack);
+      final completer = Completer<TResult>();
+      Chain.capture(
+        () => _funcNoParam!(_undoStack).then(completer.complete),
+        onError: completer.completeError,
+        when: Command.detailedStackTraces,
+      );
+      result = await completer.future;
     } else {
       assert(_func != null);
       assert(
         param != null || null is TParam,
         'You passed a null value to the command ${_debugName ?? ''} that has a non-nullable type as TParam',
       );
+      final completer = Completer<TResult>();
+      Chain.capture(
+        () => _func!(param as TParam, _undoStack).then(completer.complete),
+        onError: completer.completeError,
+        when: Command.detailedStackTraces,
+      );
+      result = await completer.future;
       result = await _func!(param as TParam, _undoStack);
     }
     _commandResult.value =
@@ -114,7 +127,20 @@ class UndoableCommand<TParam, TResult, TUndoState>
     try {
       TResult result;
       _isExecuting.value = true;
-      result = await _undofunc(_undoStack, reason);
+      final completer = Completer<TResult>();
+      Chain.capture(
+        () {
+          final r = _undofunc(_undoStack, reason);
+          if (r is Future<TResult>) {
+            r.then(completer.complete);
+          } else {
+            completer.complete(r);
+          }
+        },
+        onError: completer.completeError,
+        when: Command.detailedStackTraces,
+      );
+      result = await completer.future;
 
       _commandResult.value = CommandResult<TParam, TResult>(
         null,
@@ -128,11 +154,25 @@ class UndoableCommand<TParam, TResult, TUndoState>
         notifyListeners();
       }
     } catch (error, stacktrace) {
-      if (error is AssertionError) rethrow;
-      if (kDebugMode && Command.debugErrorsThrowAlways) {
-        rethrow;
+      StackTrace chain = Command.detailedStackTraces
+          ? _improveStacktrace(stacktrace).terse
+          : stacktrace;
+      if (Command.assertionsAlwaysThrow && error is AssertionError) {
+        Error.throwWithStackTrace(error, chain);
       }
-      _handleError(null, UndoException(error), stacktrace);
+
+      // ignore: deprecated_member_use_from_same_package
+      if (kDebugMode && Command.debugErrorsThrowAlways) {
+        Error.throwWithStackTrace(error, chain);
+      }
+
+      if (Command.reportAllExceptions) {
+        Command.globalExceptionHandler?.call(
+          CommandError(null, error, command: this, commandName: _debugName),
+          chain,
+        );
+      }
+      _handleError(null, UndoException(error), chain);
     } finally {
       _isExecuting.value = false;
       if (_debugName != null) {

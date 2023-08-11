@@ -23,6 +23,7 @@ class WeatherManager {
       /// as the switch is on when the command can be executed we need to invert the value
       /// to make the command disabled when the switch is off
       restriction: setExecutionStateCommand.map((switchState) => !switchState),
+      debugName: 'updateWeatherCommand',
     );
 
     // Will be called on every change of the search-field

@@ -25,14 +25,26 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
     TResult result;
     if (_noParamValue) {
       assert(_funcNoParam != null);
-      result = await _funcNoParam!();
+      final completer = Completer<TResult>();
+      Chain.capture(
+        () => _funcNoParam!().then(completer.complete),
+        onError: completer.completeError,
+        when: Command.detailedStackTraces,
+      );
+      result = await completer.future;
     } else {
       assert(_func != null);
       assert(
         param != null || null is TParam,
         'You passed a null value to the command ${_debugName ?? ''} that has a non-nullable type as TParam',
       );
-      result = await _func!(param as TParam);
+      final completer = Completer<TResult>();
+      Chain.capture(
+        () => _func!(param as TParam).then(completer.complete),
+        onError: completer.completeError,
+        when: Command.detailedStackTraces,
+      );
+      result = await completer.future;
     }
     _commandResult.value =
         CommandResult<TParam, TResult>(param, result, null, false);
