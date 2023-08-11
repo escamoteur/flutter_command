@@ -445,7 +445,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
           globalExceptionHandler != null,
           'Errorfilter returned ErrorReaction.globalHandler, but no global handler is registered',
         );
-        globalExceptionHandler!(
+        globalExceptionHandler?.call(
           CommandError(param, error, command: this, commandName: _debugName),
           stackTrace,
         );
@@ -477,7 +477,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
           error,
           false,
         );
-        globalExceptionHandler!(
+        globalExceptionHandler?.call(
           CommandError(param, error, command: this, commandName: _debugName),
           stackTrace,
         );
@@ -510,7 +510,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
           Error.throwWithStackTrace(error, stackTrace);
         }
         if (globalExceptionHandler != null) {
-          Command.globalExceptionHandler?.call(
+          Command.globalExceptionHandler!(
             CommandError(param, error, command: this, commandName: _debugName),
             stackTrace,
           );
@@ -548,22 +548,43 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   ) {
     var trace = Trace.from(stacktrace);
 
-    final strippedFrames = trace.frames.where((frame) {
-      if (frame.package == 'stack_trace') {
-        return false;
-      }
-      if (frame.member?.contains('Zone') == true) {
-        return false;
-      }
-      if (frame.member?.contains('_rootRun') == true) {
-        return false;
-      }
-      if (frame.package == 'flutter_command' &&
-          frame.member!.contains('_execute')) {
-        return false;
-      }
-      return true;
-    }).toList();
+    final strippedFrames = trace.frames
+        .where((frame) => switch (frame) {
+                  Frame(package: 'stack_trace') => false,
+                  Frame(:final member) when member!.contains('Zone') => false,
+                  Frame(:final member) when member!.contains('_rootRun') =>
+                    false,
+                  Frame(package: 'flutter_command', :final member)
+                      when member!.contains('_execute') =>
+                    false,
+                  _ => true,
+                }
+
+            /// leave that for now, not 100% sure if it's better
+            // return switch ((frame.package, frame.member)) {
+            //   ('stack_trace', _) => false,
+            //   (_, final member) when member!.contains('Zone') => false,
+            //   (_, final member) when member!.contains('_rootRun') => false,
+            //   ('flutter_command', final member) when member!.contains('_execute') =>
+            //     false,
+            //   _ => true
+            // };
+            // if (frame.package == 'stack_trace') {
+            //   return false;
+            // }
+            // if (frame.member?.contains('Zone') == true) {
+            //   return false;
+            // }
+            // if (frame.member?.contains('_rootRun') == true) {
+            //   return false;
+            // }
+            // if (frame.package == 'flutter_command' &&
+            //     frame.member!.contains('_execute')) {
+            //   return false;
+            // }
+            // return true;
+            )
+        .toList();
     final commandFrame = strippedFrames.removeLast();
     strippedFrames.add(Frame(
       commandFrame.uri,

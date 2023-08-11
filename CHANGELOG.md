@@ -1,3 +1,7 @@
+[5.0.0+10] - 11.8.2023
+* general refactoring to reduce code duplication
+* improving stack traces 
+* adding new `reportAllExceptions` global override
 [5.0.0+9] - 02.08.2023
 * `clearErrors()` will now notify its listeners with a `null` value.
 [5.0.0+8] - 31.07.2023
@@ -10,7 +14,7 @@
 [5.0.0+5] - 18.06.2023
 * release candidate but missing docs
 [5.0.0+4] - 18.05.2023
-* bug fix of a too arrow asssertion
+* bug fix of a too arrow assertion
 [5.0.0+2] - 21.04.2023
 
 * bug fix in the factory functions of UndoableCommand
