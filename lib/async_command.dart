@@ -29,7 +29,7 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
       Chain.capture(
         () => _funcNoParam!().then(completer.complete),
         onError: completer.completeError,
-        when: Command.detailedStackTraces,
+        when: false,
       );
       result = await completer.future;
     } else {
@@ -42,7 +42,7 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
       Chain.capture(
         () => _func!(param as TParam).then(completer.complete),
         onError: completer.completeError,
-        when: Command.detailedStackTraces,
+        when: false,
       );
       result = await completer.future;
     }

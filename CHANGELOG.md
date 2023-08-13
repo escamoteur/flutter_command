@@ -1,3 +1,5 @@
+[5.0.0+11] - 13.8.2023
+* fixed bub in UndoableCommand and disabled the Chain.capture for now
 [5.0.0+10] - 11.8.2023
 * general refactoring to reduce code duplication
 * improving stack traces 
