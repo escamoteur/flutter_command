@@ -356,6 +356,11 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     assert(!_isDisposed,
         'You are trying to dispose a Command that was already disposed. This is not allowed.');
 
+    if (_isExecuting.value) {
+      throw StateError(
+          'You are trying to dispose a Command that is executing. Command: $_debugName\n The command was called with this ${_traceBeforeExecute?.terse.toString()}');
+    }
+
     _commandResult.dispose();
     _canExecute.dispose();
     _isExecuting.dispose();
