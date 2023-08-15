@@ -1,3 +1,6 @@
+[5.0.0+14] - 15.8.2023
+* made commands more robust against disposing while still running which should be totally valid 
+because the user could close a page where a command is running
 [5.0.0+12] - 14.8.2023
 * added check in dispose if the command hasn't finished yet
 [5.0.0+11] - 13.8.2023

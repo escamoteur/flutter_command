@@ -46,6 +46,9 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
       );
       result = await completer.future;
     }
+    if (_isDisposing) {
+      return;
+    }
     _commandResult.value =
         CommandResult<TParam, TResult>(param, result, null, false);
     if (!_noReturnValue) {

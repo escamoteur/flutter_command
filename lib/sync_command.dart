@@ -39,6 +39,9 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
       );
       result = _func!(param as TParam);
     }
+    if (_isDisposing) {
+      return Future<void>.value();
+    }
     if (!_noReturnValue) {
       _commandResult.value =
           CommandResult<TParam, TResult>(param, result, null, false);

@@ -168,11 +168,14 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
 
   /// Calls the wrapped handler function with an optional input parameter
   void execute([TParam? param]) async {
+    // its valid to dispose a command anytime, so we have to make sure this
+    // doesn't create an invalid state
+    if (_isDisposing) {
+      return;
+    }
     if (Command.detailedStackTraces) {
       _traceBeforeExecute = Trace.current();
     }
-    assert(!_isDisposed,
-        'You are trying to use a Command that was already disposed. This is not allowed.');
 
     if (_restriction?.value == true) {
       _ifRestrictedExecuteInstead?.call(param);
@@ -203,6 +206,10 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     }
 
     try {
+      // lets play it save and check again if the command was disposed
+      if (_isDisposing) {
+        return;
+      }
       await _execute(param);
     } catch (error, stacktrace) {
       StackTrace chain = Command.detailedStackTraces
@@ -234,7 +241,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
 
       _handleError(param, error, chain);
     } finally {
-      _isExecuting.value = false;
+      if (!_isDisposing) {
+        _isExecuting.value = false;
+      }
 
       /// give the async notifications a chance to propagate
       await Future<void>.delayed(Duration.zero);
@@ -353,13 +362,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// prevent memory leaks
   @override
   void dispose() {
-    assert(!_isDisposed,
+    assert(!_isDisposing,
         'You are trying to dispose a Command that was already disposed. This is not allowed.');
-
-    if (_isExecuting.value) {
-      throw StateError(
-          'You are trying to dispose a Command that is executing. Command: $_debugName\n The command was called with this ${_traceBeforeExecute?.terse.toString()}');
-    }
+    _isDisposing = true;
 
     _commandResult.dispose();
     _canExecute.dispose();
@@ -371,8 +376,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     }
 
     super.dispose();
-    _isDisposed = true;
   }
+
+  bool _isDisposing = false;
 
   /// Flag that we always should include the last successful value in `CommandResult`
   /// for isExecuting or error states
@@ -393,8 +399,6 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   Completer<TResult>? _futureCompleter;
 
   Trace? _traceBeforeExecute;
-
-  bool _isDisposed = false;
 
   /// Executes an async Command and returns a Future that completes as soon as
   /// the Command completes. This is especially useful if you use a
@@ -456,6 +460,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
         );
         break;
       case ErrorReaction.localHandler:
+        if (_isDisposing) {
+          return;
+        }
         assert(
           _commandResult.listenerCount >= 3 || _errors.hasListeners,
           'ErrorFilter returned ErrorReaction.localHandler, but there are no listeners on errors or .result',
@@ -469,12 +476,19 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
         break;
       case ErrorReaction.localAndGlobalHandler:
         assert(
-          _commandResult.listenerCount >= 3 || _errors.hasListeners,
-          'ErrorFilter returned ErrorReaction.localAndGlobalHandler, but there are no listeners on errors or .result',
-        );
-        assert(
           globalExceptionHandler != null,
           'Errorfilter returned ErrorReaction.localAndgloBalHandler, but no global handler is registered',
+        );
+        globalExceptionHandler?.call(
+          CommandError(param, error, command: this, commandName: _debugName),
+          stackTrace,
+        );
+        if (_isDisposing) {
+          return;
+        }
+        assert(
+          _commandResult.listenerCount >= 3 || _errors.hasListeners,
+          'ErrorFilter returned ErrorReaction.localAndGlobalHandler, but there are no listeners on errors or .result',
         );
         _commandResult.value = CommandResult<TParam, TResult>(
           param,
@@ -482,16 +496,12 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
           error,
           false,
         );
-        globalExceptionHandler?.call(
-          CommandError(param, error, command: this, commandName: _debugName),
-          stackTrace,
-        );
         break;
       case ErrorReaction.firstLocalThenGlobalHandler:
         if (_commandResult.listenerCount < 3 && !_errors.hasListeners) {
           assert(
             globalExceptionHandler != null,
-            'Errorfilter returned ErrorReaction.globalIfNoLocalHandler, but no global handler is registered',
+            'Errorfilter returned ErrorReaction.firsLocalThenGlobalHandler, but no global handler is registered',
           );
 
           /// we have no external listeners on [results] or [errors]
@@ -500,6 +510,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
             stackTrace,
           );
         } else {
+          if (_isDisposing) {
+            return;
+          }
           _commandResult.value = CommandResult<TParam, TResult>(
             param,
             _includeLastResultInCommandResults ? value : null,
@@ -520,6 +533,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
             stackTrace,
           );
         }
+        if (_isDisposing) {
+          return;
+        }
         if (_commandResult.listenerCount >= 3 || _errors.hasListeners) {
           _commandResult.value = CommandResult<TParam, TResult>(
             param,
@@ -530,6 +546,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
         }
         break;
       case ErrorReaction.throwIfNoLocalHandler:
+        if (_isDisposing) {
+          return;
+        }
         if (_commandResult.listenerCount < 3 && !_errors.hasListeners) {
           Error.throwWithStackTrace(error, stackTrace);
         }

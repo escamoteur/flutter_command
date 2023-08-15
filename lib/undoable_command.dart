@@ -106,6 +106,9 @@ class UndoableCommand<TParam, TResult, TUndoState>
       );
       result = await completer.future;
     }
+    if (_isDisposing) {
+      return;
+    }
     _commandResult.value =
         CommandResult<TParam, TResult>(param, result, null, false);
     if (!_noReturnValue) {
@@ -125,7 +128,9 @@ class UndoableCommand<TParam, TResult, TUndoState>
     assert(_undoStack.isNotEmpty);
     try {
       TResult result;
-      _isExecuting.value = true;
+      if (!_isDisposing) {
+        _isExecuting.value = true;
+      }
       final completer = Completer<TResult>();
       Chain.capture(
         () {
@@ -140,7 +145,9 @@ class UndoableCommand<TParam, TResult, TUndoState>
         when: false,
       );
       result = await completer.future;
-
+      if (_isDisposing) {
+        return;
+      }
       _commandResult.value = CommandResult<TParam, TResult>(
         null,
         result,
@@ -173,7 +180,9 @@ class UndoableCommand<TParam, TResult, TUndoState>
       }
       _handleError(null, UndoException(error), chain);
     } finally {
-      _isExecuting.value = false;
+      if (!_isDisposing) {
+        _isExecuting.value = false;
+      }
       if (_debugName != null) {
         Command.loggingHandler
             ?.call('undo + $_debugName', _commandResult.value);
