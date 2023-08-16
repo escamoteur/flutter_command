@@ -298,6 +298,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// `registerHandler` or `listen` in `initState` of a `StatefulWidget`
   void clearErrors() {
     _errors.value = null;
+    if (_isDisposing) {
+      return;
+    }
     _errors.notifyListeners();
   }
 
