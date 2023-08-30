@@ -399,6 +399,8 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// optional Name that is included in log messages.
   final String? _debugName;
 
+  String? get debugName => _debugName;
+
   Completer<TResult>? _futureCompleter;
 
   Trace? _traceBeforeExecute;
@@ -455,7 +457,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       case ErrorReaction.globalHandler:
         assert(
           globalExceptionHandler != null,
-          'Errorfilter returned ErrorReaction.globalHandler, but no global handler is registered',
+          'Command: $_debugName: Errorfilter returned ErrorReaction.globalHandler, but no global handler is registered',
         );
         globalExceptionHandler?.call(
           CommandError(param, error, command: this, commandName: _debugName),
@@ -468,7 +470,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
         }
         assert(
           _commandResult.listenerCount >= 3 || _errors.hasListeners,
-          'ErrorFilter returned ErrorReaction.localHandler, but there are no listeners on errors or .result',
+          'Command: $_debugName: ErrorFilter returned ErrorReaction.localHandler, but there are no listeners on errors or .result',
         );
         _commandResult.value = CommandResult<TParam, TResult>(
           param,
@@ -480,7 +482,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       case ErrorReaction.localAndGlobalHandler:
         assert(
           globalExceptionHandler != null,
-          'Errorfilter returned ErrorReaction.localAndgloBalHandler, but no global handler is registered',
+          'Command: $_debugName: Errorfilter returned ErrorReaction.localAndgloBalHandler, but no global handler is registered',
         );
         globalExceptionHandler?.call(
           CommandError(param, error, command: this, commandName: _debugName),
@@ -491,7 +493,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
         }
         assert(
           _commandResult.listenerCount >= 3 || _errors.hasListeners,
-          'ErrorFilter returned ErrorReaction.localAndGlobalHandler, but there are no listeners on errors or .result',
+          'Command: $_debugName: ErrorFilter returned ErrorReaction.localAndGlobalHandler, but there are no listeners on errors or .result',
         );
         _commandResult.value = CommandResult<TParam, TResult>(
           param,
@@ -504,7 +506,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
         if (_commandResult.listenerCount < 3 && !_errors.hasListeners) {
           assert(
             globalExceptionHandler != null,
-            'Errorfilter returned ErrorReaction.firsLocalThenGlobalHandler, but no global handler is registered',
+            'Command: $_debugName: Errorfilter returned ErrorReaction.firsLocalThenGlobalHandler, but no global handler is registered',
           );
 
           /// we have no external listeners on [results] or [errors]
@@ -564,7 +566,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
         break;
       case ErrorReaction.defaultHandler:
         assert(false,
-            'ErrorReaction.defaultHandler is not a valid return for the DefaultErrorFilter');
+            'Command: $_debugName: ErrorReaction.defaultHandler is not a valid return for the DefaultErrorFilter');
     }
     _futureCompleter?.completeError(error, stackTrace);
     _futureCompleter = null;
