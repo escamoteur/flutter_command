@@ -340,6 +340,10 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// you can set this to false. This is a global setting for all Commands in the app.
   static bool detailedStackTraces = true;
 
+  /// experimental if enabled you will get a detailed stacktrace of the origin of the exception
+  /// inside the wrapped function.
+  static bool useChainCapture = false;
+
   /// optional handler that will get called on all `Command` executions if the Command
   /// has a set debugName.
   /// [commandName] the [debugName] of the Command

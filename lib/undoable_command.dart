@@ -85,26 +85,32 @@ class UndoableCommand<TParam, TResult, TUndoState>
     TResult result;
     if (_noParamValue) {
       assert(_funcNoParam != null);
-      final completer = Completer<TResult>();
-      Chain.capture(
-        () => _funcNoParam!(_undoStack).then(completer.complete),
-        onError: completer.completeError,
-        when: false,
-      );
-      result = await completer.future;
+      if (Command.useChainCapture) {
+        final completer = Completer<TResult>();
+        Chain.capture(
+          () => _funcNoParam!(_undoStack).then(completer.complete),
+          onError: completer.completeError,
+        );
+        result = await completer.future;
+      } else {
+        result = await _funcNoParam!(_undoStack);
+      }
     } else {
       assert(_func != null);
       assert(
         param != null || null is TParam,
         'You passed a null value to the command ${_debugName ?? ''} that has a non-nullable type as TParam',
       );
-      final completer = Completer<TResult>();
-      Chain.capture(
-        () => _func!(param as TParam, _undoStack).then(completer.complete),
-        onError: completer.completeError,
-        when: false,
-      );
-      result = await completer.future;
+      if (Command.useChainCapture) {
+        final completer = Completer<TResult>();
+        Chain.capture(
+          () => _func!(param as TParam, _undoStack).then(completer.complete),
+          onError: completer.completeError,
+        );
+        result = await completer.future;
+      } else {
+        result = await _func!(param as TParam, _undoStack);
+      }
     }
     if (_isDisposing) {
       return;
@@ -131,20 +137,23 @@ class UndoableCommand<TParam, TResult, TUndoState>
       if (!_isDisposing) {
         _isExecuting.value = true;
       }
-      final completer = Completer<TResult>();
-      Chain.capture(
-        () {
-          final r = _undofunc(_undoStack, reason);
-          if (r is Future<TResult>) {
-            r.then(completer.complete);
-          } else {
-            completer.complete(r);
-          }
-        },
-        onError: completer.completeError,
-        when: false,
-      );
-      result = await completer.future;
+      if (Command.useChainCapture) {
+        final completer = Completer<TResult>();
+        Chain.capture(
+          () {
+            final r = _undofunc(_undoStack, reason);
+            if (r is Future<TResult>) {
+              r.then(completer.complete);
+            } else {
+              completer.complete(r);
+            }
+          },
+          onError: completer.completeError,
+        );
+        result = await completer.future;
+      } else {
+        result = await _undofunc(_undoStack, reason);
+      }
       if (_isDisposing) {
         return;
       }
