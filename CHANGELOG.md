@@ -1,4 +1,7 @@
-[5.0.0+15] - 30.08.2023 improved assertion error messages
+[5.0.0+16] - 18.9.2023
+* added experimental global setting `useChainCapture` which can lead to better stacktraces in async commands functions 
+[5.0.0+15] - 30.08.2023 
+* improved assertion error messages
 [5.0.0+14] - 15.8.2023
 * made commands more robust against disposing while still running which should be totally valid 
 because the user could close a page where a command is running
