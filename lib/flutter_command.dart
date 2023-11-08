@@ -618,15 +618,17 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
             // return true;
             )
         .toList();
-    final commandFrame = strippedFrames.removeLast();
-    strippedFrames.add(Frame(
-      commandFrame.uri,
-      commandFrame.line,
-      commandFrame.column,
-      _debugName != null
-          ? '${commandFrame.member} ($_debugName)'
-          : commandFrame.member,
-    ));
+    if (strippedFrames.isNotEmpty) {
+      final commandFrame = strippedFrames.removeLast();
+      strippedFrames.add(Frame(
+        commandFrame.uri,
+        commandFrame.line,
+        commandFrame.column,
+        _debugName != null
+            ? '${commandFrame.member} ($_debugName)'
+            : commandFrame.member,
+      ));
+    }
     trace = Trace(strippedFrames);
 
     final framesBefore = _traceBeforeExecute?.frames
