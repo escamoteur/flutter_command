@@ -89,7 +89,12 @@ class UndoableCommand<TParam, TResult, TUndoState>
         final completer = Completer<TResult>();
         Chain.capture(
           () => _funcNoParam!(_undoStack).then(completer.complete),
-          onError: completer.completeError,
+          onError: (error, chain) {
+            if (completer.isCompleted) {
+              return;
+            }
+            completer.completeError(error, chain);
+          },
         );
         result = await completer.future;
       } else {
@@ -105,7 +110,12 @@ class UndoableCommand<TParam, TResult, TUndoState>
         final completer = Completer<TResult>();
         Chain.capture(
           () => _func!(param as TParam, _undoStack).then(completer.complete),
-          onError: completer.completeError,
+          onError: (error, chain) {
+            if (completer.isCompleted) {
+              return;
+            }
+            completer.completeError(error, chain);
+          },
         );
         result = await completer.future;
       } else {
@@ -148,7 +158,12 @@ class UndoableCommand<TParam, TResult, TUndoState>
               completer.complete(r);
             }
           },
-          onError: completer.completeError,
+          onError: (error, chain) {
+            if (completer.isCompleted) {
+              return;
+            }
+            completer.completeError(error, chain);
+          },
         );
         result = await completer.future;
       } else {

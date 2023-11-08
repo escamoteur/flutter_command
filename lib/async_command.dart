@@ -29,7 +29,12 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
         final completer = Completer<TResult>();
         Chain.capture(
           () => _funcNoParam!().then(completer.complete),
-          onError: completer.completeError,
+          onError: (error, chain) {
+            if (completer.isCompleted) {
+              return;
+            }
+            completer.completeError(error, chain);
+          },
         );
         result = await completer.future;
       } else {
@@ -45,7 +50,12 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
         final completer = Completer<TResult>();
         Chain.capture(
           () => _func!(param as TParam).then(completer.complete),
-          onError: completer.completeError,
+          onError: (error, chain) {
+            if (completer.isCompleted) {
+              return;
+            }
+            completer.completeError(error, chain);
+          },
         );
         result = await completer.future;
       } else {
