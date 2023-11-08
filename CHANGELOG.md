@@ -1,3 +1,5 @@
+[5.0.0+17] - 08.11.2023
+* https://github.com/escamoteur/flutter_command/issues/20 
 [5.0.0+16] - 18.9.2023
 * added experimental global setting `useChainCapture` which can lead to better stacktraces in async commands functions 
 [5.0.0+15] - 30.08.2023 
