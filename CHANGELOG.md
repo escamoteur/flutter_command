@@ -1,3 +1,5 @@
+[5.0.0+18] - 18.07.2024
+* adding precaution to make disposing of a command from one of its own handlers more robust
 [5.0.0+17] - 08.11.2023
 * https://github.com/escamoteur/flutter_command/issues/20 
 [5.0.0+16] - 18.9.2023

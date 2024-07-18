@@ -373,16 +373,23 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
         'You are trying to dispose a Command that was already disposed. This is not allowed.');
     _isDisposing = true;
 
-    _commandResult.dispose();
-    _canExecute.dispose();
-    _isExecuting.dispose();
-    _errors.dispose();
-    if (!(_futureCompleter?.isCompleted ?? true)) {
-      _futureCompleter!.complete(null);
-      _futureCompleter = null;
-    }
+    /// ensure that all ValueNotifiers have finished their async notifications
+    /// before we dispose them with a delay of 50ms
+    Future.delayed(
+      Duration(milliseconds: 50),
+      () {
+        _commandResult.dispose();
+        _canExecute.dispose();
+        _isExecuting.dispose();
+        _errors.dispose();
+        if (!(_futureCompleter?.isCompleted ?? true)) {
+          _futureCompleter!.complete(null);
+          _futureCompleter = null;
+        }
 
-    super.dispose();
+        super.dispose();
+      },
+    );
   }
 
   bool _isDisposing = false;
