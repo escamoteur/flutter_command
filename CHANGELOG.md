@@ -1,3 +1,5 @@
+[5.0.0+19] - 18.07.2024
+* added TParam in the defintion of the `errors` property
 [5.0.0+18] - 18.07.2024
 * adding precaution to make disposing of a command from one of its own handlers more robust
 [5.0.0+17] - 08.11.2023
