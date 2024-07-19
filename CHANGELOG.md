@@ -1,3 +1,5 @@
+[5.0.0+20] - 18.07.2024
+* undoing the last one as it makes merging of `errors` of multiple commands impossible
 [5.0.0+19] - 18.07.2024
 * added TParam in the defintion of the `errors` property
 [5.0.0+18] - 18.07.2024
