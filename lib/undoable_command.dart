@@ -64,7 +64,7 @@ class UndoableCommand<TParam, TResult, TUndoState>
     required super.noReturnValue,
     required super.errorFilter,
     required super.notifyOnlyWhenValueChanges,
-    required super.debugName,
+    required super.name,
     required super.noParamValue,
   })  : _func = func,
         _funcNoParam = funcNoParam,
@@ -104,7 +104,7 @@ class UndoableCommand<TParam, TResult, TUndoState>
       assert(_func != null);
       assert(
         param != null || null is TParam,
-        'You passed a null value to the command ${_debugName ?? ''} that has a non-nullable type as TParam',
+        'You passed a null value to the command ${_name ?? ''} that has a non-nullable type as TParam',
       );
       if (Command.useChainCapture) {
         final completer = Completer<TResult>();
@@ -184,32 +184,14 @@ class UndoableCommand<TParam, TResult, TUndoState>
         notifyListeners();
       }
     } catch (error, stacktrace) {
-      StackTrace chain = Command.detailedStackTraces
-          ? _improveStacktrace(stacktrace).terse
-          : stacktrace;
-      if (Command.assertionsAlwaysThrow && error is AssertionError) {
-        Error.throwWithStackTrace(error, chain);
-      }
-
-      // ignore: deprecated_member_use_from_same_package
-      if (kDebugMode && Command.debugErrorsThrowAlways) {
-        Error.throwWithStackTrace(error, chain);
-      }
-
-      if (Command.reportAllExceptions) {
-        Command.globalExceptionHandler?.call(
-          CommandError(null, error, command: this, commandName: _debugName),
-          chain,
-        );
-      }
-      _handleError(null, UndoException(error), chain);
+      StackTrace chain = _mandatoryErrorHandling(stacktrace, error, null);
+      _handleErrorFiltered(null, UndoException(error), chain);
     } finally {
       if (!_isDisposing) {
         _isExecuting.value = false;
       }
-      if (_debugName != null) {
-        Command.loggingHandler
-            ?.call('undo + $_debugName', _commandResult.value);
+      if (_name != null) {
+        Command.loggingHandler?.call('undo + $_name', _commandResult.value);
       }
     }
   }

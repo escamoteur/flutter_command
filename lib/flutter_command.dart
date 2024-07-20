@@ -32,14 +32,19 @@ class CommandResult<TParam, TResult> {
   final TResult? data;
   final Object? error;
   final bool isExecuting;
+  final ErrorReaction? errorReaction;
+  final StackTrace? stackTrace;
 
-  const CommandResult(this.paramData, this.data, this.error, this.isExecuting);
+  const CommandResult(this.paramData, this.data, this.error, this.isExecuting,
+      {this.errorReaction, this.stackTrace});
 
   const CommandResult.data(TParam? param, TResult data)
       : this(param, data, null, false);
 
-  const CommandResult.error(TParam? param, dynamic error)
-      : this(param, null, error, false);
+  const CommandResult.error(TParam? param, dynamic error,
+      ErrorReaction errorReaction, StackTrace? stackTrace)
+      : this(param, null, error, false,
+            errorReaction: errorReaction, stackTrace: stackTrace);
 
   const CommandResult.isLoading([TParam? param])
       : this(param, null, null, true);
@@ -59,8 +64,8 @@ class CommandResult<TParam, TResult> {
       other.isExecuting == isExecuting;
 
   @override
-  int get hashCode =>
-      hash3(data.hashCode, error.hashCode, isExecuting.hashCode);
+  int get hashCode => hash4(
+      data.hashCode, error.hashCode, isExecuting.hashCode, paramData.hashCode);
 
   @override
   String toString() {
@@ -75,10 +80,27 @@ class CommandResult<TParam, TResult> {
 class CommandError<TParam> {
   final Object? error;
   final TParam? paramData;
-  final String? commandName;
+  String? get commandName => command?.name ?? 'Command Property not set';
   final Command? command;
+  final StackTrace? stackTrace;
 
-  CommandError(this.paramData, this.error, {this.command, this.commandName});
+  /// if nuill, the error was not filtered by an ErrorFilter which means either send to the global handler
+  /// because of [Command.reportAllExceptions] or the default error filter of the Command class
+  final ErrorReaction? errorReaction;
+
+  /// in case that an error handler throws an error, we will call the global exception handler
+  /// with this error
+  /// this will hold the original error that called the error handler that threw error
+  final CommandError? originalError;
+
+  CommandError({
+    this.command,
+    this.errorReaction,
+    this.paramData,
+    this.error,
+    this.stackTrace,
+    this.originalError,
+  });
 
   @override
   bool operator ==(Object other) =>
@@ -91,7 +113,13 @@ class CommandError<TParam> {
 
   @override
   String toString() {
-    return '$error - for param: $paramData';
+    if (originalError != null) {
+      return 'Error handler exeption: Error handler of Command: $commandName for param: $paramData,\n'
+          'threw $error,\n Stacktrace: $stackTrace\n Original error: ${originalError!}\n';
+    } else {
+      return '$error - from Command: $commandName for param: $paramData,\n'
+          'Stacktrace: $stackTrace';
+    }
   }
 }
 
@@ -123,7 +151,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     required bool noReturnValue,
     required bool notifyOnlyWhenValueChanges,
     ErrorFilter? errorFilter,
-    required String? debugName,
+    required String? name,
     required bool noParamValue,
   })  : _restriction = restriction,
         _ifRestrictedExecuteInstead = ifRestrictedExecuteInstead,
@@ -131,7 +159,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
         _noParamValue = noParamValue,
         _includeLastResultInCommandResults = includeLastResultInCommandResults,
         _errorFilter = errorFilter ?? errorFilterDefault,
-        _debugName = debugName,
+        _name = name,
         super(
           initialValue,
           mode: notifyOnlyWhenValueChanges
@@ -143,14 +171,29 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     );
 
     /// forward error states to the `errors` Listenable
-    _commandResult.where((x) => x.hasError).listen((x, _) {
-      _errors.value = CommandError<TParam>(
-        x.paramData,
-        x.error,
+    _commandResult
+        .where((x) => x.hasError && x.errorReaction!.shouldCallLocalHandler)
+        .listen((x, _) {
+      final originalError = CommandError<TParam>(
+        paramData: x.paramData,
+        error: x.error,
         command: this,
-        commandName: this._debugName,
+        errorReaction: x.errorReaction!,
+        stackTrace: x.stackTrace,
       );
-      _errors.notifyListeners();
+      _errors.value = originalError;
+      _errors.notifyListeners(reportErrorHandlerExceptionsToGlobalHandler
+          ? (error, stackTrace) => {
+                globalExceptionHandler?.call(
+                  CommandError(
+                      error: error,
+                      command: this,
+                      originalError: originalError,
+                      errorReaction: ErrorReaction.none),
+                  stackTrace,
+                )
+              }
+          : null);
     });
 
     /// forward busy states to the `isExecuting` Listenable
@@ -212,25 +255,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       }
       await _execute(param);
     } catch (error, stacktrace) {
-      StackTrace chain = Command.detailedStackTraces
-          ? _improveStacktrace(stacktrace).terse
-          : stacktrace;
-
-      if (Command.assertionsAlwaysThrow && error is AssertionError) {
-        Error.throwWithStackTrace(error, chain);
-      }
-
-      // ignore: deprecated_member_use_from_same_package
-      if (kDebugMode && Command.debugErrorsThrowAlways) {
-        Error.throwWithStackTrace(error, chain);
-      }
-
-      if (Command.reportAllExceptions) {
-        Command.globalExceptionHandler?.call(
-          CommandError(param, error, command: this, commandName: _debugName),
-          chain,
-        );
-      }
+      StackTrace chain = _mandatoryErrorHandling(stacktrace, error, param);
 
       if (this is UndoableCommand) {
         final undoAble = this as UndoableCommand;
@@ -239,7 +264,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
         }
       }
 
-      _handleError(param, error, chain);
+      _handleErrorFiltered(param, error, chain);
     } finally {
       if (!_isDisposing) {
         _isExecuting.value = false;
@@ -247,10 +272,38 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
 
       /// give the async notifications a chance to propagate
       await Future<void>.delayed(Duration.zero);
-      if (_debugName != null) {
-        Command.loggingHandler?.call(_debugName, _commandResult.value);
+      if (_name != null) {
+        Command.loggingHandler?.call(_name, _commandResult.value);
       }
     }
+  }
+
+  StackTrace _mandatoryErrorHandling(
+      StackTrace stacktrace, Object error, TParam? param) {
+    StackTrace chain = Command.detailedStackTraces
+        ? _improveStacktrace(stacktrace).terse
+        : stacktrace;
+
+    if (Command.assertionsAlwaysThrow && error is AssertionError) {
+      Error.throwWithStackTrace(error, chain);
+    }
+
+    // ignore: deprecated_member_use_from_same_package
+    if (kDebugMode && Command.debugErrorsThrowAlways) {
+      Error.throwWithStackTrace(error, chain);
+    }
+
+    if (Command.reportAllExceptions) {
+      Command.globalExceptionHandler?.call(
+          CommandError(
+            paramData: param,
+            error: error,
+            command: this,
+            stackTrace: chain,
+          ),
+          chain);
+    }
+    return chain;
   }
 
   /// override this method to implement the actual command logic
@@ -294,7 +347,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
 
   /// clears the error state of the command. This will trigger any listeners
   /// especially useful if you use `watch_it` to watch the errors property.
-  /// However the prefered way to handle thd [errors] property is either user
+  /// However the prefered way to handle the [errors] property is either use
   /// `registerHandler` or `listen` in `initState` of a `StatefulWidget`
   void clearErrors() {
     _errors.value = null;
@@ -306,7 +359,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
 
   /// optional hander that will get called on any exception that happens inside
   /// any Command of the app. Ideal for logging.
-  /// the [debugName] of the Command that was responsible for the error is inside
+  /// the [name] of the Command that was responsible for the error is inside
   /// the error object.
   static void Function(CommandError<Object> error, StackTrace stackTrace)?
       globalExceptionHandler;
@@ -344,9 +397,16 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// inside the wrapped function.
   static bool useChainCapture = false;
 
+  /// if a local error handler is present and that handler throws an exception
+  /// this flag will decide if the global exception handler will be called with
+  /// the error of the error handler. In that casse the original error is stored
+  /// in the `originalError` property of the CommandError.
+  /// If set to false such errors will only by the Flutter error logger
+  static bool reportErrorHandlerExceptionsToGlobalHandler = true;
+
   /// optional handler that will get called on all `Command` executions if the Command
-  /// has a set debugName.
-  /// [commandName] the [debugName] of the Command
+  /// has a set a name.
+  /// [commandName] the [name] of the Command
   static void Function(String? commandName, CommandResult result)?
       loggingHandler;
 
@@ -374,7 +434,8 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     _isDisposing = true;
 
     /// ensure that all ValueNotifiers have finished their async notifications
-    /// before we dispose them with a delay of 50ms
+    /// before we dispose them with a delay of 50ms otherwise if any listener of any of the
+    /// ValueNotifiers would dispose the command itself, we would get an exception
     Future.delayed(
       Duration(milliseconds: 50),
       () {
@@ -408,9 +469,9 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   final ErrorFilter _errorFilter;
 
   /// optional Name that is included in log messages.
-  final String? _debugName;
+  final String? _name;
 
-  String? get debugName => _debugName;
+  String? get name => _name;
 
   Completer<TResult>? _futureCompleter;
 
@@ -455,129 +516,97 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     return onResult(value, _commandResult.value.paramData);
   }
 
-  void _handleError(TParam? param, Object error, StackTrace stackTrace) {
+  bool get _hasLocalErrorHandler =>
+      _commandResult.listenerCount >= 3 || _errors.hasListeners;
+
+  void _handleErrorFiltered(
+      TParam? param, Object error, StackTrace stackTrace) {
     var errorReaction = _errorFilter.filter(error, stackTrace);
-    if (errorReaction == ErrorReaction.defaultHandler) {
+    if (errorReaction == ErrorReaction.defaulErrorFilter) {
       errorReaction = errorFilterDefault.filter(error, stackTrace);
     }
+    bool pushToResults = true;
+    bool callGlobal = false;
     switch (errorReaction) {
       case ErrorReaction.none:
+        assert(
+            _futureCompleter == null,
+            'Command: $_name: ErrorFilter returned [ErrorReaction.none], but this Command is executed with [executeWithFuture] which is '
+            'combination that is not allowed, because of the error we don\t have any value to complet the future normally with.');
+        pushToResults = false;
         return;
       case ErrorReaction.throwException:
         Error.throwWithStackTrace(error, stackTrace);
       case ErrorReaction.globalHandler:
         assert(
           globalExceptionHandler != null,
-          'Command: $_debugName: Errorfilter returned ErrorReaction.globalHandler, but no global handler is registered',
+          'Command: $_name: Errorfilter returned [ErrorReaction.globalHandler], but no global handler is registered',
         );
-        globalExceptionHandler?.call(
-          CommandError(param, error, command: this, commandName: _debugName),
-          stackTrace,
-        );
+        callGlobal = true;
         break;
       case ErrorReaction.localHandler:
-        if (_isDisposing) {
-          return;
-        }
         assert(
-          _commandResult.listenerCount >= 3 || _errors.hasListeners,
-          'Command: $_debugName: ErrorFilter returned ErrorReaction.localHandler, but there are no listeners on errors or .result',
-        );
-        _commandResult.value = CommandResult<TParam, TResult>(
-          param,
-          _includeLastResultInCommandResults ? value : null,
-          error,
-          false,
+          _hasLocalErrorHandler,
+          'Command: $_name: ErrorFilter returned ErrorReaction.localHandler, but there are no listeners on errors or .result',
         );
         break;
       case ErrorReaction.localAndGlobalHandler:
         assert(
           globalExceptionHandler != null,
-          'Command: $_debugName: Errorfilter returned ErrorReaction.localAndgloBalHandler, but no global handler is registered',
+          'Command: $_name: Errorfilter returned ErrorReaction.localAndgloBalHandler, but no global handler is registered',
         );
-        globalExceptionHandler?.call(
-          CommandError(param, error, command: this, commandName: _debugName),
-          stackTrace,
-        );
-        if (_isDisposing) {
-          return;
-        }
         assert(
-          _commandResult.listenerCount >= 3 || _errors.hasListeners,
-          'Command: $_debugName: ErrorFilter returned ErrorReaction.localAndGlobalHandler, but there are no listeners on errors or .result',
+          _hasLocalErrorHandler,
+          'Command: $_name: ErrorFilter returned ErrorReaction.localAndGlobalHandler, but there are no listeners on errors or .result',
         );
-        _commandResult.value = CommandResult<TParam, TResult>(
-          param,
-          _includeLastResultInCommandResults ? value : null,
-          error,
-          false,
-        );
+        callGlobal = true;
         break;
       case ErrorReaction.firstLocalThenGlobalHandler:
-        if (_commandResult.listenerCount < 3 && !_errors.hasListeners) {
+        if (!_hasLocalErrorHandler) {
           assert(
             globalExceptionHandler != null,
-            'Command: $_debugName: Errorfilter returned ErrorReaction.firsLocalThenGlobalHandler, but no global handler is registered',
+            'Command: $_name: Errorfilter returned ErrorReaction.firsLocalThenGlobalHandler, but no global handler is registered',
           );
-
-          /// we have no external listeners on [results] or [errors]
-          Command.globalExceptionHandler?.call(
-            CommandError(param, error, command: this, commandName: _debugName),
-            stackTrace,
-          );
-        } else {
-          if (_isDisposing) {
-            return;
-          }
-          _commandResult.value = CommandResult<TParam, TResult>(
-            param,
-            _includeLastResultInCommandResults ? value : null,
-            error,
-            false,
-          );
+          callGlobal = true;
         }
         break;
       case ErrorReaction.noHandlersThrowException:
-        if (_commandResult.listenerCount < 3 &&
-            !_errors.hasListeners &&
-            globalExceptionHandler == null) {
+        if (!_hasLocalErrorHandler && globalExceptionHandler == null) {
           Error.throwWithStackTrace(error, stackTrace);
         }
-        if (globalExceptionHandler != null) {
-          Command.globalExceptionHandler!(
-            CommandError(param, error, command: this, commandName: _debugName),
-            stackTrace,
-          );
-        }
-        if (_isDisposing) {
-          return;
-        }
-        if (_commandResult.listenerCount >= 3 || _errors.hasListeners) {
-          _commandResult.value = CommandResult<TParam, TResult>(
-            param,
-            _includeLastResultInCommandResults ? value : null,
-            error,
-            false,
-          );
+        if (!_hasLocalErrorHandler) {
+          callGlobal = true;
         }
         break;
       case ErrorReaction.throwIfNoLocalHandler:
-        if (_isDisposing) {
-          return;
-        }
-        if (_commandResult.listenerCount < 3 && !_errors.hasListeners) {
+        if (!_hasLocalErrorHandler) {
           Error.throwWithStackTrace(error, stackTrace);
         }
-        _commandResult.value = CommandResult<TParam, TResult>(
-          param,
-          _includeLastResultInCommandResults ? value : null,
-          error,
-          false,
-        );
         break;
-      case ErrorReaction.defaultHandler:
-        assert(false,
-            'Command: $_debugName: ErrorReaction.defaultHandler is not a valid return for the DefaultErrorFilter');
+      case ErrorReaction.defaulErrorFilter:
+        throw StateError(
+            'The defaultErrorFilter of Command: $_name\'s returned "ErrorReaction.defaultErrorFilter" which isn\'t allowed.');
+    }
+    if (pushToResults) {
+      _commandResult.value = CommandResult<TParam, TResult>(
+        param,
+        _includeLastResultInCommandResults ? value : null,
+        error,
+        false,
+        errorReaction: errorReaction,
+        stackTrace: stackTrace,
+      );
+    }
+    if (callGlobal) {
+      globalExceptionHandler?.call(
+        CommandError(
+            paramData: param,
+            error: error,
+            command: this,
+            errorReaction: errorReaction,
+            stackTrace: stackTrace),
+        stackTrace,
+      );
     }
     _futureCompleter?.completeError(error, stackTrace);
     _futureCompleter = null;
@@ -631,9 +660,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
         commandFrame.uri,
         commandFrame.line,
         commandFrame.column,
-        _debugName != null
-            ? '${commandFrame.member} ($_debugName)'
-            : commandFrame.member,
+        _name != null ? '${commandFrame.member} ($_name)' : commandFrame.member,
       ));
     }
     trace = Trace(strippedFrames);
@@ -697,7 +724,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       noReturnValue: true,
       errorFilter: errorFilter,
       notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
-      debugName: debugName,
+      name: debugName,
       noParamValue: true,
     );
   }
@@ -744,7 +771,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       noReturnValue: true,
       errorFilter: errorFilter,
       notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
-      debugName: debugName,
+      name: debugName,
       noParamValue: false,
     );
   }
@@ -797,7 +824,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       noReturnValue: false,
       errorFilter: errorFilter,
       notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
-      debugName: debugName,
+      name: debugName,
       noParamValue: true,
     );
   }
@@ -849,7 +876,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       noReturnValue: false,
       errorFilter: errorFilter,
       notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
-      debugName: debugName,
+      name: debugName,
       noParamValue: false,
     );
   }
@@ -897,7 +924,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       noReturnValue: true,
       errorFilter: errorFilter,
       notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
-      debugName: debugName,
+      name: debugName,
       noParamValue: true,
     );
   }
@@ -941,7 +968,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       noReturnValue: true,
       errorFilter: errorFilter,
       notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
-      debugName: debugName,
+      name: debugName,
       noParamValue: false,
     );
   }
@@ -991,7 +1018,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       noReturnValue: false,
       errorFilter: errorFilter,
       notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
-      debugName: debugName,
+      name: debugName,
       noParamValue: true,
     );
   }
@@ -1039,7 +1066,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       noReturnValue: false,
       errorFilter: errorFilter,
       notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
-      debugName: debugName,
+      name: debugName,
       noParamValue: false,
     );
   }
@@ -1092,7 +1119,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       noReturnValue: true,
       errorFilter: errorFilter,
       notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
-      debugName: debugName,
+      name: debugName,
       noParamValue: true,
     );
   }
@@ -1143,7 +1170,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       noReturnValue: true,
       errorFilter: errorFilter,
       notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
-      debugName: debugName,
+      name: debugName,
       noParamValue: false,
     );
   }
@@ -1199,7 +1226,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       noReturnValue: false,
       errorFilter: errorFilter,
       notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
-      debugName: debugName,
+      name: debugName,
       noParamValue: true,
     );
   }
@@ -1252,7 +1279,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       noReturnValue: false,
       errorFilter: errorFilter,
       notifyOnlyWhenValueChanges: notifyOnlyWhenValueChanges,
-      debugName: debugName,
+      name: debugName,
       noParamValue: false,
       undoOnExecutionFailure: undoOnExecutionFailure,
     );

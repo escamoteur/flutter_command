@@ -1,3 +1,9 @@
+[6.0.0+pre1] 
+* breaking changes: Command.debugName -> Command.name, ErrorReaction.defaultHandler -> ErrorReaction.defaulErrorFilter
+* unless an error filter returns none or throwException all errors will be published on the `resultsProperty` including
+the result of the error filter. This alloes you  if you use the `results` property to reject on any error with a generic action like popping a page while doing
+the specific handlign of the error in the local or global handler.
+* if an error handler itself throws an exception, that is now also reported to the `globalExceptionHandler` 
 [5.0.0+20] - 18.07.2024
 * undoing the last one as it makes merging of `errors` of multiple commands impossible
 [5.0.0+19] - 18.07.2024

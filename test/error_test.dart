@@ -1,4 +1,3 @@
-import 'package:flutter_command/error_filters.dart';
 import 'package:flutter_command/flutter_command.dart';
 import 'package:test/test.dart';
 
@@ -57,7 +56,7 @@ void main() {
       );
       expect(
         filter.filter('this is not in the filer', StackTrace.current),
-        ErrorReaction.defaultHandler,
+        ErrorReaction.defaulErrorFilter,
       );
     });
     test('ExemptionFilterTest', () {
@@ -69,11 +68,11 @@ void main() {
       );
       expect(
         filter.filter(Exception(), StackTrace.current),
-        ErrorReaction.defaultHandler,
+        ErrorReaction.defaulErrorFilter,
       );
       expect(
         filter.filter('this is not in the filer', StackTrace.current),
-        ErrorReaction.defaultHandler,
+        ErrorReaction.defaulErrorFilter,
       );
     });
   });
@@ -436,7 +435,7 @@ void main() {
       await Future.delayed(const Duration(seconds: 1));
 
       expect(localHandlerCaught, isA<Exception>());
-      expect(globalHandlerCaught, isA<Exception>());
+      expect(globalHandlerCaught, null);
     });
     test('throwIfNoLocalHandler - local handler', () async {
       Object? globalHandlerCaught;
@@ -487,6 +486,7 @@ void main() {
   });
   group('force throw', () {
     test('throws exception', () async {
+      // ignore: deprecated_member_use_from_same_package
       Command.debugErrorsThrowAlways = true;
       Object? globalHandlerCaught;
       Object? localHandlerCaught;
@@ -509,6 +509,7 @@ void main() {
       expect(globalHandlerCaught, null);
     });
     test('throws exception global handler', () async {
+      // ignore: deprecated_member_use_from_same_package
       Command.debugErrorsThrowAlways = true;
       Object? globalHandlerCaught;
       Object? localHandlerCaught;
@@ -529,6 +530,30 @@ void main() {
 
       expect(localHandlerCaught, null);
       expect(globalHandlerCaught, null);
+    });
+    test('localHandler throws', () async {
+      Object? globalHandlerCaught;
+      Object? localHandlerCaught;
+
+      final testCommand = Command.createAsyncNoParamNoResult(
+        () => asyncFunction1(TestType.exception),
+        errorFilter: PredicatesErrorFilter([
+          (error, stacktrace) =>
+              errorFilter<Exception>(error, ErrorReaction.localHandler),
+        ]),
+      );
+      testCommand.errors.listen((error, _) {
+        throw StateError('local handler throws');
+      });
+      Command.globalExceptionHandler = (error, _) {
+        globalHandlerCaught = error.error;
+      };
+
+      testCommand.execute();
+      await Future.delayed(const Duration(seconds: 1));
+
+      expect(localHandlerCaught, null);
+      expect(globalHandlerCaught, isA<StateError>());
     });
   });
 }

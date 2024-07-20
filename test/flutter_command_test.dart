@@ -242,8 +242,8 @@ void main() {
         thrownExceptionCollector.values,
         [
           CommandError<void>(
-            null,
-            CustomException('Intentional'),
+            command: null,
+            error: CustomException('Intentional'),
           )
         ],
       );
@@ -797,7 +797,13 @@ void main() {
 
         expect(
           thrownExceptionCollector.values,
-          [CommandError<String>('Done', CustomException('Intentionally'))],
+          [
+            CommandError<String>(
+              paramData: 'Done',
+              error: CustomException('Intentionally'),
+              command: null,
+            )
+          ],
         );
 
         // Verify the results collector.
@@ -880,7 +886,10 @@ void main() {
       ]);
       expect(pureResultCollector.values, isNull);
       expect(thrownExceptionCollector.values, [
-        CommandError('Done', CustomException('Intentional')),
+        CommandError(
+          paramData: 'Done',
+          error: CustomException('Intentional'),
+        ),
       ]);
       expect(isExecutingCollector.values, isNotEmpty);
 
@@ -925,7 +934,8 @@ void main() {
           expect(ce, isA<CommandError>());
           expect(
             ce,
-            CommandError<Object>('Done', CustomException('Intentional')),
+            CommandError<Object>(
+                paramData: 'Done', error: CustomException('Intentional')),
           );
         },
       );
@@ -1394,12 +1404,15 @@ void main() {
         CommandResult<String, String>.error(
           'param',
           CustomException('Intentional'),
+          ErrorReaction.none,
+          null,
         ),
         CommandResult<String, String>(
           'param',
           null,
           CustomException('Intentional'),
           false,
+          errorReaction: ErrorReaction.none,
         ),
       );
       expect(
@@ -1415,16 +1428,17 @@ void main() {
         'ParamData param - Data: result - HasError: false - IsExecuting: false',
       );
       expect(
-        CommandError<String>('param', CustomException('Intentional'))
+        CommandError<String>(
+                paramData: 'param', error: CustomException('Intentional'))
             .toString(),
-        'CustomException: Intentional - for param: param',
+        'CustomException: Intentional - from Command: Command Property not set for param: param,\nStacktrace: null',
       );
     });
     test('Test MockCommand - execute', () {
       final mockCommand = MockCommand<void, String>(
         initialValue: 'Initial Value',
         restriction: ValueNotifier<bool>(false),
-        debugName: 'MockingJay',
+        name: 'MockingJay',
       );
       // Ensure mock command is executable.
       expect(mockCommand.canExecute.value, true);
@@ -1442,7 +1456,7 @@ void main() {
       final mockCommand = MockCommand<String, String>(
         initialValue: 'Initial Value',
         restriction: ValueNotifier<bool>(false),
-        debugName: 'MockingJay',
+        name: 'MockingJay',
       );
       // Ensure mock command is executable.
       expect(mockCommand.canExecute.value, true);
@@ -1463,7 +1477,7 @@ void main() {
       final mockCommand = MockCommand<String, String>(
         initialValue: 'Initial Value',
         restriction: ValueNotifier<bool>(false),
-        debugName: 'MockingJay',
+        name: 'MockingJay',
       );
       // Ensure mock command is executable.
       expect(mockCommand.canExecute.value, true);
@@ -1493,7 +1507,7 @@ void main() {
       final mockCommand = MockCommand<String, String>(
         initialValue: 'Initial Value',
         restriction: ValueNotifier<bool>(false),
-        debugName: 'MockingJay',
+        name: 'MockingJay',
       );
       // Ensure mock command is executable.
       expect(mockCommand.canExecute.value, true);
@@ -1513,7 +1527,7 @@ void main() {
       final mockCommand = MockCommand<String, String>(
         initialValue: 'Initial Value',
         restriction: ValueNotifier<bool>(false),
-        debugName: 'MockingJay',
+        name: 'MockingJay',
       );
       // Ensure mock command is executable.
       expect(mockCommand.canExecute.value, true);
@@ -1533,7 +1547,7 @@ void main() {
       final mockCommand = MockCommand<String, String>(
         initialValue: 'Initial Value',
         restriction: ValueNotifier<bool>(false),
-        debugName: 'MockingJay',
+        name: 'MockingJay',
       );
       mockCommand.queueResultsForNextExecuteCall([
         const CommandResult<String, String>('Param', null, null, true),

@@ -1,41 +1,49 @@
 enum ErrorReaction {
   /// Errors are caught but silently swallowed
-  none,
+  none(false),
 
   /// Errors are caught and rethrown
-  throwException,
+  throwException(false),
 
   /// Errors are caught and passed only to the global handler
   /// if no global handler is registered an assertion is thrown
-  globalHandler,
+  globalHandler(false),
 
   /// Errors are caught and passed only to the local handlers
   /// if no one is listening on [errors] or [results] an assertion
   /// thrown in debub mode
-  localHandler,
+  localHandler(true),
 
   /// Errors are caught and passed to both handlers
   /// if no one is listening on [errors] or [results] or no global
   /// error handler is registered an assertion is
   /// thrown in debub mode
-  localAndGlobalHandler,
+  localAndGlobalHandler(true),
 
   /// Errors are caught and passed to the global handler if no one
   /// listens on [error] or [results]. If no global handler is registered an
   /// assertion is thrown in debug moe
-  firstLocalThenGlobalHandler,
+  firstLocalThenGlobalHandler(true),
 
   /// if no global handler is present and no listeners on [results] or [errors]
   /// the error is rethrown.
-  /// if any or both of the handlers are present, it will call them
-  noHandlersThrowException,
+  /// if any or both of the handlers are present, it will call them, first the
+  /// local handler if present, then the global handler if present.
+  noHandlersThrowException(true),
 
   /// Errors are caught and rethrown if no local handler
   /// makes really only sense as global error filter
-  throwIfNoLocalHandler,
+  throwIfNoLocalHandler(true),
 
-  /// the default error handler of the Command class is used
-  defaultHandler,
+  /// the default error filter handler of the Command class will be called to
+  /// determine the error reaction. The default error filter is
+  /// not allowed to return this value.
+  defaulErrorFilter(false),
+  ;
+
+  final bool shouldCallLocalHandler;
+
+  const ErrorReaction(this.shouldCallLocalHandler);
 }
 
 /// Instead of the current parameter `catchAlways` commands can get an optional
@@ -79,7 +87,7 @@ class ErrorFilterExcemption<T> implements ErrorFilter {
     if (error is T) {
       return excemptionReaction;
     }
-    return ErrorReaction.defaultHandler;
+    return ErrorReaction.defaulErrorFilter;
   }
 }
 
@@ -102,7 +110,7 @@ class TableErrorFilter implements ErrorFilter {
     if (error.runtimeType == Exception().runtimeType) {
       return _table[Exception] ?? ErrorReaction.firstLocalThenGlobalHandler;
     }
-    return _table[error.runtimeType] ?? ErrorReaction.defaultHandler;
+    return _table[error.runtimeType] ?? ErrorReaction.defaulErrorFilter;
   }
 }
 
@@ -122,7 +130,7 @@ ErrorReaction? errorFilter<TError>(
 }
 
 /// Takes a list of predicate functions and returns the first non null
-/// [ErrorReaction] or [ErrorReaction.defaultHandler] if no predicate
+/// [ErrorReaction] or [ErrorReaction.defaulErrorFilter] if no predicate
 /// matches.
 /// The predicates are called in the order of the list. which means if you want to
 /// match against a type hierarchy you have to put the more specific type first.
@@ -147,6 +155,6 @@ class PredicatesErrorFilter implements ErrorFilter {
       final reaction = filter(error, stackTrace);
       if (reaction != null) return reaction;
     }
-    return ErrorReaction.defaultHandler;
+    return ErrorReaction.defaulErrorFilter;
   }
 }
