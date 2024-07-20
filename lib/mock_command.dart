@@ -22,7 +22,7 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult?> {
     super.includeLastResultInCommandResults = false,
     super.errorFilter,
     super.notifyOnlyWhenValueChanges = false,
-    super.debugName,
+    super.name,
   }) {
     _commandResult
         .where((result) => result.hasData)
@@ -109,8 +109,8 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult?> {
       null,
       false,
     );
-    if (_debugName != null) {
-      Command.loggingHandler?.call(_debugName, _commandResult.value);
+    if (_name != null) {
+      Command.loggingHandler?.call(_name, _commandResult.value);
     }
     _isExecuting.value = false;
   }
@@ -120,14 +120,14 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult?> {
   /// error: Exception([message])
   /// isExecuting : false
   void endExecutionWithError(String message) {
-    _handleError(
+    _handleErrorFiltered(
       lastPassedValueToExecute,
       Exception(message),
       StackTrace.current,
     );
     _isExecuting.value = false;
-    if (_debugName != null) {
-      Command.loggingHandler?.call(_debugName, _commandResult.value);
+    if (_name != null) {
+      Command.loggingHandler?.call(_name, _commandResult.value);
     }
   }
 
@@ -142,8 +142,8 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult?> {
       null,
       false,
     );
-    if (_debugName != null) {
-      Command.loggingHandler?.call(_debugName, _commandResult.value);
+    if (_name != null) {
+      Command.loggingHandler?.call(_name, _commandResult.value);
     }
     _isExecuting.value = false;
   }

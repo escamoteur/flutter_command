@@ -20,7 +20,7 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
     required super.noReturnValue,
     required super.errorFilter,
     required super.notifyOnlyWhenValueChanges,
-    required super.debugName,
+    required super.name,
     required super.noParamValue,
   })  : _func = func,
         _funcNoParam = funcNoParam;
@@ -35,7 +35,7 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
       assert(_func != null);
       assert(
         param != null || null is TParam,
-        'You passed a null value to the command ${_debugName ?? ''} that has a non-nullable type as TParam',
+        'You passed a null value to the command ${_name ?? ''} that has a non-nullable type as TParam',
       );
       result = _func!(param as TParam);
     }
