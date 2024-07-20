@@ -55,6 +55,13 @@ abstract class ErrorFilter {
   ErrorReaction filter(Object error, StackTrace stackTrace);
 }
 
+class ErrorFilerConstant implements ErrorFilter {
+  final ErrorReaction reaction;
+  const ErrorFilerConstant(this.reaction);
+  @override
+  ErrorReaction filter(Object error, StackTrace stackTrace) => reaction;
+}
+
 class ErrorHandlerGlobalIfNoLocal implements ErrorFilter {
   const ErrorHandlerGlobalIfNoLocal();
   @override

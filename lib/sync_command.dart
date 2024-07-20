@@ -26,32 +26,17 @@ class CommandSync<TParam, TResult> extends Command<TParam, TResult> {
         _funcNoParam = funcNoParam;
 
   @override
-  Future<void> _execute([TParam? param]) {
-    TResult result;
+  TResult _execute([TParam? param]) {
     if (_noParamValue) {
       assert(_funcNoParam != null);
-      result = _funcNoParam!();
+      return _funcNoParam!();
     } else {
       assert(_func != null);
       assert(
         param != null || null is TParam,
         'You passed a null value to the command ${_name ?? ''} that has a non-nullable type as TParam',
       );
-      result = _func!(param as TParam);
+      return _func!(param as TParam);
     }
-    if (_isDisposing) {
-      return Future<void>.value();
-    }
-    if (!_noReturnValue) {
-      _commandResult.value =
-          CommandResult<TParam, TResult>(param, result, null, false);
-      value = result;
-    } else {
-      notifyListeners();
-    }
-    _futureCompleter?.complete(result);
-    _futureCompleter = null;
-
-    return Future<void>.value();
   }
 }

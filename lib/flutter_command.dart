@@ -30,13 +30,14 @@ part './undoable_command.dart';
 class CommandResult<TParam, TResult> {
   final TParam? paramData;
   final TResult? data;
+  final bool isUndoValue;
   final Object? error;
   final bool isExecuting;
   final ErrorReaction? errorReaction;
   final StackTrace? stackTrace;
 
   const CommandResult(this.paramData, this.data, this.error, this.isExecuting,
-      {this.errorReaction, this.stackTrace});
+      {this.errorReaction, this.stackTrace, this.isUndoValue = false});
 
   const CommandResult.data(TParam? param, TResult data)
       : this(param, data, null, false);
@@ -53,7 +54,7 @@ class CommandResult<TParam, TResult> {
 
   bool get hasData => data != null;
 
-  bool get hasError => error != null;
+  bool get hasError => error != null && !isUndoValue;
 
   @override
   bool operator ==(Object other) =>
@@ -253,7 +254,29 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       if (_isDisposing) {
         return;
       }
-      await _execute(param);
+      TResult result;
+
+      /// here we call the actual handler function
+      final FutureOr = _execute(param);
+      if (FutureOr is Future) {
+        result = await FutureOr;
+      } else {
+        result = FutureOr;
+      }
+
+      if (_isDisposing) {
+        return;
+      }
+
+      _commandResult.value =
+          CommandResult<TParam, TResult>(param, result, null, false);
+      if (!_noReturnValue) {
+        value = result;
+      } else {
+        notifyListeners();
+      }
+      _futureCompleter?.complete(result);
+      _futureCompleter = null;
     } catch (error, stacktrace) {
       StackTrace chain = _mandatoryErrorHandling(stacktrace, error, param);
 
@@ -307,7 +330,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   }
 
   /// override this method to implement the actual command logic
-  Future<void> _execute([TParam? param]);
+  FutureOr<TResult> _execute([TParam? param]);
 
   /// This makes Command a callable class, so instead of `myCommand.execute()`
   /// you can write `myCommand()`

@@ -45,12 +45,11 @@ typedef UndoFn<TUndoState, TResult> = FutureOr<TResult> Function(
 );
 
 class UndoableCommand<TParam, TResult, TUndoState>
-    extends Command<TParam, TResult> {
-  final Future<TResult> Function(TParam, UndoStack<TUndoState>)? _func;
-  final Future<TResult> Function(UndoStack<TUndoState>)? _funcNoParam;
+    extends CommandAsync<TParam, TResult> {
+  final Future<TResult> Function(TParam, UndoStack<TUndoState>)? _undoableFunc;
+  final Future<TResult> Function(UndoStack<TUndoState>)? _undoableFuncNoParam;
   final UndoFn<TUndoState, TResult> _undofunc;
   final UndoStack<TUndoState> _undoStack = UndoStack<TUndoState>();
-  ListenableSubscription? _exceptionSubscription;
 
   UndoableCommand({
     Future<TResult> Function(TParam, UndoStack<TUndoState>)? func,
@@ -66,75 +65,16 @@ class UndoableCommand<TParam, TResult, TUndoState>
     required super.notifyOnlyWhenValueChanges,
     required super.name,
     required super.noParamValue,
-  })  : _func = func,
-        _funcNoParam = funcNoParam,
+  })  : _undoableFunc = func,
+        _undoableFuncNoParam = funcNoParam,
         _undofunc = undo,
-        _undoOnExecutionFailure = undoOnExecutionFailure {}
+        _undoOnExecutionFailure = undoOnExecutionFailure {
+    _func = func != null ? (param) => _undoableFunc!(param, _undoStack) : null;
+    _funcNoParam =
+        funcNoParam != null ? () => _undoableFuncNoParam!(_undoStack) : null;
+  }
 
   final bool _undoOnExecutionFailure;
-
-  @override
-  void dispose() {
-    _exceptionSubscription?.cancel();
-    super.dispose();
-  }
-
-  @override
-  // ignore: avoid_void_async
-  Future<void> _execute([TParam? param]) async {
-    TResult result;
-    if (_noParamValue) {
-      assert(_funcNoParam != null);
-      if (Command.useChainCapture) {
-        final completer = Completer<TResult>();
-        Chain.capture(
-          () => _funcNoParam!(_undoStack).then(completer.complete),
-          onError: (error, chain) {
-            if (completer.isCompleted) {
-              return;
-            }
-            completer.completeError(error, chain);
-          },
-        );
-        result = await completer.future;
-      } else {
-        result = await _funcNoParam!(_undoStack);
-      }
-    } else {
-      assert(_func != null);
-      assert(
-        param != null || null is TParam,
-        'You passed a null value to the command ${_name ?? ''} that has a non-nullable type as TParam',
-      );
-      if (Command.useChainCapture) {
-        final completer = Completer<TResult>();
-        Chain.capture(
-          () => _func!(param as TParam, _undoStack).then(completer.complete),
-          onError: (error, chain) {
-            if (completer.isCompleted) {
-              return;
-            }
-            completer.completeError(error, chain);
-          },
-        );
-        result = await completer.future;
-      } else {
-        result = await _func!(param as TParam, _undoStack);
-      }
-    }
-    if (_isDisposing) {
-      return;
-    }
-    _commandResult.value =
-        CommandResult<TParam, TResult>(param, result, null, false);
-    if (!_noReturnValue) {
-      value = result;
-    } else {
-      notifyListeners();
-    }
-    _futureCompleter?.complete(result);
-    _futureCompleter = null;
-  }
 
   /// Undoes the last execution of this command.By calling the
   /// undo function that was passed when creating the command
@@ -177,6 +117,7 @@ class UndoableCommand<TParam, TResult, TUndoState>
         result,
         reason ?? UndoException("manual undo"),
         false,
+        isUndoValue: true,
       );
       if (!_noReturnValue) {
         value = result;

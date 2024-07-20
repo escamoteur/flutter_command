@@ -149,7 +149,8 @@ class MockCommand<TParam, TResult> extends Command<TParam, TResult?> {
   }
 
   @override
-  Future<void> _execute([TParam? param]) async {
+  Future<TResult> _execute([TParam? param]) async {
     // TODO: implement _execute
+    throw UnimplementedError();
   }
 }

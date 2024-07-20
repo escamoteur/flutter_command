@@ -397,15 +397,14 @@ void main() {
       expect(() => command.execute(null), throwsA(isA<AssertionError>()));
     });
   });
+  Future<String> slowAsyncFunction(String? s) async {
+    print('___Start__Slow__Action__________');
+    await Future.delayed(const Duration(milliseconds: 10));
+    print('___End__Slow__Action__________');
+    return s!;
+  }
 
   group('Asynchronous Command Testing', () {
-    Future<String> slowAsyncFunction(String? s) async {
-      print('___Start__Slow__Action__________');
-      await Future.delayed(const Duration(milliseconds: 10));
-      print('___End__Slow__Action__________');
-      return s!;
-    }
-
     test('Execute simple async function with no Parameter no Result', () {
       var executionCount = 0;
 
@@ -1391,6 +1390,62 @@ void main() {
         find.widgetWithText(Center, 'Exception From Command'),
         findsOneWidget,
       );
+    });
+  });
+  group('UndoableCommand', () {
+    test(
+        'Execute simple async function with no Parameter no Result that throws',
+        () {
+      var executionCount = 0;
+      var undoCount = 0;
+      var undoValue = 0;
+      Object? reason;
+
+      final command = Command.createUndoableNoParamNoResult<int>(
+        (undoStack) {
+          executionCount++;
+          undoStack.push(42);
+          return Future.error(CustomException('Intentional'));
+        },
+        undo: (undoStack, error) => {
+          reason = error,
+          undoCount++,
+          undoValue = undoStack.pop(),
+        },
+        errorFilter: ErrorFilerConstant(ErrorReaction.none),
+      );
+
+      // set up all the collectors for this command.
+      setupCollectors(command);
+
+      // Ensure command is not executing already.
+      expect(
+        command.isExecuting.value,
+        false,
+        reason: 'IsExecuting before true',
+      );
+
+      // Execute command.
+      fakeAsync((async) {
+        command.execute();
+
+        // Waiting till the async function has finished executing.
+        async.elapse(const Duration(milliseconds: 100));
+
+        expect(command.isExecuting.value, false);
+
+        expect(executionCount, 1);
+
+        // Expected to return false, true, false
+        // but somehow skips the initial state which is false.
+        expect(isExecutingCollector.values, [true, false]);
+
+        expect(canExecuteCollector.values, [false, true]);
+
+        expect(reason, isA<CustomException>());
+        expect(undoCount, 1);
+        expect(undoValue, 42);
+      });
     });
   });
 

@@ -1,8 +1,8 @@
 part of './flutter_command.dart';
 
 class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
-  final Future<TResult> Function(TParam)? _func;
-  final Future<TResult> Function()? _funcNoParam;
+  Future<TResult> Function(TParam)? _func;
+  Future<TResult> Function()? _funcNoParam;
 
   CommandAsync({
     Future<TResult> Function(TParam)? func,
@@ -21,7 +21,7 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
 
   @override
   // ignore: avoid_void_async
-  Future<void> _execute([TParam? param]) async {
+  Future<TResult> _execute([TParam? param]) async {
     TResult result;
     if (_noParamValue) {
       assert(_funcNoParam != null);
@@ -62,17 +62,6 @@ class CommandAsync<TParam, TResult> extends Command<TParam, TResult> {
         result = await _func!(param as TParam);
       }
     }
-    if (_isDisposing) {
-      return;
-    }
-    _commandResult.value =
-        CommandResult<TParam, TResult>(param, result, null, false);
-    if (!_noReturnValue) {
-      value = result;
-    } else {
-      notifyListeners();
-    }
-    _futureCompleter?.complete(result);
-    _futureCompleter = null;
+    return result;
   }
 }
