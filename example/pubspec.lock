@@ -44,7 +44,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "5.0.0+17"
+    version: "5.0.0+20"
   flutter_lints:
     dependency: "direct dev"
     description:
@@ -57,10 +57,10 @@ packages:
     dependency: "direct main"
     description:
       name: functional_listener
-      sha256: "026d1bd4f66367f11d9ec9f1f1ddb42b89e4484b356972c76d983266cf82f33f"
+      sha256: ee8ffc29b2448981d96addf44ac9b4af2ba4ca2627979e77d3e6fe59b967ca4f
       url: "https://pub.dev"
     source: hosted
-    version: "2.3.1"
+    version: "3.0.0"
   http:
     dependency: "direct main"
     description:
@@ -196,4 +196,3 @@ packages:
     version: "2.1.4"
 sdks:
   dart: ">=3.3.0-0 <4.0.0"
-  flutter: ">=3.0.0"

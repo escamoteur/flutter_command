@@ -12,6 +12,9 @@ class WeatherManager {
   late Command<String, String> textChangedCommand;
 
   WeatherManager() {
+    Command.globalExceptionHandler = (_, __) {
+      print('Global Exception Handler');
+    };
     // Command expects a bool value when executed and sets it as its own value
     setExecutionStateCommand =
         Command.createSync<bool, bool>((b) => b, initialValue: true);
