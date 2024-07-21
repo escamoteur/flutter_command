@@ -1,3 +1,5 @@
+[6.0.0+pre2] 
+* fixing asssert in CommandBuilder
 [6.0.0+pre1] 
 * breaking changes: Command.debugName -> Command.name, ErrorReaction.defaultHandler -> ErrorReaction.defaulErrorFilter
 * unless an error filter returns none or throwException all errors will be published on the `resultsProperty` including

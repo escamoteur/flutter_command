@@ -41,12 +41,14 @@ class CommandBuilder<TParam, TResult> extends StatelessWidget {
               whileExecuting?.call(context, lastData, paramData) ??
               const SizedBox(),
           onError: (lastData, error, paramData) {
+            if (onError == null) {
+              return const SizedBox();
+            }
             assert(
                 result.errorReaction?.shouldCallLocalHandler == true,
                 'This CommandBuilder received an error from Command ${command.name} '
                 'but the errorReaction indidates that the error should not be handled locally. ');
-            return onError?.call(context, lastData, error, paramData) ??
-                const SizedBox();
+            return onError!.call(context, lastData, error, paramData);
           },
         );
       },
