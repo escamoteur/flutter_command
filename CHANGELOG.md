@@ -1,3 +1,5 @@
+[6.0.0] 
+* official new release
 [6.0.0+pre2] 
 * fixing asssert in CommandBuilder
 [6.0.0+pre1] 
