@@ -127,10 +127,10 @@ packages:
     dependency: "direct main"
     description:
       name: functional_listener
-      sha256: ee8ffc29b2448981d96addf44ac9b4af2ba4ca2627979e77d3e6fe59b967ca4f
+      sha256: d65803c98a841a15957c426f183ea7f03b7de8fa4a6d1ab32ca2485584c3e3ef
       url: "https://pub.dev"
     source: hosted
-    version: "3.0.0"
+    version: "4.0.0"
   glob:
     dependency: transitive
     description:
