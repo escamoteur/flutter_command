@@ -1,3 +1,5 @@
+[6.0.1] 29.09.2024
+* Update to latest version of functional_listener to fix a potential bug when removing the last listener from `canExecute`
 [6.0.0] 
 * official new release
 [6.0.0+pre2] 
