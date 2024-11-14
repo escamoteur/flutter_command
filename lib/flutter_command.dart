@@ -82,7 +82,7 @@ class CommandError<TParam> {
   final Object? error;
   final TParam? paramData;
   String? get commandName => command?.name ?? 'Command Property not set';
-  final Command? command;
+  final Command<TParam, dynamic>? command;
   final StackTrace? stackTrace;
 
   /// if nuill, the error was not filtered by an ErrorFilter which means either send to the global handler
@@ -92,7 +92,7 @@ class CommandError<TParam> {
   /// in case that an error handler throws an error, we will call the global exception handler
   /// with this error
   /// this will hold the original error that called the error handler that threw error
-  final CommandError? originalError;
+  final CommandError<TParam>? originalError;
 
   CommandError({
     this.command,
@@ -186,7 +186,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
       _errors.notifyListeners(reportErrorHandlerExceptionsToGlobalHandler
           ? (error, stackTrace) => {
                 globalExceptionHandler?.call(
-                  CommandError(
+                  CommandError<TParam>(
                       error: error,
                       command: this,
                       originalError: originalError,
@@ -361,12 +361,12 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// wrapped in an `CommandError`
   ///
   @Deprecated('use errors instead')
-  ValueListenable<CommandError?> get thrownExceptions => _errors;
+  ValueListenable<CommandError<TParam>?> get thrownExceptions => _errors;
 
   /// `ValueListenable<CommandError>` that reflects the Error State of the command
   /// if the wrapped function throws an error, its value is set to the error is
   /// wrapped in an `CommandError`
-  ValueListenable<CommandError?> get errors => _errors;
+  ValueListenable<CommandError<TParam>?> get errors => _errors;
 
   /// clears the error state of the command. This will trigger any listeners
   /// especially useful if you use `watch_it` to watch the errors property.
@@ -384,7 +384,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// any Command of the app. Ideal for logging.
   /// the [name] of the Command that was responsible for the error is inside
   /// the error object.
-  static void Function(CommandError<Object> error, StackTrace stackTrace)?
+  static void Function(CommandError<dynamic> error, StackTrace stackTrace)?
       globalExceptionHandler;
 
   /// if no individual ErrorFilter is set when creating a Command
@@ -430,7 +430,8 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// optional handler that will get called on all `Command` executions if the Command
   /// has a set a name.
   /// [commandName] the [name] of the Command
-  static void Function(String? commandName, CommandResult result)?
+  static void Function(
+          String? commandName, CommandResult<dynamic, dynamic> result)?
       loggingHandler;
 
   /// as we don't want that anyone changes the values of these ValueNotifiers
@@ -459,7 +460,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     /// ensure that all ValueNotifiers have finished their async notifications
     /// before we dispose them with a delay of 50ms otherwise if any listener of any of the
     /// ValueNotifiers would dispose the command itself, we would get an exception
-    Future.delayed(
+    Future<void>.delayed(
       Duration(milliseconds: 50),
       () {
         _commandResult.dispose();
@@ -929,7 +930,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// [debugName] optional identifier that is included when you register a [globalExceptionHandler]
   /// or a [loggingHandler]
   static Command<void, void> createAsyncNoParamNoResult(
-    Future Function() action, {
+    Future<void> Function() action, {
     ValueListenable<bool>? restriction,
     void Function()? ifRestrictedExecuteInstead,
     ErrorFilter? errorFilter,
@@ -975,7 +976,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// [debugName] optional identifier that is included when you register a [globalExceptionHandler]
   /// or a [loggingHandler]
   static Command<TParam, void> createAsyncNoResult<TParam>(
-    Future Function(TParam x) action, {
+    Future<void> Function(TParam x) action, {
     ValueListenable<bool>? restriction,
     ExecuteInsteadHandler<TParam>? ifRestrictedExecuteInstead,
     ErrorFilter? errorFilter,
@@ -1120,7 +1121,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// [debugName] optional identifier that is included when you register a [globalExceptionHandler]
   /// or a [loggingHandler]
   static Command<void, void> createUndoableNoParamNoResult<TUndoState>(
-    Future Function(UndoStack<TUndoState>) action, {
+    Future<void> Function(UndoStack<TUndoState>) action, {
     required UndoFn<TUndoState, void> undo,
     bool undoOnExecutionFailure = true,
     ValueListenable<bool>? restriction,
@@ -1173,7 +1174,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// [debugName] optional identifier that is included when you register a [globalExceptionHandler]
   /// or a [loggingHandler]
   static Command<TParam, void> createUndoableNoResult<TParam, TUndoState>(
-    Future Function(TParam, UndoStack<TUndoState>) action, {
+    Future<void> Function(TParam, UndoStack<TUndoState>) action, {
     required UndoFn<TUndoState, void> undo,
     bool undoOnExecutionFailure = true,
     ValueListenable<bool>? restriction,

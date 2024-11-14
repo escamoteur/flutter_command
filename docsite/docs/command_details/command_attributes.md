@@ -82,7 +82,7 @@ Different `Command` can be created depending on the signature of the ***function
   /// A asynchronous Command with no parameter and no result
   final command = createAsyncNoParamNoResult(() async {
     // Some asynchronous consuming task
-    Future.delayed(Duration(seconds: 2));
+    Future<void>.delayed(Duration(seconds: 2));
     print("A simple command");
   });
   ```
@@ -94,7 +94,7 @@ Different `Command` can be created depending on the signature of the ***function
   /// A asynchronous command with no parameter and but a result
   final command = createAsyncNoParam<String>(() async {
     // Some asynchronous consuming task
-    Future.delayed(Duration(seconds: 2));
+    Future<void>.delayed(Duration(seconds: 2));
     print("A simple command");
     return "My Result";
   });
@@ -107,7 +107,7 @@ Different `Command` can be created depending on the signature of the ***function
   /// A asynchronous Command with one parameter and no result
   final command = createAsyncNoResult<String>((String param) async {
     // Some asynchronous consuming task
-    Future.delayed(Duration(seconds: 2));
+    Future<void>.delayed(Duration(seconds: 2));
     print("I can use this parameter: $param");    
   });
   ```
@@ -119,7 +119,7 @@ Different `Command` can be created depending on the signature of the ***function
   /// A asynchronous Command with one parameter and result
   final command = createSync<int, String>((int param) async {
     // Some asynchronous consuming task
-    Future.delayed(Duration(seconds: 2));
+    Future<void>.delayed(Duration(seconds: 2));
     return "I take an integer $param and return this String";    
   });
   ```

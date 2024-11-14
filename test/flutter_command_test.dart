@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print, strict_raw_type
 
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter/material.dart';
@@ -195,7 +195,7 @@ void main() {
       setupCollectors(command);
 
       command.execute(42);
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
 
       expect(executionCount, 1);
       expect(insteadCalledParam, null);
@@ -207,7 +207,7 @@ void main() {
       expect(command.canExecute.value, false);
 
       command.execute(42);
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
 
       expect(executionCount, 1);
       expect(insteadCalledParam, 42);
@@ -399,7 +399,7 @@ void main() {
   });
   Future<String> slowAsyncFunction(String? s) async {
     print('___Start__Slow__Action__________');
-    await Future.delayed(const Duration(milliseconds: 10));
+    await Future<void>.delayed(const Duration(milliseconds: 10));
     print('___End__Slow__Action__________');
     return s!;
   }
@@ -472,7 +472,7 @@ void main() {
     //   command.execute('Done');
 
     //   // Waiting till the async function has finished executing.
-    //   await Future.delayed(Duration(milliseconds: 10));
+    //   await Future<void>.delayed(Duration(milliseconds: 10));
 
     //   expect(command.isExecuting.value, false);
 
@@ -647,7 +647,7 @@ void main() {
       command.execute('Done');
       command.execute('Done2'); // should not execute
 
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
 
       expect(command.isExecuting.value, false);
       expect(executionCount, 1);
@@ -682,10 +682,10 @@ void main() {
       command.execute('Done');
 
       // Reuse the same command after 50 milliseconds and it should work.
-      await Future.delayed(const Duration(milliseconds: 50));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
       command.execute('Done2');
 
-      await Future.delayed(const Duration(milliseconds: 50));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
       expect(command.isExecuting.value, false);
       expect(executionCount, 2);
 
@@ -733,10 +733,10 @@ void main() {
       );
 
       command.execute('Done');
-      await Future.delayed(const Duration(milliseconds: 50));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
       command('Done2');
 
-      await Future.delayed(const Duration(milliseconds: 50));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
 
       expect(command.isExecuting.value, false);
       expect(executionCount, 2);
@@ -862,11 +862,11 @@ void main() {
       setupCollectors(command);
 
       command('Done');
-      await Future.delayed(const Duration(milliseconds: 10));
-      await Future.delayed(const Duration(milliseconds: 10));
-      await Future.delayed(Duration.zero);
-      await Future.delayed(Duration.zero);
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(Duration.zero);
+      await Future<void>.delayed(const Duration(milliseconds: 10));
 
       // verify collectors
 
@@ -899,7 +899,7 @@ void main() {
     test('Test excecuteWithFuture', () async {
       final command = Command.createAsync<String, String?>(
         (s) async {
-          await Future.delayed(const Duration(milliseconds: 10));
+          await Future<void>.delayed(const Duration(milliseconds: 10));
           return s;
         },
         initialValue: 'Initial Value',
@@ -941,7 +941,7 @@ void main() {
 
       command('Done');
 
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
       final command2 = Command.createSync<String, String>((s) {
         throw CustomException('Intentional');
       },
@@ -977,10 +977,10 @@ void main() {
       );
 
       command('Done');
-      await Future.delayed(const Duration(milliseconds: 100));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
       final command2 = Command.createAsync<String, String?>(
         (s) async {
-          await Future.delayed(const Duration(milliseconds: 20));
+          await Future<void>.delayed(const Duration(milliseconds: 20));
           return s;
         },
         initialValue: 'Initial Value',
@@ -997,7 +997,7 @@ void main() {
   group('Test notifyOnlyWhenValueChanges related logic', () {
     Future<String> slowAsyncFunction(String s) async {
       print('___Start__Slow__Action__________');
-      await Future.delayed(const Duration(milliseconds: 10));
+      await Future<void>.delayed(const Duration(milliseconds: 10));
       print('___End__Slow__Action__________');
       return s;
     }
@@ -1199,7 +1199,7 @@ void main() {
     testWidgets('Test Command Builder', (WidgetTester tester) async {
       final testCommand = Command.createAsyncNoParam<String>(
         () async {
-          await Future.delayed(const Duration(seconds: 2));
+          await Future<void>.delayed(const Duration(seconds: 2));
           print('Command is called');
           return 'New Value';
         },
@@ -1241,7 +1241,7 @@ void main() {
     testWidgets('Test Command Builder On error', (WidgetTester tester) async {
       final testCommand = Command.createAsyncNoParam<String>(
         () async {
-          await Future.delayed(const Duration(seconds: 2));
+          await Future<void>.delayed(const Duration(seconds: 2));
           throw CustomException('Exception From Command');
         },
         initialValue: 'Initial Value',
@@ -1290,7 +1290,7 @@ void main() {
     testWidgets('Test toWidget with Data', (WidgetTester tester) async {
       final testCommand = Command.createAsyncNoParam<String>(
         () async {
-          await Future.delayed(const Duration(seconds: 2));
+          await Future<void>.delayed(const Duration(seconds: 2));
           return 'New Value';
         },
         initialValue: 'Initial Value',
@@ -1341,7 +1341,7 @@ void main() {
     testWidgets('Test toWidget with Error', (WidgetTester tester) async {
       final testCommand = Command.createAsyncNoParam<String>(
         () async {
-          await Future.delayed(const Duration(seconds: 2));
+          await Future<void>.delayed(const Duration(seconds: 2));
           throw CustomException('Exception From Command');
         },
         initialValue: 'Initial Value',

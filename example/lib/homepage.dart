@@ -17,7 +17,7 @@ class _HomePageState extends State<HomePage> {
     errorSubscription ??= weatherManager.updateWeatherCommand.errors
         // .where((x) => x != null) // filter out the error value reset
         .listen((error, _) {
-      showDialog(
+      showDialog<void>(
           context: context,
           builder: (context) => AlertDialog(
                 title: const Text('An error has occured!'),

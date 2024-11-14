@@ -15,7 +15,7 @@ Let us assume you want to test an asynchronous command which accepts a name and 
 ```dart
 Command greetingCommand =
     Command.createAsync<String, String>((String name) async {
-  await Future.delayed(Duration(seconds: 2));
+  await Future<void>.delayed(Duration(seconds: 2));
   return 'Hello $name! Welcome.';
 }, 'Hello! Welcome.');
 ```
@@ -40,7 +40,7 @@ test('Greeting Command returns correct messages', () async {
     greetingCommand.execute('Alice');
 
     // Wait for the command to execute.
-    await Future.delayed(Duration(seconds: 2));
+    await Future<void>.delayed(Duration(seconds: 2));
 
     // Expect the value has changed to greet Alice
     expect(greetingCommand.value, 'Hello Alice! Welcome.');
@@ -50,7 +50,7 @@ test('Greeting Command returns correct messages', () async {
     greetingCommand('Bob');
 
     // Wait for the command to execute.
-    await Future.delayed(Duration(seconds: 2));
+    await Future<void>.delayed(Duration(seconds: 2));
 
     // Expect the value has changed to greet Bob
     expect(greetingCommand.value, 'Hello Bob! Welcome.');
@@ -77,14 +77,14 @@ test('Greeting Command returns correct results', () async {
     greetingCommand.execute('Alice');
 
     // Wait for the command to execute.
-    await Future.delayed(Duration(seconds: 2));
+    await Future<void>.delayed(Duration(seconds: 2));
 
     // Execute the command again with a different name this time
     // Since a Command is callable following is also a valid syntax.
     greetingCommand('Bob');
 
     // Wait for the command to execute.
-    await Future.delayed(Duration(seconds: 2));
+    await Future<void>.delayed(Duration(seconds: 2));
 
     // Verify the results.
     expect(greetingResults, [

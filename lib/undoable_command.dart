@@ -80,7 +80,7 @@ class UndoableCommand<TParam, TResult, TUndoState>
   /// undo function that was passed when creating the command
   void undo() => _undo();
 
-  FutureOr _undo([Object? reason]) async {
+  FutureOr<void> _undo([Object? reason]) async {
     assert(_undoStack.isNotEmpty);
     try {
       TResult result;
@@ -110,7 +110,7 @@ class UndoableCommand<TParam, TResult, TUndoState>
         result = await _undofunc(_undoStack, reason);
       }
       if (_isDisposing) {
-        return;
+        return null;
       }
       _commandResult.value = CommandResult<TParam, TResult>(
         null,

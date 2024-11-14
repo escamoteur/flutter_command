@@ -11,7 +11,7 @@ Lets us assume your command connects to a rest api and is expected to return a l
 ```dart
 
 /// Asynchronous method to fetch results
-Future<List<String>> fetchResults(String query) => Future.delayed(
+Future<List<String>> fetchResults(String query) => Future<void>.delayed(
     Duration(seconds: 2),
     () => [
           'Result1',
