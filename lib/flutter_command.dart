@@ -368,6 +368,8 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// wrapped in an `CommandError`
   ValueListenable<CommandError<TParam>?> get errors => _errors;
 
+  /// Same as [errors] but with a dynamic error type. This is useful if you have
+  /// want to merge different error types in one listener.
   ValueListenable<CommandError<dynamic>?> get errorsDynamic => _errors;
 
   /// clears the error state of the command. This will trigger any listeners
