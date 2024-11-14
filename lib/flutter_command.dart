@@ -268,8 +268,8 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
         return;
       }
 
-      _commandResult.value =
-          CommandResult<TParam, TResult>(param, result, null, false);
+      _commandResult.value = CommandResult<TParam, TResult>(
+          param, _noReturnValue ? null : result, null, false);
       if (!_noReturnValue) {
         value = result;
       } else {
