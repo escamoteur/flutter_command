@@ -933,7 +933,7 @@ void main() {
           expect(ce, isA<CommandError>());
           expect(
             ce,
-            CommandError<Object>(
+            CommandError<dynamic>(
                 paramData: 'Done', error: CustomException('Intentional')),
           );
         },
