@@ -13,7 +13,7 @@ class CommandBuilder<TParam, TResult> extends StatelessWidget {
   )? whileExecuting;
   final Widget Function(
     BuildContext context,
-    Object?,
+    Object,
     TResult? lastValue,
     TParam?,
   )? onError;
@@ -62,10 +62,10 @@ extension ToWidgeCommandResult<TParam, TResult>
     required Widget Function(TResult result, TParam? param) onData,
     Widget Function(TParam? param)? onNullData,
     Widget Function(TResult? lastResult, TParam? param)? whileExecuting,
-    Widget Function(Object? error, TResult? lastResult, TParam? param)? onError,
+    Widget Function(Object error, TResult? lastResult, TParam? param)? onError,
   }) {
     if (error != null) {
-      return onError?.call(error, data, paramData) ?? const SizedBox();
+      return onError?.call(error!, data, paramData) ?? const SizedBox();
     }
     if (isExecuting) {
       return whileExecuting?.call(data, paramData) ?? const SizedBox();
