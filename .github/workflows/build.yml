@@ -35,7 +35,7 @@ jobs:
       # Exits the workflow if any format is carried out.
       # from docs:   --set-exit-if-changed    Return exit code 1 if there are any formatting changes.
       - name: Check format
-        run: flutter format --set-exit-if-changed .
+        run: dart format --set-exit-if-changed .
       
       # Carry out an flutter analysis      
       # - name: Analyze
