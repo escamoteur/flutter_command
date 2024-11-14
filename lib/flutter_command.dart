@@ -79,7 +79,7 @@ class CommandResult<TParam, TResult> {
 /// This sort of objects are emitted on the `.errors` ValueListenable
 /// of the Command
 class CommandError<TParam> {
-  final Object? error;
+  final Object error;
   final TParam? paramData;
   String? get commandName => command?.name ?? 'Command Property not set';
   final Command<TParam, dynamic>? command;
@@ -98,7 +98,7 @@ class CommandError<TParam> {
     this.command,
     this.errorReaction,
     this.paramData,
-    this.error,
+    required this.error,
     this.stackTrace,
     this.originalError,
   });
@@ -177,7 +177,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
         .listen((x, _) {
       final originalError = CommandError<TParam>(
         paramData: x.paramData,
-        error: x.error,
+        error: x.error!,
         command: this,
         errorReaction: x.errorReaction!,
         stackTrace: x.stackTrace,
