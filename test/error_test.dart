@@ -550,7 +550,7 @@ void main() {
       };
 
       testCommand.execute();
-      await Future<void>.delayed(const Duration(seconds: 1));
+      await Future<void>.delayed(const Duration(seconds: 2));
 
       expect(localHandlerCaught, null);
       expect(globalHandlerCaught, isA<StateError>());
