@@ -1,3 +1,5 @@
+[7.1.0] 27.11.2024
+* adding `isExecutingSync` to allow better chaining of commands 
 [7.0.1] 27.11.2024
 * ensure that isExecuting is set back to false before we notify any result listeners.
 [7.0.0] 14.11.2024
