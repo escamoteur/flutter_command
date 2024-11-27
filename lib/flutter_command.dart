@@ -204,7 +204,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
     /// isExecuting which also blocks execution if true
     _canExecute = (_restriction == null)
         ? _isExecuting.map((val) => !val) as ValueNotifier<bool>
-        : _restriction!.combineLatest<bool, bool>(
+        : _restriction.combineLatest<bool, bool>(
             _isExecuting,
             (restriction, isExecuting) => !restriction && !isExecuting,
           ) as ValueNotifier<bool>;
