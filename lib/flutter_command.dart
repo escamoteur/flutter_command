@@ -270,6 +270,11 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
 
       _commandResult.value = CommandResult<TParam, TResult>(
           param, _noReturnValue ? null : result, null, false);
+
+      /// make sure set _isExecuting to false before we notify the listeners
+      /// in case the listener wants to call another command that is restricted
+      /// by this isExecuting flag
+      _isExecuting.value = false;
       if (!_noReturnValue) {
         value = result;
       } else {

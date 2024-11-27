@@ -1,3 +1,5 @@
+[7.0.1] 27.11.2024
+* ensure that isExecuting is set back to false before we notify any result listeners.
 [7.0.0] 14.11.2024
 * add stricter static type checks. this is a breaking change because the `globalExceptionHandler` correctly has to accept `CommandError<dynamic>` instead of `CommandError<Object>`
 [6.0.1] 29.09.2024
