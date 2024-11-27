@@ -4,7 +4,7 @@ version: 7.0.1
 homepage: https://github.com/escamoteur/flutter_command
 
 environment:
-  sdk: ">=3.0.0 <4.0.0"
+  sdk: ">=3.5.0 <4.0.0"
 
 dependencies:
   flutter:
