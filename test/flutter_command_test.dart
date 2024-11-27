@@ -1245,7 +1245,9 @@ void main() {
           throw CustomException('Exception From Command');
         },
         initialValue: 'Initial Value',
-      );
+      )..errors.listen((error, _) {
+          print('Error: $error');
+        });
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -1345,7 +1347,9 @@ void main() {
           throw CustomException('Exception From Command');
         },
         initialValue: 'Initial Value',
-      );
+      )..errors.listen((error, _) {
+          print('Error: $error');
+        });
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(

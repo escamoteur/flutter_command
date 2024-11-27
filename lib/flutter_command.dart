@@ -197,8 +197,8 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
           : null);
     });
 
-    /// forward busy states to the `isExecuting` Listenable
-    _commandResult.listen((x, _) => _isExecuting.value = x.isExecuting);
+    // /// forward busy states to the `isExecuting` Listenable
+    // _commandResult.listen((x, _) => _isExecuting.value = x.isExecuting);
 
     /// Merge the external execution restricting with the internal
     /// isExecuting which also blocks execution if true
@@ -208,6 +208,12 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
             _isExecuting,
             (restriction, isExecuting) => !restriction && !isExecuting,
           ) as ValueNotifier<bool>;
+
+    /// decouple the async isExecuting from the sync isExecuting
+    /// so that _canExecute will update immediately
+    _isExecuting.listen((busy, _) {
+      _isExecutingAsync.value = busy;
+    });
   }
 
   /// Calls the wrapped handler function with an optional input parameter
@@ -351,7 +357,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
 
   /// `ValueListenable`  that changes its value on any change of the execution
   /// state change of the command
-  ValueListenable<bool> get isExecuting => _isExecuting;
+  ValueListenable<bool> get isExecuting => _isExecutingAsync;
 
   /// `ValueListenable<bool>` that changes its value on any change of the current
   /// executability state of the command. Meaning if the command can be executed or not.
@@ -447,8 +453,10 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// properties we make them private and only publish their `ValueListenable`
   /// interface via getters.
   late CustomValueNotifier<CommandResult<TParam?, TResult>> _commandResult;
-  final CustomValueNotifier<bool> _isExecuting =
+  final CustomValueNotifier<bool> _isExecutingAsync =
       CustomValueNotifier<bool>(false, asyncNotification: true);
+  final CustomValueNotifier<bool> _isExecuting =
+      CustomValueNotifier<bool>(false);
   late ValueNotifier<bool> _canExecute;
   late final ValueListenable<bool>? _restriction;
   final CustomValueNotifier<CommandError<TParam>?> _errors =
@@ -475,6 +483,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
         _commandResult.dispose();
         _canExecute.dispose();
         _isExecuting.dispose();
+        _isExecutingAsync.dispose();
         _errors.dispose();
         if (!(_futureCompleter?.isCompleted ?? true)) {
           _futureCompleter!.complete(null);
@@ -550,7 +559,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   }
 
   bool get _hasLocalErrorHandler =>
-      _commandResult.listenerCount >= 3 || _errors.hasListeners;
+      _commandResult.listenerCount >= 2 || _errors.hasListeners;
 
   void _handleErrorFiltered(
       TParam? param, Object error, StackTrace stackTrace) {
