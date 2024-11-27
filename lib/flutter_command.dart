@@ -358,6 +358,7 @@ abstract class Command<TParam, TResult> extends CustomValueNotifier<TResult> {
   /// `ValueListenable`  that changes its value on any change of the execution
   /// state change of the command
   ValueListenable<bool> get isExecuting => _isExecutingAsync;
+  ValueListenable<bool> get isExecutingSync => _isExecuting;
 
   /// `ValueListenable<bool>` that changes its value on any change of the current
   /// executability state of the command. Meaning if the command can be executed or not.
