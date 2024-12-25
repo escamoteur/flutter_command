@@ -47,6 +47,9 @@ class CommandBuilder<TParam, TResult> extends StatelessWidget {
           onData: onData != null
               ? (data, paramData) => onData!.call(context, data, paramData)
               : null,
+          onSuccess: onSuccess != null
+              ? (paramData) => onSuccess!.call(context, paramData)
+              : null,
           onNullData: onNullData != null
               ? (paramData) => onNullData!.call(context, paramData)
               : null,
