@@ -44,15 +44,16 @@ class CommandBuilder<TParam, TResult> extends StatelessWidget {
       valueListenable: command.results,
       builder: (context, result, _) {
         return result.toWidget(
-          onSuccess: (paramData) =>
-              onSuccess?.call(context, paramData) ?? const SizedBox(),
-          onData: (data, paramData) =>
-              onData?.call(context, data, paramData) ?? const SizedBox(),
-          onNullData: (paramData) =>
-              onNullData?.call(context, paramData) ?? const SizedBox(),
-          whileExecuting: (lastData, paramData) =>
-              whileExecuting?.call(context, lastData, paramData) ??
-              const SizedBox(),
+          onData: onData != null
+              ? (data, paramData) => onData!.call(context, data, paramData)
+              : null,
+          onNullData: onNullData != null
+              ? (paramData) => onNullData!.call(context, paramData)
+              : null,
+          whileExecuting: whileExecuting != null
+              ? (lastData, paramData) =>
+                  whileExecuting!.call(context, lastData, paramData)
+              : null,
           onError: (lastData, error, paramData) {
             if (onError == null) {
               return const SizedBox();
