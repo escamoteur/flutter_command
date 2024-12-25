@@ -1,3 +1,6 @@
+[7.2.0] - 25.12.2024
+* adding `onSuccess` builder to the `CommandBuilder` and `isSuccess` to the `CommandResults` to make them easiery to use
+if the Command doesn't return a value. 
 [7.1.0] 27.11.2024
 * adding `isExecutingSync` to allow better chaining of commands 
 [7.0.1] 27.11.2024

@@ -11,7 +11,6 @@ import 'package:stack_trace/stack_trace.dart';
 
 import 'error_filters.dart';
 
-export 'package:flutter_command/command_builder.dart';
 export 'package:flutter_command/error_filters.dart';
 export 'package:functional_listener/functional_listener.dart';
 
@@ -19,6 +18,7 @@ part './async_command.dart';
 part './mock_command.dart';
 part './sync_command.dart';
 part './undoable_command.dart';
+part './command_builder.dart';
 
 /// Combined execution state of a `Command` represented using four of its fields.
 /// A [CommandResult] will be issued for any state change of any of its fields
@@ -52,6 +52,9 @@ class CommandResult<TParam, TResult> {
 
   const CommandResult.blank() : this(null, null, null, false);
 
+  /// if a CommandResult is not executing and has no error, it is considered successful
+  /// if the command has no return value, this can be used to check if the command was executed successfully
+  bool get isSuccess => !isExecuting && !hasError;
   bool get hasData => data != null;
 
   bool get hasError => error != null && !isUndoValue;

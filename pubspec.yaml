@@ -1,6 +1,6 @@
 name: flutter_command
 description: flutter_command is a way to manage your state based on `ValueListenable` and the `Command` design pattern.
-version: 7.1.0
+version: 7.2.0
 homepage: https://github.com/escamoteur/flutter_command
 
 environment:

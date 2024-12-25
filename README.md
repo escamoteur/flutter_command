@@ -311,8 +311,10 @@ class CommandResult<TParam, TResult> {
   final Object error;
   final bool isExecuting;
 
+  bool get isSuccsess => !hasError && !isExecuting; 
   bool get hasData => data != null;
   bool get hasError => error != null;
+  
 
   /// This is a stripped down version of the class. Please see the source
 }
@@ -377,6 +379,9 @@ child: CommandBuilder<String, List<WeatherEntry>>(
   ),
 ),
 ```
+
+In case your Command does not return a value you can use the `onSuccess` builder.
+
 
 ### toWidget() extension method on Command Result
 I you are using a package `get_it_mixin`, `provider` or `flutter_hooks` you probably don't want to use the `CommandBuilder` for you there is an extension method for the `CommandResult` type that you can use like this:
