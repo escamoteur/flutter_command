@@ -1,3 +1,5 @@
+[7.2.1] - 25.12.2024
+* logic fix
 [7.2.0] - 25.12.2024
 * adding `onSuccess` builder to the `CommandBuilder` and `isSuccess` to the `CommandResults` to make them easiery to use
 if the Command doesn't return a value. 
