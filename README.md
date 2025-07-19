@@ -1,3 +1,6 @@
+> This repository is archived, all future development will happen on https://github.com/flutter-it/command_it
+
+
 # flutter_command
 ![Build](https://github.com/escamoteur/flutter_command/workflows/Build/badge.svg)
 [![codecov](https://codecov.io/gh/escamoteur/flutter_command/branch/master/graph/badge.svg)](https://codecov.io/gh/escamoteur/flutter_command)
